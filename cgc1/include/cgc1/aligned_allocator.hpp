@@ -8,7 +8,7 @@ namespace cgc1
   {
   public:
     static constexpr size_t alignment = Alignment;
-    using other = aligned_allocator_t<void,alignment>;
+    using other = aligned_allocator_t<void, alignment>;
     using value_type = void;
     using pointer = void *;
     using const_pointer = const void *;
@@ -24,14 +24,14 @@ namespace cgc1
     {
     }
     template <class _Other>
-    aligned_allocator_t<void,alignment> &operator=(const aligned_allocator_t<_Other, alignment> &) noexcept
+    aligned_allocator_t<void, alignment> &operator=(const aligned_allocator_t<_Other, alignment> &) noexcept
     {
       return *this;
     }
     aligned_allocator_t(aligned_allocator_t<void, Alignment> &&) noexcept = default;
   };
-  template<size_t Alignment>
-  using aligned_allocator_generic_t = aligned_allocator_t<void,Alignment>;
+  template <size_t Alignment>
+  using aligned_allocator_generic_t = aligned_allocator_t<void, Alignment>;
   using default_aligned_allocator_t = aligned_allocator_generic_t<8>;
   template <class T, size_t Alignment>
   class aligned_allocator_t
@@ -48,18 +48,18 @@ namespace cgc1
     using difference_type = ::std::ptrdiff_t;
     using propogate_on_container_move_assignment = ::std::true_type;
     aligned_allocator_t() noexcept = default;
-    aligned_allocator_t(const aligned_allocator_t<T,Alignment> &) noexcept = default;
+    aligned_allocator_t(const aligned_allocator_t<T, Alignment> &) noexcept = default;
     template <class _Other>
-    aligned_allocator_t(const aligned_allocator_t<_Other,Alignment> &) noexcept
+    aligned_allocator_t(const aligned_allocator_t<_Other, Alignment> &) noexcept
     {
     }
     template <class _Other>
-    aligned_allocator_t<void, alignment> &operator=(const aligned_allocator_t<_Other,Alignment> &) noexcept
+    aligned_allocator_t<void, alignment> &operator=(const aligned_allocator_t<_Other, Alignment> &) noexcept
     {
       return *this;
     }
-    aligned_allocator_t(aligned_allocator_t<T,Alignment> &&) noexcept = default;
-    aligned_allocator_t &operator=(aligned_allocator_t<T,Alignment> &&) noexcept = default;
+    aligned_allocator_t(aligned_allocator_t<T, Alignment> &&) noexcept = default;
+    aligned_allocator_t &operator=(aligned_allocator_t<T, Alignment> &&) noexcept = default;
     bool operator==(aligned_allocator_t) noexcept
     {
       return true;
@@ -82,22 +82,20 @@ namespace cgc1
     {
       return ::std::addressof(x);
     }
-    pointer allocate(size_type n, typename aligned_allocator_t<void,alignment>::const_pointer = nullptr)
+    pointer allocate(size_type n, typename aligned_allocator_t<void, alignment>::const_pointer = nullptr)
     {
-      assert(!in_signal_handler());
 #ifdef _WIN32
-      return reinterpret_cast<pointer>(::_aligned_malloc(n * sizeof(T),alignment));
+      return reinterpret_cast<pointer>(::_aligned_malloc(n * sizeof(T), alignment));
 #else
-#error
+      return reinterpret_cast<pointer>(::aligned_alloc(alignment, n * sizeof(T)));
 #endif
     }
     void deallocate(pointer p, size_type)
     {
-      assert(!in_signal_handler());
 #ifdef _WIN32
       ::_aligned_free(p);
 #else
-#error
+      free(p);
 #endif
     }
     size_type max_size() const noexcept
@@ -119,13 +117,13 @@ namespace cgc1
   Deleter for aligned allocator.
   Use for unique/shared ptrs.
   **/
-  template<size_t Alignment>
+  template <size_t Alignment>
   struct aligned_deleter_t
   {
     template <typename T>
     void operator()(T *t)
     {
-      aligned_allocator_t<T,Alignment> allocator;
+      aligned_allocator_t<T, Alignment> allocator;
       allocator.destroy(t);
       allocator.deallocate(t, 1);
     }
@@ -134,9 +132,8 @@ namespace cgc1
   Tag for dispatch of getting deleter.
   **/
   template <typename T, size_t Alignment>
-  struct cgc_allocator_deleter_t<T, aligned_allocator_t<void,Alignment>>
+  struct cgc_allocator_deleter_t<T, aligned_allocator_t<void, Alignment>>
   {
     using type = aligned_deleter_t<Alignment>;
   };
 }
-

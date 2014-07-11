@@ -51,7 +51,7 @@ namespace cgc1
       **/
       object_state_t *current_end() const;
       /**
-      Return beginning object state. 
+      Return beginning object state.
       Produces undefined behavior if no valid object states.
       **/
       object_state_t *_object_state_begin() const;
@@ -59,7 +59,7 @@ namespace cgc1
       Find the object state associated with the given address.
       Return nullptr if not found.
       **/
-      object_state_t *find_address(void* addr) const;
+      object_state_t *find_address(void *addr) const;
       /**
       Allocate size bytes on the block, return nullptr if not possible.
       **/
@@ -95,23 +95,34 @@ namespace cgc1
       /// start of memory block.
       uint8_t *m_start;
 
-      unique_ptr_allocated<user_data_type,Allocator> m_default_user_data;
+      unique_ptr_allocated<user_data_type, Allocator> m_default_user_data;
     };
     class user_data_base_t
     {
     public:
       user_data_base_t() = delete;
       template <typename Allocator, typename User_Data>
-      user_data_base_t(allocator_block_t<Allocator,User_Data>* block);
-      user_data_base_t(const user_data_base_t&) = default;
-      user_data_base_t(user_data_base_t&&) = default;
+      user_data_base_t(allocator_block_t<Allocator, User_Data> *block);
+      user_data_base_t(const user_data_base_t &) = default;
+      user_data_base_t(user_data_base_t &&) = default;
       static constexpr size_t c_magic_constant = 0x8e6866a1;
       size_t m_magic_constant = c_magic_constant;
-      bool is_magic_constant_valid() const { return m_magic_constant == c_magic_constant; }
-      uint8_t* allocator_block_begin() const { return m_allocator_block_begin; }
-      object_state_t* allocator_block_state_begin() const { return reinterpret_cast<object_state_t*>(allocator_block_begin()); }
+      bool is_magic_constant_valid() const
+      {
+        return m_magic_constant == c_magic_constant;
+      }
+      uint8_t *allocator_block_begin() const
+      {
+        return m_allocator_block_begin;
+      }
+      object_state_t *allocator_block_state_begin() const
+      {
+        return reinterpret_cast<object_state_t *>(allocator_block_begin());
+      }
+
     private:
       uint8_t *m_allocator_block_begin;
+
     public:
       /**
       True if is default, false otherwise.
@@ -122,7 +133,7 @@ namespace cgc1
     {
     public:
       template <typename Allocator, typename User_Data>
-      gc_user_data_t(allocator_block_t<Allocator,User_Data>* block);
+      gc_user_data_t(allocator_block_t<Allocator, User_Data> *block);
       /**
       Optional finalizer function to run.
       **/
@@ -144,7 +155,8 @@ namespace cgc1
     @param user_data_range_begin Beginning of the memory range that is a valid location for user data.
     @param user_data_range_end End of the memory range that is a valid location for user data.
     **/
-    inline bool is_valid_object_state(const object_state_t* state, const uint8_t* user_data_range_begin, const uint8_t* user_data_range_end);
+    inline bool
+    is_valid_object_state(const object_state_t *state, const uint8_t *user_data_range_begin, const uint8_t *user_data_range_end);
   }
 }
 #include "allocator_block_impl.hpp"

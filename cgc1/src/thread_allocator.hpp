@@ -36,7 +36,8 @@ namespace cgc1
       using allocator = Allocator;
       using global_allocator = Global_Allocator;
       using allocator_traits = Allocator_Traits;
-      using this_allocator_block_set_t = allocator_block_set_t<allocator,typename allocator_traits::allocator_block_user_data_type>;
+      using this_allocator_block_set_t =
+          allocator_block_set_t<allocator, typename allocator_traits::allocator_block_user_data_type>;
       /**
       Number of allocator size bins.
       **/

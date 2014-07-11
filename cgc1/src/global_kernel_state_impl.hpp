@@ -33,7 +33,7 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_freed_in_last_collection.insert(m_freed_in_last_collection.end(), container.begin(), container.end());
     }
-    inline bool global_kernel_state_t::is_valid_object_state(const object_state_t* os) const
+    inline bool global_kernel_state_t::is_valid_object_state(const object_state_t *os) const
     {
       return details::is_valid_object_state(os, _internal_allocator()._u_begin(), _internal_allocator()._u_current_end());
     }

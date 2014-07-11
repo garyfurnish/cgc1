@@ -1,24 +1,26 @@
 #pragma once
 #include "allocator_block.hpp"
+#include "internal_allocator.hpp"
 #include <assert.h>
 namespace cgc1
 {
   namespace details
   {
     template <typename Allocator, typename User_Data>
-    user_data_base_t::user_data_base_t(allocator_block_t<Allocator,User_Data>* block):m_allocator_block_begin(block->begin())
-    {
-
-    }
-    template <typename Allocator, typename User_Data>
-    gc_user_data_t::gc_user_data_t(allocator_block_t<Allocator,User_Data>* block) : user_data_base_t(block)
+    user_data_base_t::user_data_base_t(allocator_block_t<Allocator, User_Data> *block)
+        : m_allocator_block_begin(block->begin())
     {
     }
     template <typename Allocator, typename User_Data>
-    inline allocator_block_t<Allocator,User_Data>::allocator_block_t(void *start, size_t length, size_t minimum_alloc_length)
-      : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
-      m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
-      m_start(reinterpret_cast<uint8_t *>(start))
+    gc_user_data_t::gc_user_data_t(allocator_block_t<Allocator, User_Data> *block)
+        : user_data_base_t(block)
+    {
+    }
+    template <typename Allocator, typename User_Data>
+    inline allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start, size_t length, size_t minimum_alloc_length)
+        : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
+          m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
+          m_start(reinterpret_cast<uint8_t *>(start))
     {
       if (((size_t)m_start) % c_alignment != 0)
         abort();
@@ -31,14 +33,16 @@ namespace cgc1
       m_default_user_data->m_is_default = true;
     }
     template <typename Allocator, typename User_Data>
-    inline allocator_block_t<Allocator,User_Data>::allocator_block_t(allocator_block_t &&block)
+    inline allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block)
         : m_free_list(std::move(block.m_free_list)), m_next_alloc_ptr(block.m_next_alloc_ptr), m_end(block.m_end),
-        m_minimum_alloc_length(block.m_minimum_alloc_length), m_start(block.m_start), m_default_user_data(std::move(block.m_default_user_data))
+          m_minimum_alloc_length(block.m_minimum_alloc_length), m_start(block.m_start),
+          m_default_user_data(std::move(block.m_default_user_data))
     {
       block.clear();
     }
     template <typename Allocator, typename User_Data>
-    inline allocator_block_t<Allocator,User_Data> &allocator_block_t<Allocator,User_Data>::operator=(allocator_block_t<Allocator,User_Data> &&block)
+    inline allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
+    operator=(allocator_block_t<Allocator, User_Data> &&block)
     {
       m_free_list = std::move(block.m_free_list);
       m_next_alloc_ptr = block.m_next_alloc_ptr;
@@ -49,7 +53,7 @@ namespace cgc1
       return *this;
     }
     template <typename Allocator, typename User_Data>
-    inline void allocator_block_t<Allocator,User_Data>::clear()
+    inline void allocator_block_t<Allocator, User_Data>::clear()
     {
       m_free_list.clear();
       m_next_alloc_ptr = nullptr;
@@ -57,34 +61,34 @@ namespace cgc1
       m_start = nullptr;
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator,User_Data>::valid() const
+    inline bool allocator_block_t<Allocator, User_Data>::valid() const
     {
       return m_start != nullptr;
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator,User_Data>::empty() const
+    inline bool allocator_block_t<Allocator, User_Data>::empty() const
     {
       if (!m_next_alloc_ptr)
         return false;
       return reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == begin() && !m_next_alloc_ptr->next_valid();
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator,User_Data>::full() const
+    inline bool allocator_block_t<Allocator, User_Data>::full() const
     {
       return m_next_alloc_ptr == nullptr && m_free_list.empty();
     }
     template <typename Allocator, typename User_Data>
-    inline uint8_t *allocator_block_t<Allocator,User_Data>::begin() const
+    inline uint8_t *allocator_block_t<Allocator, User_Data>::begin() const
     {
       return m_start;
     }
     template <typename Allocator, typename User_Data>
-    inline uint8_t *allocator_block_t<Allocator,User_Data>::end() const
+    inline uint8_t *allocator_block_t<Allocator, User_Data>::end() const
     {
       return m_end;
     }
     template <typename Allocator, typename User_Data>
-    inline object_state_t *allocator_block_t<Allocator,User_Data>::current_end() const
+    inline object_state_t *allocator_block_t<Allocator, User_Data>::current_end() const
     {
       if (!m_next_alloc_ptr)
         return reinterpret_cast<object_state_t *>(end());
@@ -97,12 +101,10 @@ namespace cgc1
       return reinterpret_cast<object_state_t *>(begin());
     }
     template <typename Allocator, typename User_Data>
-    inline object_state_t *allocator_block_t<Allocator, User_Data>::find_address(void* addr) const
+    inline object_state_t *allocator_block_t<Allocator, User_Data>::find_address(void *addr) const
     {
-      for (auto it = make_next_iterator(_object_state_begin()); it!=make_next_iterator(current_end()); ++it)
-      {
-        if (it->object_end() > addr)
-        {
+      for (auto it = make_next_iterator(_object_state_begin()); it != make_next_iterator(current_end()); ++it) {
+        if (it->object_end() > addr) {
           return it;
         }
       }
@@ -110,7 +112,7 @@ namespace cgc1
     }
 #if _CGC1_DEBUG_LEVEL > 1
     template <typename Allocator, typename User_Data>
-    void allocator_block_t<Allocator,User_Data>::_verify(const object_state_t *state)
+    void allocator_block_t<Allocator, User_Data>::_verify(const object_state_t *state)
     {
       if (state) {
         assert(state->object_size() < static_cast<size_t>(end() - begin()));
@@ -126,12 +128,12 @@ namespace cgc1
     }
 #else
     template <typename Allocator, typename User_Data>
-    void allocator_block_t<Allocator,User_Data>::_verify(const object_state_t *)
+    void allocator_block_t<Allocator, User_Data>::_verify(const object_state_t *)
     {
     }
 #endif
     template <typename Allocator, typename User_Data>
-    inline void *allocator_block_t<Allocator,User_Data>::allocate(size_t size)
+    inline void *allocator_block_t<Allocator, User_Data>::allocate(size_t size)
     {
       _verify(nullptr);
       cgc1_builtin_prefetch(this);
@@ -200,17 +202,17 @@ namespace cgc1
       }
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator,User_Data>::destroy(void *v)
+    inline bool allocator_block_t<Allocator, User_Data>::destroy(void *v)
     {
       if (!v)
         return true;
       if (v < begin() || v >= end())
         return false;
       object_state_t *state = object_state_t::from_object_start(v);
-      if (state->user_data() && state->user_data()!=m_default_user_data.get()) {
-        allocator::rebind<User_Data>::other a;
-        a.destroy(static_cast<User_Data*>(state->user_data()));
-        a.deallocate(static_cast<User_Data*>(state->user_data()), 1);
+      if (state->user_data() && state->user_data() != m_default_user_data.get()) {
+        typename allocator::template rebind<User_Data>::other a;
+        a.destroy(static_cast<User_Data *>(state->user_data()));
+        a.deallocate(static_cast<User_Data *>(state->user_data()), 1);
       }
       state->set_in_use(false);
       object_state_t *next = state->next();
@@ -231,7 +233,7 @@ namespace cgc1
       return true;
     }
     template <typename Allocator, typename User_Data>
-    inline size_t allocator_block_t<Allocator,User_Data>::max_alloc_available() const
+    inline size_t allocator_block_t<Allocator, User_Data>::max_alloc_available() const
     {
       size_t max_alloc = 0;
       if (m_next_alloc_ptr)
@@ -242,7 +244,7 @@ namespace cgc1
       return max_alloc;
     }
     template <typename Allocator, typename User_Data>
-    inline void allocator_block_t<Allocator,User_Data>::collect()
+    inline void allocator_block_t<Allocator, User_Data>::collect()
     {
       object_state_t *state = reinterpret_cast<object_state_t *>(begin());
       _verify(state);
@@ -278,12 +280,14 @@ namespace cgc1
         _verify(state);
       }
     }
-    inline bool is_valid_object_state(const object_state_t* state, const uint8_t* user_data_range_begin, const uint8_t* user_data_range_end)
+    inline bool
+    is_valid_object_state(const object_state_t *state, const uint8_t *user_data_range_begin, const uint8_t *user_data_range_end)
     {
       if (!state->in_use())
         return false;
       auto user_data = state->user_data();
-      if (reinterpret_cast<const uint8_t*>(user_data) < user_data_range_begin || reinterpret_cast<const uint8_t*>(user_data) >= user_data_range_end)
+      if (reinterpret_cast<const uint8_t *>(user_data) < user_data_range_begin ||
+          reinterpret_cast<const uint8_t *>(user_data) >= user_data_range_end)
         return false;
       return user_data->is_magic_constant_valid();
     }

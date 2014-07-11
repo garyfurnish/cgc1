@@ -200,8 +200,7 @@ namespace cgc1
       object_state_t *os = object_state_t::from_object_start(addr);
       if (os < heap_begin || os >= heap_end)
         return;
-      if (!g_gks.is_valid_object_state(os))
-      {
+      if (!g_gks.is_valid_object_state(os)) {
         os = g_gks._u_find_valid_object_state(addr);
         if (!os)
           return;
@@ -250,19 +249,17 @@ namespace cgc1
     void gc_thread_t::_finalize()
     {
       cgc_internal_vector_t<void *> to_be_freed;
-      for (auto& os : m_to_be_freed) {
+      for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
-          if (ud->m_uncollectable)
-          {
+          if (ud->m_uncollectable) {
             os = nullptr;
             continue;
           }
           if (ud->m_finalizer)
             ud->m_finalizer(os->object_start());
-          //delete user data if not owned by block.
-          if (!ud->m_is_default)
-          {
+          // delete user data if not owned by block.
+          if (!ud->m_is_default) {
             unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
           }
         }

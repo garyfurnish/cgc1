@@ -128,17 +128,17 @@ namespace cgc1
       /**
       Return true if the object state is valid, false otherwise.
       **/
-      bool is_valid_object_state(const object_state_t* os) const;
+      bool is_valid_object_state(const object_state_t *os) const;
       /**
       Find a valid object state for the given addr.
       Return nullptr if not found.
       **/
-      object_state_t* _u_find_valid_object_state(void* addr) const _Exclusive_Locks_Required_(m_mutex);
+      object_state_t *_u_find_valid_object_state(void *addr) const _Exclusive_Locks_Required_(m_mutex);
       /**
       Find a valid object state for the given addr.
       Return nullptr if not found.
       **/
-      object_state_t* find_valid_object_state(void* addr) const _Locks_Excluded_(m_mutex);
+      object_state_t *find_valid_object_state(void *addr) const _Locks_Excluded_(m_mutex);
 
     private:
       /**

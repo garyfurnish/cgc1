@@ -109,12 +109,14 @@ namespace cgc1
       return m_allocator_multiples[id] * (2 << (id + 4));
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz) -> this_allocator_block_set_t &
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz)
+        -> this_allocator_block_set_t &
     {
       return m_allocators[find_block_set_id(sz)];
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_block_sizes() const -> ::std::array<size_t, c_bins>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_block_sizes() const
+        -> ::std::array<size_t, c_bins>
     {
       ::std::array<size_t, c_bins> array;
       for (size_t id = 0; id < c_bins; ++id)
@@ -128,7 +130,8 @@ namespace cgc1
       return m_allocators[find_block_set_id(os->object_size())].destroy(v);
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const -> const ::std::array<size_t, c_bins> &
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const
+        -> const ::std::array<size_t, c_bins> &
     {
       return m_allocator_multiples;
     }

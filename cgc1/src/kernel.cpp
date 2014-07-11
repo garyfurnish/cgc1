@@ -2,6 +2,7 @@
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
 #include <cgc1/cgc1.hpp>
+#include <cstring>
 namespace cgc1
 {
   namespace details
@@ -41,10 +42,10 @@ namespace cgc1
     auto &ta = details::g_gks.gc_allocator().initialize_thread();
     return ta.allocate(sz);
   }
-  void *cgc_realloc(void * v, size_t sz)
+  void *cgc_realloc(void *v, size_t sz)
   {
-    void* ret = cgc_malloc(sz);
-    memcpy(ret, v, sz);
+    void *ret = cgc_malloc(sz);
+    ::memcpy(ret, v, sz);
     return ret;
   }
   void cgc_free(void *v)
@@ -52,26 +53,25 @@ namespace cgc1
     auto &ta = details::g_gks.gc_allocator().initialize_thread();
     ta.destroy(v);
   }
-  bool cgc_is_cgc(void * v)
+  bool cgc_is_cgc(void *v)
   {
     return cgc_size(v) > 0;
   }
-  void* cgc_start(void* addr)
+  void *cgc_start(void *addr)
   {
     if (!addr)
       return nullptr;
     details::object_state_t *os = details::object_state_t::from_object_start(addr);
-    if (!details::g_gks.is_valid_object_state(os))
-    {
+    if (!details::g_gks.is_valid_object_state(os)) {
       os = details::g_gks.find_valid_object_state(addr);
       if (!os)
         return nullptr;
     }
     return os->object_start();
   }
-  size_t cgc_size(void * addr)
+  size_t cgc_size(void *addr)
   {
-    details::object_state_t* os = details::object_state_t::from_object_start(cgc_start(addr));
+    details::object_state_t *os = details::object_state_t::from_object_start(cgc_start(addr));
     if (os)
       return os->object_size();
     else
@@ -125,35 +125,33 @@ namespace cgc1
   {
     details::g_gks.shutdown();
   }
-  void cgc_register_finalizer(void* addr, ::std::function<void(void*)> finalizer)
+  void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer)
   {
     if (!addr)
       return;
-    details::object_state_t* os = details::object_state_t::from_object_start(cgc_start(addr));
+    details::object_state_t *os = details::object_state_t::from_object_start(cgc_start(addr));
     if (!os)
       return;
-    details::gc_user_data_t* ud = static_cast<details::gc_user_data_t*>(os->user_data());
-    if (ud->m_is_default)
-    {
+    details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
+    if (ud->m_is_default) {
       ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
       ud->m_is_default = false;
       os->set_user_data(ud);
     }
     ud->m_finalizer = finalizer;
   }
-  void cgc_set_uncollectable(void* addr, bool is_uncollectable)
+  void cgc_set_uncollectable(void *addr, bool is_uncollectable)
   {
     if (!addr)
       return;
-    void* start = cgc_start(addr);
+    void *start = cgc_start(addr);
     if (!start)
       return;
-    details::object_state_t* os = details::object_state_t::from_object_start(start);
+    details::object_state_t *os = details::object_state_t::from_object_start(start);
     if (!os)
       return;
-    details::gc_user_data_t* ud = static_cast<details::gc_user_data_t*>(os->user_data());
-    if (ud->m_is_default)
-    {
+    details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
+    if (ud->m_is_default) {
       ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
       ud->m_is_default = false;
       os->set_user_data(ud);

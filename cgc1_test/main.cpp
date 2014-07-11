@@ -316,8 +316,10 @@ go_bandit([]() {
       });
       it("find", [&]() {
         AssertThat(block.find_address(alloc2) == cgc1::details::object_state_t::from_object_start(alloc2), IsTrue());
-        AssertThat(block.find_address(reinterpret_cast<uint8_t*>(alloc2) + 1) == cgc1::details::object_state_t::from_object_start(alloc2), IsTrue());
-        AssertThat(block.find_address(reinterpret_cast<uint8_t*>(alloc2) + 50) == nullptr, IsTrue());
+        AssertThat(block.find_address(reinterpret_cast<uint8_t *>(alloc2) + 1) ==
+                       cgc1::details::object_state_t::from_object_start(alloc2),
+                   IsTrue());
+        AssertThat(block.find_address(reinterpret_cast<uint8_t *>(alloc2) + 50) == nullptr, IsTrue());
       });
       free(memory);
     });
@@ -371,12 +373,9 @@ go_bandit([]() {
         AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(16), Equals((size_t)0));
         AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(17), Equals((size_t)1));
         AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(32), Equals((size_t)2));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(524287),
-                   Equals((size_t)15));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000),
-                   Equals((size_t)16));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000000),
-                   Equals((size_t)17));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(524287), Equals((size_t)15));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000), Equals((size_t)16));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000000), Equals((size_t)17));
       });
       free(memory1);
       free(memory2);
@@ -594,8 +593,8 @@ go_bandit([]() {
       }
       locations.clear();
     });
-    it("Root test", [](){
-      void* memory = cgc1::cgc_malloc(50);
+    it("Root test", []() {
+      void *memory = cgc1::cgc_malloc(50);
       size_t old_memory = cgc1::hide_pointer(memory);
       cgc1::cgc_add_root(&memory);
       cgc1::cgc_force_collect();
@@ -610,8 +609,8 @@ go_bandit([]() {
       AssertThat(last_collect, HasLength(1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
-    it("Internal Pointer test", [](){
-      uint8_t* memory = reinterpret_cast<uint8_t*>(cgc1::cgc_malloc(50));
+    it("Internal Pointer test", []() {
+      uint8_t *memory = reinterpret_cast<uint8_t *>(cgc1::cgc_malloc(50));
       size_t old_memory = cgc1::hide_pointer(memory);
       memory += 1;
       cgc1::cgc_add_root(&memory);
@@ -627,12 +626,13 @@ go_bandit([]() {
       AssertThat(last_collect, HasLength(1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
-    it("Finalizers", [](){
-      void* memory = cgc1::cgc_malloc(50);
+    it("Finalizers", []() {
+      void *memory = cgc1::cgc_malloc(50);
       size_t old_memory = cgc1::hide_pointer(memory);
-      std::atomic<bool> finalized = false;
-      cgc1::cgc_register_finalizer(memory, [&finalized](auto){finalized = true; });
-      cgc1::cgc_register_finalizer(nullptr, [](auto){});
+      std::atomic<bool> finalized;
+      finalized = false;
+      cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; });
+      cgc1::cgc_register_finalizer(nullptr, [](void *) {});
       memory = nullptr;
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
@@ -641,8 +641,8 @@ go_bandit([]() {
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
       AssertThat((bool)finalized, IsTrue());
     });
-    it("Uncollectable", [](){
-      void* memory = cgc1::cgc_malloc(50);
+    it("Uncollectable", []() {
+      void *memory = cgc1::cgc_malloc(50);
       size_t old_memory = cgc1::hide_pointer(memory);
       cgc1::cgc_set_uncollectable(memory, true);
       cgc1::cgc_set_uncollectable(nullptr, true);

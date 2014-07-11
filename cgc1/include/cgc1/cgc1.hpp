@@ -38,7 +38,7 @@ namespace cgc1
   Return the start of an allocated block of memory.
   Return nullptr on error.
   **/
-  extern void* cgc_start(void* v);
+  extern void *cgc_start(void *v);
   /**
   Add a root to scan.
   **/
@@ -50,18 +50,18 @@ namespace cgc1
   /**
   Add a root to scan.
   **/
-  template<typename T>
+  template <typename T>
   void cgc_add_root(T **v)
   {
-    cgc_add_root((void**)v);
+    cgc_add_root((void **)v);
   }
   /**
   Remove a root to scan.
   **/
-  template<typename T>
+  template <typename T>
   void cgc_remove_root(T **v)
   {
-    cgc_remove_root((void**)v);
+    cgc_remove_root((void **)v);
   }
   /**
   Return the current heap size.
@@ -109,13 +109,13 @@ namespace cgc1
   **/
   extern void cgc_register_thread(void *top_of_stack);
   /**
-  Register a finalizer. 
+  Register a finalizer.
   **/
-  extern void cgc_register_finalizer(void* addr, ::std::function<void(void*)> finalizer);
+  extern void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer);
   /**
   Set if a given address is uncollectable.
   **/
-  extern void cgc_set_uncollectable(void* addr, bool is_uncollectable);
+  extern void cgc_set_uncollectable(void *addr, bool is_uncollectable);
   /**
   Shutdown the garbage collector.  Can not be undone.
   **/

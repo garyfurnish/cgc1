@@ -89,7 +89,8 @@ namespace cgc1
     }
     template <typename Allocator, typename Traits>
     template <typename... Args>
-    inline auto allocator_t<Allocator, Traits>::create_allocator_block(this_thread_allocator_t &ta, size_t sz, Args &&... args) -> block_type
+    inline auto allocator_t<Allocator, Traits>::create_allocator_block(this_thread_allocator_t &ta, size_t sz, Args &&... args)
+        -> block_type
     {
       auto memory = get_memory(sz);
       if (!memory.first)
@@ -99,8 +100,7 @@ namespace cgc1
       return block;
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta,
-                                                                        block_type &&in_block)
+    inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&in_block)
     {
       m_traits.on_destroy_allocator_block(ta, in_block);
       auto block = std::move(in_block);
@@ -116,8 +116,7 @@ namespace cgc1
       }
     };
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::register_allocator_block(this_thread_allocator_t &ta,
-                                                                         block_type &block)
+    inline void allocator_t<Allocator, Traits>::register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _ud_verify();
@@ -127,8 +126,7 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::unregister_allocator_block(this_thread_allocator_t &ta,
-                                                                           block_type &block)
+    inline void allocator_t<Allocator, Traits>::unregister_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _ud_verify();
@@ -156,8 +154,7 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_move_registered_block(block_type *old_block,
-                                                                  block_type *new_block)
+    void allocator_t<Allocator, Traits>::_u_move_registered_block(block_type *old_block, block_type *new_block)
     {
       this_allocator_block_handle_t handle(nullptr, old_block, new_block->begin());
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
@@ -187,8 +184,7 @@ namespace cgc1
     void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Container &blocks, size_t offset)
     {
       for (block_type &block : const_cast<Container &>(blocks)) {
-        block_type *old_block =
-            reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(&block) - offset);
+        block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(&block) - offset);
         _u_move_registered_block(old_block, &block);
       }
       _ud_verify();
@@ -196,7 +192,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     inline auto allocator_t<Allocator, Traits>::_u_find_block(void *in_addr) -> const this_allocator_block_handle_t *
     {
-      uint8_t* addr = reinterpret_cast<uint8_t*>(in_addr);
+      uint8_t *addr = reinterpret_cast<uint8_t *>(in_addr);
       _ud_verify();
       this_allocator_block_handle_t handle(nullptr, nullptr, addr);
       auto lb = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
@@ -316,7 +312,7 @@ namespace cgc1
       return m_free_list;
     }
     template <typename Allocator, typename Traits>
-    inline auto allocator_t<Allocator, Traits>::initialize_thread() -> this_thread_allocator_t&
+    inline auto allocator_t<Allocator, Traits>::initialize_thread() -> this_thread_allocator_t &
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _ud_verify();

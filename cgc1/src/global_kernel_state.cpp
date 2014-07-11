@@ -56,17 +56,17 @@ namespace cgc1
     {
       return m_enabled_count > 0;
     }
-    object_state_t* global_kernel_state_t::_u_find_valid_object_state(void* addr) const
+    object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
       auto handle = details::g_gks.gc_allocator()._u_find_block(addr);
       if (!handle)
         return nullptr;
-      object_state_t* os = handle->m_block->find_address(addr);
+      object_state_t *os = handle->m_block->find_address(addr);
       if (!os || !os->in_use())
         return nullptr;
       return os;
     }
-    object_state_t* global_kernel_state_t::find_valid_object_state(void* addr) const
+    object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       return _u_find_valid_object_state(addr);

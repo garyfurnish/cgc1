@@ -21,8 +21,8 @@ namespace cgc1
       using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
 
       explicit allocator_block_set_t() = default;
-      allocator_block_set_t(const allocator_block_set_t<allocator,allocator_block_user_data_type> &) = delete;
-      allocator_block_set_t(allocator_block_set_t<allocator,allocator_block_user_data_type> &&abs) = default;
+      allocator_block_set_t(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
+      allocator_block_set_t(allocator_block_set_t<allocator, allocator_block_user_data_type> &&abs) = default;
       allocator_block_set_t &operator=(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
       allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
       /**
@@ -87,7 +87,7 @@ namespace cgc1
       /**
       Return reference to last added block.
       **/
-      allocator_block_type& last_block();
+      allocator_block_type &last_block();
       /**
       Push all empty block memory ranges onto container t and then remove them.
       **/

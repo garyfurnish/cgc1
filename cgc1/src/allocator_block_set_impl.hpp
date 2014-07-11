@@ -6,7 +6,8 @@ namespace cgc1
   namespace details
   {
     template <typename Allocator, typename Allocator_Block_User_Data>
-    inline allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocator_block_set_t(size_t allocator_min_size, size_t allocator_max_size)
+    inline allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocator_block_set_t(size_t allocator_min_size,
+                                                                                              size_t allocator_max_size)
         : m_allocator_min_size(allocator_min_size), m_allocator_max_size(allocator_max_size)
     {
     }
@@ -146,7 +147,8 @@ namespace cgc1
       return false;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block(allocator_block_t<Allocator, Allocator_Block_User_Data> &&block)
+    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block(
+        allocator_block_t<Allocator, Allocator_Block_User_Data> &&block)
     {
       _verify();
       if (!m_blocks.empty()) {
@@ -169,7 +171,8 @@ namespace cgc1
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
+    inline void
+    allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
     {
       m_blocks.erase(it);
       auto ait = ::std::find(m_available_blocks.begin(), m_available_blocks.end(), &*it);
@@ -199,7 +202,7 @@ namespace cgc1
       return offset;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() -> allocator_block_type&
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() -> allocator_block_type &
     {
       return m_blocks.back();
     }
@@ -212,8 +215,9 @@ namespace cgc1
         if (block.empty())
           t.emplace_back(std::move(block));
       }
-      auto it =
-          ::std::remove_if(m_blocks.begin(), m_blocks.end(), [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return block.empty(); });
+      auto it = ::std::remove_if(m_blocks.begin(),
+                                 m_blocks.end(),
+                                 [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return block.empty(); });
       auto num_to_remove = m_blocks.end() - it;
       // this is needed because we can't resize because allocator_block is not trivially constructable.
       for (decltype(num_to_remove) i = 0; i < num_to_remove; ++i)

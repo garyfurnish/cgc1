@@ -41,9 +41,7 @@ namespace cgc1
     {
       using global_allocator_t = Global_Allocator;
       using block_type = typename global_allocator_t::block_type;
-      allocator_block_handle_t(typename global_allocator_t::this_thread_allocator_t *ta,
-                               block_type *block,
-                               uint8_t *begin)
+      allocator_block_handle_t(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)
           : m_thread_allocator(ta), m_block(block), m_begin(begin)
       {
       }
@@ -140,8 +138,7 @@ namespace cgc1
       Return an allocator block.
       **/
       template <typename... Args>
-      block_type create_allocator_block(this_thread_allocator_t &ta, size_t sz, Args &&... args)
-          _Locks_Excluded_(m_mutex);
+      block_type create_allocator_block(this_thread_allocator_t &ta, size_t sz, Args &&... args) _Locks_Excluded_(m_mutex);
       /**
       Release an interval of memory.
       **/
@@ -269,7 +266,7 @@ namespace cgc1
       Map from thread ids to thread allocators.
       **/
       ::std::map<::std::thread::id, thread_allocator_unique_ptr_t, ::std::less<::std::thread::id>, ta_map_allocator_t>
-      m_thread_allocators _Guarded_by_(m_mutex);
+          m_thread_allocators _Guarded_by_(m_mutex);
 
       /**
       Allocator traits.
