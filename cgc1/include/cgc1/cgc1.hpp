@@ -119,7 +119,7 @@ namespace cgc1
   /**
   Set if a given address is atomic.
   **/
-  extern void cgc_set_atomic(void* addr, bool is_atomic);
+  extern void cgc_set_atomic(void *addr, bool is_atomic);
   /**
   Shutdown the garbage collector.  Can not be undone.
   **/

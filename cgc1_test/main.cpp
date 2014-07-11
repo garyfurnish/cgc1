@@ -659,10 +659,10 @@ go_bandit([]() {
       AssertThat(last_collect, HasLength(1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
-    it("Atomic", [](){
+    it("Atomic", []() {
       void *memory = cgc1::cgc_malloc(50);
       void *memory2 = cgc1::cgc_malloc(50);
-      *reinterpret_cast<void**>(memory) = memory2;
+      *reinterpret_cast<void **>(memory) = memory2;
       size_t old_memory = cgc1::hide_pointer(memory2);
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();

@@ -159,7 +159,7 @@ namespace cgc1
     ud->m_uncollectable = is_uncollectable;
     set_complex(os, true);
   }
-  void cgc_set_atomic(void* addr, bool is_atomic)
+  void cgc_set_atomic(void *addr, bool is_atomic)
   {
     if (!addr)
       return;
