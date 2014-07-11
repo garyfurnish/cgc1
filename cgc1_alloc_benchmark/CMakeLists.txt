@@ -1,0 +1,5 @@
+IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+#add_compile_options(-fPIE)
+ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+add_executable(cgc1_alloc_benchmark "main.cpp")
+target_link_libraries(cgc1_alloc_benchmark cgc1)

@@ -1,0 +1,7 @@
+find_path(BANDIT_INCLUDE_PATH bandit/bandit.h)
+include_directories(${BANDIT_INCLUDE_PATH})
+IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+add_compile_options(-fPIE)
+ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+add_executable(cgc1_test "main.cpp")
+target_link_libraries(cgc1_test cgc1)
