@@ -250,11 +250,14 @@ namespace cgc1
     void gc_thread_t::_finalize()
     {
       cgc_internal_vector_t<void *> to_be_freed;
-      for (object_state_t *os : m_to_be_freed) {
+      for (auto& os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
           if (ud->m_uncollectable)
+          {
+            os = nullptr;
             continue;
+          }
           if (ud->m_finalizer)
             ud->m_finalizer(os->object_start());
           //delete user data if not owned by block.

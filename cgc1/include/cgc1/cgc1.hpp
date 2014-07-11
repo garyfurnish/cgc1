@@ -111,11 +111,11 @@ namespace cgc1
   /**
   Register a finalizer. 
   **/
-  extern void register_finalizer(void* addr, ::std::function<void(void*)> finalizer);
+  extern void cgc_register_finalizer(void* addr, ::std::function<void(void*)> finalizer);
   /**
   Set if a given address is uncollectable.
   **/
-  extern void set_uncollectable(void* addr, bool is_uncollectable);
+  extern void cgc_set_uncollectable(void* addr, bool is_uncollectable);
   /**
   Shutdown the garbage collector.  Can not be undone.
   **/

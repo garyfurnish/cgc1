@@ -58,6 +58,8 @@ namespace cgc1
   }
   void* cgc_start(void* addr)
   {
+    if (!addr)
+      return nullptr;
     details::object_state_t *os = details::object_state_t::from_object_start(addr);
     if (!details::g_gks.is_valid_object_state(os))
     {
@@ -123,14 +125,10 @@ namespace cgc1
   {
     details::g_gks.shutdown();
   }
-  extern void register_finalizer(void* addr, ::std::function<void(void*)> finalizer)
+  void cgc_register_finalizer(void* addr, ::std::function<void(void*)> finalizer)
   {
-    details::object_state_t* os = details::object_state_t::from_object_start(cgc_start(addr));
-    if (!os)
+    if (!addr)
       return;
-  }
-  extern void set_uncollectable(void* addr, bool is_uncollectable)
-  {
     details::object_state_t* os = details::object_state_t::from_object_start(cgc_start(addr));
     if (!os)
       return;
@@ -141,6 +139,26 @@ namespace cgc1
       ud->m_is_default = false;
       os->set_user_data(ud);
     }
-    ud->m_uncollectable = true;
+    ud->m_finalizer = finalizer;
+  }
+  void cgc_set_uncollectable(void* addr, bool is_uncollectable)
+  {
+    if (!addr)
+      return;
+    void* start = cgc_start(addr);
+    if (!start)
+      return;
+    details::object_state_t* os = details::object_state_t::from_object_start(start);
+    if (!os)
+      return;
+    details::gc_user_data_t* ud = static_cast<details::gc_user_data_t*>(os->user_data());
+    if (ud->m_is_default)
+    {
+      ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
+      ud->m_is_default = false;
+      os->set_user_data(ud);
+    }
+    ud->m_uncollectable = is_uncollectable;
+    set_complex(os, true);
   }
 }

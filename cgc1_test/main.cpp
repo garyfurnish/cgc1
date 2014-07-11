@@ -627,6 +627,38 @@ go_bandit([]() {
       AssertThat(last_collect, HasLength(1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
+    it("Finalizers", [](){
+      void* memory = cgc1::cgc_malloc(50);
+      size_t old_memory = cgc1::hide_pointer(memory);
+      std::atomic<bool> finalized = false;
+      cgc1::cgc_register_finalizer(memory, [&finalized](auto){finalized = true; });
+      cgc1::cgc_register_finalizer(nullptr, [](auto){});
+      memory = nullptr;
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+      AssertThat(last_collect, HasLength(1));
+      AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+      AssertThat((bool)finalized, IsTrue());
+    });
+    it("Uncollectable", [](){
+      void* memory = cgc1::cgc_malloc(50);
+      size_t old_memory = cgc1::hide_pointer(memory);
+      cgc1::cgc_set_uncollectable(memory, true);
+      cgc1::cgc_set_uncollectable(nullptr, true);
+      memory = nullptr;
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+      AssertThat(last_collect, HasLength(0));
+      cgc1::cgc_set_uncollectable(cgc1::unhide_pointer(old_memory), false);
+      cgc1::cgc_set_uncollectable(nullptr, false);
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+      AssertThat(last_collect, HasLength(1));
+      AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+    });
   });
 });
 

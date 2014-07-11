@@ -356,7 +356,8 @@ namespace cgc1
     {
       _ud_verify();
       for (object_state_t *os : container) {
-        os->set_quasi_freed();
+        if (os)
+          os->set_quasi_freed();
       }
       container.clear();
     }
