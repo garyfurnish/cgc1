@@ -159,4 +159,16 @@ namespace cgc1
     ud->m_uncollectable = is_uncollectable;
     set_complex(os, true);
   }
+  void cgc_set_atomic(void* addr, bool is_atomic)
+  {
+    if (!addr)
+      return;
+    void *start = cgc_start(addr);
+    if (!start)
+      return;
+    details::object_state_t *os = details::object_state_t::from_object_start(start);
+    if (!os)
+      return;
+    set_atomic(os, is_atomic);
+  }
 }

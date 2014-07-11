@@ -117,6 +117,10 @@ namespace cgc1
   **/
   extern void cgc_set_uncollectable(void *addr, bool is_uncollectable);
   /**
+  Set if a given address is atomic.
+  **/
+  extern void cgc_set_atomic(void* addr, bool is_atomic);
+  /**
   Shutdown the garbage collector.  Can not be undone.
   **/
   extern void cgc_shutdown();

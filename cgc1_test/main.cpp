@@ -659,6 +659,27 @@ go_bandit([]() {
       AssertThat(last_collect, HasLength(1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
+    it("Atomic", [](){
+      void *memory = cgc1::cgc_malloc(50);
+      void *memory2 = cgc1::cgc_malloc(50);
+      *reinterpret_cast<void**>(memory) = memory2;
+      size_t old_memory = cgc1::hide_pointer(memory2);
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+      AssertThat(last_collect, HasLength(0));
+      memory2 = nullptr;
+      cgc1::cgc_set_atomic(memory, true);
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+      AssertThat(last_collect, HasLength(1));
+      AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+      memory = nullptr;
+      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      AssertThat(last_collect, HasLength(1));
+    });
   });
 });
 
