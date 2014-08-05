@@ -627,17 +627,21 @@ go_bandit([]() {
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
     it("Finalizers", []() {
-      void *memory = cgc1::cgc_malloc(50);
-      size_t old_memory = cgc1::hide_pointer(memory);
+      void *memory;
+      size_t old_memory;
       std::atomic<bool> finalized;
-      finalized = false;
-      cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; });
-      cgc1::cgc_register_finalizer(nullptr, [](void *) {});
-      memory = nullptr;
+      auto do_setup = [&memory, &old_memory, &finalized] {
+        memory = cgc1::cgc_malloc(50);
+        old_memory = cgc1::hide_pointer(memory);
+        finalized = false;
+        cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; });
+        cgc1::secure_zero(&memory, sizeof(decltype(memory)));
+      };
+      do_setup();
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
       auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-      AssertThat(last_collect, HasLength(1));
+      AssertThat(last_collect.size(), Equals((size_t)1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
       AssertThat((bool)finalized, IsTrue());
     });
@@ -650,13 +654,13 @@ go_bandit([]() {
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
       auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-      AssertThat(last_collect, HasLength(0));
+      AssertThat(last_collect.size(), Equals((size_t)0));
       cgc1::cgc_set_uncollectable(cgc1::unhide_pointer(old_memory), false);
       cgc1::cgc_set_uncollectable(nullptr, false);
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
       last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-      AssertThat(last_collect, HasLength(1));
+      AssertThat(last_collect.size(), Equals((size_t)1));
       AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
     });
     it("Atomic", []() {

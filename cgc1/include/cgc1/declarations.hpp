@@ -209,4 +209,11 @@ namespace cgc1
   {
     return reinterpret_cast<void *>(~sz);
   }
+  inline void secure_zero(void *s, size_t n)
+  {
+    volatile char *p = reinterpret_cast<volatile char *>(s);
+
+    while (n--)
+      *p++ = 0;
+  }
 }
