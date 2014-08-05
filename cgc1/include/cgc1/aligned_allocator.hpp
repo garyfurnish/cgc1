@@ -86,6 +86,9 @@ namespace cgc1
     {
 #ifdef _WIN32
       return reinterpret_cast<pointer>(::_aligned_malloc(n * sizeof(T), alignment));
+#elif defined(__APPLE__)
+      static_assert(alignment <= 16, "On OSX, alignment must be <=16.");
+      return reinterpret_cast<pointer>(::malloc(n * sizeof(T)));
 #else
       return reinterpret_cast<pointer>(::aligned_alloc(alignment, n * sizeof(T)));
 #endif

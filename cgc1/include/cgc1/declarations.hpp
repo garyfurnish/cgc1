@@ -201,11 +201,11 @@ namespace cgc1
   {
     return ~t;
   }
-  constexpr size_t hide_pointer(void *v)
+  inline size_t hide_pointer(void *v)
   {
     return ~reinterpret_cast<size_t>(v);
   }
-  constexpr void *unhide_pointer(size_t sz)
+  inline void *unhide_pointer(size_t sz)
   {
     return reinterpret_cast<void *>(~sz);
   }

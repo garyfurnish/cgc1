@@ -145,7 +145,7 @@ namespace cgc1
     {
       wait_for_finalization();
       // grab allocator locks so that they are in a consistent state for garbage collection.
-      lock(m_mutex, m_gc_allocator, m_cgc_allocator, m_slab_allocator, m_thread_mutex);
+      ::std::lock(m_mutex, m_gc_allocator, m_cgc_allocator, m_slab_allocator, m_thread_mutex);
       // make sure we aren't already collecting
       if (m_collect || m_num_paused_threads != m_num_resumed_threads) {
         m_thread_mutex.unlock();
