@@ -212,8 +212,6 @@ namespace cgc1
       if (!ignore_skip_marked && is_marked(os))
         return;
       set_mark(os);
-      if (is_complex(os))
-        abort();
       // if it is atomic we are done here.
       if (is_atomic(os))
         return;
