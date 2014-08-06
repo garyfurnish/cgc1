@@ -13,6 +13,7 @@
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
+#define _NoInline_ __attribute__((noinline))
 #else
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
@@ -20,6 +21,7 @@
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)
+#define _NoInline_ __declspec(noinline)
 #endif
 namespace cgc1
 {
@@ -215,5 +217,10 @@ namespace cgc1
 
     while (n--)
       *p++ = 0;
+  }
+  template <typename T>
+  inline void secure_zero_pointer(T *&s)
+  {
+    secure_zero(&s, sizeof(s));
   }
 }
