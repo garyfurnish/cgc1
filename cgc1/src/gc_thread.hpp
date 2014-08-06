@@ -109,35 +109,35 @@ namespace cgc1
       /**
       Variable for waking up.
       **/
-      ::std::condition_variable_any m_wake_up;
+      condition_variable_any_t m_wake_up;
       /**
       Variable for done with clearing.
       **/
-      ::std::condition_variable_any m_done_clearing;
+      condition_variable_any_t m_done_clearing;
       /**
       Variable for start mark.
       **/
-      ::std::condition_variable_any m_start_mark;
+      condition_variable_any_t m_start_mark;
       /**
       Variable for done mark.
       **/
-      ::std::condition_variable_any m_done_mark;
+      condition_variable_any_t m_done_mark;
       /**
       Variable for starting sweeping.
       **/
-      ::std::condition_variable_any m_start_sweep;
+      condition_variable_any_t m_start_sweep;
       /**
       Variable for when done with collection.
       **/
-      ::std::condition_variable_any m_done_sweep;
+      condition_variable_any_t m_done_sweep;
       /**
       Variable for all threads resumed.
       **/
-      ::std::condition_variable_any m_all_threads_resumed;
+      condition_variable_any_t m_all_threads_resumed;
       /**
       Variable for finalization done.
       **/
-      ::std::condition_variable_any m_done_finalization;
+      condition_variable_any_t m_done_finalization;
       /**
       Thread that this runs in.
       **/

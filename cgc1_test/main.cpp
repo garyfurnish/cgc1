@@ -675,7 +675,7 @@ go_bandit([]() {
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
       auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-      AssertThat(last_collect, HasLength(0));
+      AssertThat(last_collect.size(), Equals((size_t)0));
       memory2 = nullptr;
       cgc1::cgc_set_atomic(memory, true);
       cgc1::cgc_force_collect();

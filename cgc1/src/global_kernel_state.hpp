@@ -209,11 +209,11 @@ namespace cgc1
       1) When a thread has stopped and is in the signal handler.
       2) When a thread should resume normal operations.
       **/
-      mutable ::std::condition_variable_any m_stop_world_condition;
+      mutable condition_variable_any_t m_stop_world_condition;
       /**
       Condition variable used to broadcast when threads should start garbage collection.
       **/
-      mutable ::std::condition_variable_any m_start_world_condition;
+      mutable condition_variable_any_t m_start_world_condition;
 #endif
       /**
       Mutex for protecting m_threads.
