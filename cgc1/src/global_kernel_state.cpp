@@ -211,29 +211,29 @@ namespace cgc1
     void global_kernel_state_t::wait_for_collection()
     {
       ::std::unique_lock<decltype(m_mutex)> lock(m_mutex);
-      while (m_collect) {
 #ifndef _WIN32
-        m_start_world_condition.wait(lock);
+      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
 #else
+      while (m_collect) {
         lock.unlock();
         ::std::this_thread::yield();
         lock.lock();
-#endif
       }
+#endif
       lock.release();
     }
     void global_kernel_state_t::wait_for_collection2()
     {
       double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
-      while (m_collect) {
 #ifndef _WIN32
-        m_start_world_condition.wait(lock);
+      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
 #else
+      while (m_collect) {
         lock.unlock();
         ::std::this_thread::yield();
         lock.lock();
-#endif
       }
+#endif
       lock.release();
     }
     void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
@@ -298,8 +298,7 @@ namespace cgc1
         cgc1::pthread_kill(state->thread_handle(), SIGUSR1);
       }
       // wait for all threads to stop
-      while (m_num_paused_threads != m_threads.size() - 1)
-        m_stop_world_condition.wait(lock);
+      m_stop_world_condition.wait(lock, [this]() { return m_num_paused_threads == m_threads.size() - 1; });
       lock.release();
     }
     void global_kernel_state_t::_u_resume_threads()
@@ -315,9 +314,7 @@ namespace cgc1
       tlks->set_stack_ptr(__builtin_frame_address(0));
       m_num_paused_threads++;
       m_stop_world_condition.notify_all();
-      while (m_collect) {
-        m_start_world_condition.wait(lock);
-      }
+      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
       m_num_resumed_threads++;
       lock.unlock();
       tlks->set_in_signal_handler(false);
