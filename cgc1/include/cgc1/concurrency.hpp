@@ -160,7 +160,8 @@ namespace cgc1
     }
     void release()
     {
-      m_t1 = m_t2 = nullptr;
+      m_t1 = nullptr;
+      m_t2 = nullptr;
     }
     bool try_lock()
     {
