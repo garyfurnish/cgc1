@@ -1,0 +1,8 @@
+{
+    "build_location":"../build/",
+    "bandit_include_path":"../bandit/",
+    "clang_install_location":"/usr/bin/",
+    "gcc_install_location":"/usr/bin/",
+    "install_path":"../cgc_install",
+    "gcov_location":"/usr/bin"
+}

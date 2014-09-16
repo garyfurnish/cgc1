@@ -1,3 +1,0 @@
-#!/bin/bash
-find . -name "*.hpp" -print0 | xargs -0 clang-format -style=file -i
-find . -name "*.cpp" -print0 | xargs -0 clang-format -style=file -i
