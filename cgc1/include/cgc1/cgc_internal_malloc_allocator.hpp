@@ -18,8 +18,7 @@ namespace cgc1
     using const_pointer = const void *;
     using propogate_on_container_move_assignment = ::std::true_type;
     template <class U>
-    struct rebind
-    {
+    struct rebind {
       typedef cgc_internal_malloc_allocator_t<U> other;
     };
     cgc_internal_malloc_allocator_t() = default;
@@ -73,8 +72,7 @@ namespace cgc1
       return false;
     }
     template <class U>
-    struct rebind
-    {
+    struct rebind {
       typedef cgc_internal_malloc_allocator_t<U> other;
     };
 
@@ -115,8 +113,7 @@ namespace cgc1
   Deleter for malloc allocator.
   Use for unique/shared ptrs.
   **/
-  struct cgc_internal_malloc_deleter_t
-  {
+  struct cgc_internal_malloc_deleter_t {
     template <typename T>
     void operator()(T *t)
     {
@@ -129,8 +126,7 @@ namespace cgc1
   Tag for dispatch of getting deleter.
   **/
   template <typename T>
-  struct cgc_allocator_deleter_t<T, cgc_internal_malloc_allocator_t<void>>
-  {
+  struct cgc_allocator_deleter_t<T, cgc_internal_malloc_allocator_t<void>> {
     using type = cgc_internal_malloc_deleter_t;
   };
 }

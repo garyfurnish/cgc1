@@ -12,15 +12,13 @@ namespace cgc1
 {
   namespace details
   {
-    struct do_nothing_t
-    {
+    struct do_nothing_t {
       template <typename... Args>
       void operator()(Args &&...)
       {
       }
     };
-    struct allocator_no_traits_t
-    {
+    struct allocator_no_traits_t {
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;
@@ -37,8 +35,7 @@ namespace cgc1
     Structure used to store data about an allocation block in an allocator.
     **/
     template <typename Global_Allocator>
-    struct allocator_block_handle_t
-    {
+    struct allocator_block_handle_t {
       using global_allocator_t = Global_Allocator;
       using block_type = typename global_allocator_t::block_type;
       allocator_block_handle_t(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)

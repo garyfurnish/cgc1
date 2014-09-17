@@ -5,8 +5,7 @@ namespace cgc1
 {
   namespace details
   {
-    struct gc_allocator_traits_t
-    {
+    struct gc_allocator_traits_t {
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;

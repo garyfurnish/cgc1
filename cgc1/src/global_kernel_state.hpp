@@ -15,8 +15,7 @@ namespace cgc1
   namespace details
   {
     class thread_local_kernel_state_t;
-    struct cgc_allocator_traits
-    {
+    struct cgc_allocator_traits {
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       template <typename Allocator>

@@ -2,9 +2,13 @@
 #Copyright (c) 2014 Gary Furnish
 #Licensed under the MIT License (MIT)
 
-import os, fnmatch
+import os, fnmatch, json
 from multiprocessing import Pool
 from utilities import printing_system
+with open("settings.json") as settings_file:
+    settings_json = json.loads(settings_file.read())
+    clang_install_location = settings_json["clang_install_location"]
+    clang_install_location = os.path.abspath(clang_install_location)
 
 
 #See https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
@@ -16,7 +20,7 @@ def find_files(directory, pattern):
                 yield filename
 
 def format(filename):
-    printing_system("clang-format -style=file -i " + filename)
+    printing_system(clang_install_location+"/clang-format -style=file -i " + filename)
 
 pool = Pool()
 files = list(find_files(".","*.hpp")) + list(find_files(".","*.cpp"))

@@ -107,8 +107,7 @@ namespace cgc1
       unregister_allocator_block(ta, block);
       release_memory(std::make_pair(block.begin(), block.end()));
     }
-    struct block_handle_begin_compare_t
-    {
+    struct block_handle_begin_compare_t {
       template <typename T1>
       bool operator()(const T1 &h1, const T1 &h2)
       {

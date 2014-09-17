@@ -134,8 +134,7 @@ namespace cgc1
   {
     return functional_iterator_t<T, Advance>(t, ::std::forward<Advance>(advance));
   }
-  struct iterator_next_advancer_t
-  {
+  struct iterator_next_advancer_t {
     template <typename T>
     auto operator()(T t) -> decltype(t -> next())
     {
@@ -169,13 +168,11 @@ namespace cgc1
   Tag based dispatch for finding a deleter for a given allocator.
   **/
   template <typename T, typename Allocator>
-  struct cgc_allocator_deleter_t
-  {
+  struct cgc_allocator_deleter_t {
     using type = cgc_allocator_deleter_t<T, typename Allocator::template rebind<void>::other>;
   };
   template <typename T>
-  struct cgc_allocator_deleter_t<T, ::std::allocator<void>>
-  {
+  struct cgc_allocator_deleter_t<T, ::std::allocator<void>> {
     using type = ::std::default_delete<T>;
   };
   template <class Iterator>

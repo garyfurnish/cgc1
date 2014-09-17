@@ -35,8 +35,9 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::regenerate_available_blocks()
     {
-      auto abrvr_compare = [](const sized_block_ref_t &r,
-                              typename allocator_block_reference_vector_t::const_reference it) { return r.first < it.first; };
+      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
+        return r.first < it.first;
+      };
       m_available_blocks.clear();
       for (auto &block : m_blocks) {
         if (&block == m_back)
@@ -61,8 +62,9 @@ namespace cgc1
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_verify() const
     {
 #if _CGC1_DEBUG_LEVEL > 1
-      auto abrvr_compare = [](const sized_block_ref_t &r,
-                              typename allocator_block_reference_vector_t::const_reference it) { return r.first < it.first; };
+      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
+        return r.first < it.first;
+      };
 
       for (const auto &ab : m_available_blocks) {
         assert(ab.first == ab.second->max_alloc_available());
@@ -75,8 +77,9 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
     {
-      auto abrvr_compare = [](const sized_block_ref_t &r,
-                              typename allocator_block_reference_vector_t::const_reference it) { return r.first < it.first; };
+      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
+        return r.first < it.first;
+      };
       _verify();
       auto lower_bound =
           ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), sized_block_ref_t(sz, nullptr), abrvr_compare);
