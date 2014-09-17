@@ -52,10 +52,6 @@ namespace cgc1
       **/
       ::std::thread::id thread_id() const;
       /**
-      Garbage collect this thread.
-      **/
-      void collect_current_thread();
-      /**
       Scan stack for addresses between begin and end.
       **/
       template <typename CONTAINER>

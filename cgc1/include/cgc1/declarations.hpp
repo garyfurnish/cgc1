@@ -8,6 +8,12 @@
 #include <algorithm>
 #include <memory>
 #include <assert.h>
+#ifndef CGC1_NO_INLINES
+#define CGC1_INLINES
+#define CGC1_OPT_INLINE inline
+#else
+#define CGC1_OPT_INLINE
+#endif
 #ifndef _WIN32
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)

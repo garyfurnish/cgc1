@@ -13,6 +13,7 @@
 #include "../cgc1/src/allocator.hpp"
 #include "../cgc1/src/internal_allocator.hpp"
 #include "../cgc1/src/global_kernel_state.hpp"
+#include "../cgc1/src/internal_stream.hpp"
 
 static ::std::vector<void *> locations;
 static ::std::mutex debug_mutex;
@@ -23,6 +24,9 @@ static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
   memory = cgc1::cgc_malloc(50);
   old_memory = cgc1::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
+  AssertThat(cgc1::cgc_size(memory), Equals((size_t)64));
+  AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
+  AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
 }
 static void root_test()
 {
@@ -35,11 +39,13 @@ static void root_test()
   AssertThat(last_collect, HasLength(0));
   cgc1::cgc_remove_root(&memory);
   cgc1::secure_zero_pointer(memory);
+  auto num_collections = cgc1::debug::num_gc_collections();
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect.size(), Equals((size_t)1));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
 static _NoInline_ void internal_pointer_test__setup(void *&memory, size_t &old_memory)
 {
@@ -97,6 +103,9 @@ static void atomic_test()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   AssertThat(last_collect, HasLength(1));
+  // test bad parameters
+  cgc1::cgc_set_atomic(nullptr, true);
+  cgc1::cgc_set_atomic(&old_memory, true);
 }
 static _NoInline_ void finalizer_test__setup(std::atomic<bool> &finalized, size_t &old_memory)
 {
@@ -117,6 +126,11 @@ static void finalizer_test()
   AssertThat(last_collect.size(), Equals((size_t)1));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
   AssertThat((bool)finalized, IsTrue());
+  // test bad parameters
+  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
+  AssertThat(cgc1::cgc_start(nullptr) == nullptr, IsTrue());
+  AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
+  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
 }
 static _NoInline_ void uncollectable_test__setup(size_t &old_memory)
 {
@@ -143,6 +157,9 @@ static void uncollectable_test()
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect.size(), Equals((size_t)1));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  // test bad parameters
+  cgc1::cgc_set_uncollectable(nullptr, true);
+  cgc1::cgc_set_uncollectable(&old_memory, true);
 }
 static void linked_list_test()
 {
@@ -247,6 +264,15 @@ static void race_condition_test()
     locations.clear();
   }
 }
+static void api_tests()
+{
+  AssertThat(cgc1::cgc_heap_size(), Is().GreaterThan((size_t)0));
+  AssertThat(cgc1::cgc_heap_free(), Is().GreaterThan((size_t)0));
+  cgc1::cgc_disable();
+  AssertThat(cgc1::cgc_is_enabled(), Is().False());
+  cgc1::cgc_enable();
+  AssertThat(cgc1::cgc_is_enabled(), Is().True());
+}
 void gc_bandit_tests()
 {
   describe("GC", []() {
@@ -257,5 +283,6 @@ void gc_bandit_tests()
     it("finalizers", []() { finalizer_test(); });
     it("atomic", []() { atomic_test(); });
     it("uncollectable", []() { uncollectable_test(); });
+    it("api_tests", []() { api_tests(); });
   });
 }

@@ -71,7 +71,12 @@ namespace cgc1
   }
   size_t cgc_size(void *addr)
   {
-    details::object_state_t *os = details::object_state_t::from_object_start(cgc_start(addr));
+    if (!addr)
+      return 0;
+    void *start = cgc_start(addr);
+    if (!start)
+      return 0;
+    details::object_state_t *os = details::object_state_t::from_object_start(start);
     if (os)
       return os->object_size();
     else
@@ -129,9 +134,10 @@ namespace cgc1
   {
     if (!addr)
       return;
-    details::object_state_t *os = details::object_state_t::from_object_start(cgc_start(addr));
-    if (!os)
+    void *start = cgc_start(addr);
+    if (!start)
       return;
+    details::object_state_t *os = details::object_state_t::from_object_start(start);
     details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
     if (ud->m_is_default) {
       ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -148,8 +154,6 @@ namespace cgc1
     if (!start)
       return;
     details::object_state_t *os = details::object_state_t::from_object_start(start);
-    if (!os)
-      return;
     details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
     if (ud->m_is_default) {
       ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -167,8 +171,6 @@ namespace cgc1
     if (!start)
       return;
     details::object_state_t *os = details::object_state_t::from_object_start(start);
-    if (!os)
-      return;
     set_atomic(os, is_atomic);
   }
 }

@@ -1,4 +1,4 @@
-#!/usr/bin/pythone
+#!/usr/bin/python
 #Copyright (c) 2014 Gary Furnish
 #Licensed under the MIT License (MIT)
 
@@ -51,7 +51,7 @@ def generate_linux():
     do_cmake(current_directory, "Unix Makefiles", ddict)
     ddict["CMAKE_C_COMPILER"] = gcc_install_location+'/gcc'
     ddict["CMAKE_CXX_COMPILER"] = gcc_install_location+'/g++'
-    ddict["CMAKE_CXX_FLAGS"] = "-O0 -fno-inline -fprofile-arcs -ftest-coverage"
+    ddict["CMAKE_CXX_FLAGS"] = "-O0 -fno-inline -fprofile-arcs -ftest-coverage -DCGC1_NO_INLINES"
     ddict["CMAKE_EXE_LINKER_FLAGS"] ="-fprofile-arcs -ftest-coverage"
     ddict["CMAKE_SHARED_LINKER_FLAGS"]="-fprofile-arcs -ftest-coverage"
     ddict["CMAKE_MODULE_LINKER_FLAGS"]="-fprofile-arcs -ftest-coverage"

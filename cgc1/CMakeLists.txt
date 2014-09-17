@@ -15,6 +15,8 @@ src/gc_thread.hpp                 src/thread_local_kernel_state.cpp
 src/global_kernel_state.cpp       src/thread_local_kernel_state.hpp
 src/global_kernel_state.hpp       src/thread_local_kernel_state_impl.hpp
 src/global_kernel_state_impl.hpp  src/win32_slab.cpp
+src/slab_allocator.cpp src/object_state.cpp
+src/slab_allocator_impl.hpp src/object_state_impl.hpp
 include/cgc1/cgc_internal_malloc_allocator.hpp
 include/cgc1/cgc1.hpp
 include/cgc1/concurrency.hpp

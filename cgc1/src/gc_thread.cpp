@@ -53,13 +53,6 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       insert_unique_sorted(m_watched_threads, id, ::std::less<::std::thread::id>());
     }
-    void gc_thread_t::remove_thread(::std::thread::id id)
-    {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      auto it = ::std::find(m_watched_threads.begin(), m_watched_threads.end(), id);
-      if (it != m_watched_threads.end())
-        m_watched_threads.erase(it);
-    }
     void gc_thread_t::set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
                                            gc_allocator_t::this_allocator_block_handle_t *end)
     {

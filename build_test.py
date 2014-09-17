@@ -14,7 +14,9 @@ with open("settings.json") as settings_file:
     build_location = os.path.abspath(build_location)
 
 def run_test(location):
-    printing_system(location+"/cgc1_test/cgc1_test")
+    os.chdir(location)
+    printing_system("make -j" + str(num_cores))
+    printing_system("cgc1_test/cgc1_test")
 
 def test_linux():
     printing_chdir(build_location+"/cgc1/")

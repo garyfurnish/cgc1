@@ -27,7 +27,6 @@ namespace cgc1
       gc_thread_t &operator=(gc_thread_t &&) = delete;
       ~gc_thread_t();
       void add_thread(::std::thread::id id) _Locks_Excluded_(m_mutex);
-      void remove_thread(::std::thread::id id) _Locks_Excluded_(m_mutex);
       void reset() _Locks_Excluded_(m_mutex);
       void set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
                                 gc_allocator_t::this_allocator_block_handle_t *end) _Locks_Excluded_(m_mutex);

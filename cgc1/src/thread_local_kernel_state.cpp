@@ -21,9 +21,6 @@ namespace cgc1
     {
       CloseHandle(m_thread_handle);
     }
-    void thread_local_kernel_state_t::collect_current_thread()
-    {
-    }
 #else
     thread_local_kernel_state_t::thread_local_kernel_state_t()
         : m_thread_id(::std::this_thread::get_id()), m_stack_ptr(nullptr), m_in_signal_handler(false)
@@ -32,9 +29,6 @@ namespace cgc1
       assert(m_thread_handle);
     }
     thread_local_kernel_state_t::~thread_local_kernel_state_t()
-    {
-    }
-    void thread_local_kernel_state_t::collect_current_thread()
     {
     }
 #endif
