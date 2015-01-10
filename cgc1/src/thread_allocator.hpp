@@ -103,7 +103,11 @@ namespace cgc1
       Free all empty blocks back to allocator.
       **/
       void free_empty_blocks();
-
+      /**
+      Do maintance on thread associated blocks.
+      (coalescing, etc)
+      **/
+      void _do_maintenance();
     private:
       /**
       Global allocator used for getting slabs.

@@ -106,7 +106,11 @@ namespace cgc1
       Do internal verification.
       **/
       void _verify() const;
-
+      /**
+      Do maintance on thread associated blocks.
+      (coalescing, etc)
+      **/
+      void _do_maintenance();
     private:
       /**
       Minimum allocation size.

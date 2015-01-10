@@ -170,7 +170,14 @@ namespace cgc1
         abort();
       return ret;
     }
-
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
+    {
+      for (auto& allocator : m_allocators)
+      {
+        allocator._do_maintenance();
+      }
+    }
     template <typename charT, typename Traits, typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
                                                     const thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits> &ta)

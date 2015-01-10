@@ -60,11 +60,15 @@ namespace cgc1
     cgc_internal_allocator_t(const cgc_internal_allocator_t<_Other> &) noexcept
     {
     }
-    template <class _Other>
-    cgc_internal_allocator_t<void> &operator=(const cgc_internal_allocator_t<_Other> &) noexcept
-    {
-      return *this;
-    }
+	template <class Other>
+	cgc_internal_allocator_t<T> &operator=(const cgc_internal_allocator_t<Other> &) noexcept
+	{
+		return *this;
+	}
+	cgc_internal_allocator_t<T> &operator=(const cgc_internal_allocator_t<T> &) noexcept
+	{
+		return *this;
+	}
     cgc_internal_allocator_t(cgc_internal_allocator_t<T> &&) noexcept = default;
     cgc_internal_allocator_t &operator=(cgc_internal_allocator_t<T> &&) noexcept = default;
     bool operator==(cgc_internal_allocator_t) noexcept

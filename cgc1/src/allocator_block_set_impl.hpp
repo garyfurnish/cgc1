@@ -202,6 +202,14 @@ namespace cgc1
       return offset;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_do_maintenance()
+    {
+      for (auto& block : m_blocks)
+      {
+        block.collect();
+      }
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() -> allocator_block_type &
     {
       return m_blocks.back();
