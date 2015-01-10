@@ -142,7 +142,7 @@ namespace cgc1
   }
   struct iterator_next_advancer_t {
     template <typename T>
-    auto operator()(T t) -> decltype(t -> next())
+    auto operator()(T t) -> decltype(t->next())
     {
       return t->next();
     }

@@ -218,8 +218,7 @@ namespace cgc1
         if (block.empty())
           t.emplace_back(std::move(block));
       }
-      auto it = ::std::remove_if(m_blocks.begin(),
-                                 m_blocks.end(),
+      auto it = ::std::remove_if(m_blocks.begin(), m_blocks.end(),
                                  [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return block.empty(); });
       auto num_to_remove = m_blocks.end() - it;
       // this is needed because we can't resize because allocator_block is not trivially constructable.

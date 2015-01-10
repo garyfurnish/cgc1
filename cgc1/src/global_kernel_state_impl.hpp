@@ -21,8 +21,8 @@ namespace cgc1
     inline auto global_kernel_state_t::tlks(::std::thread::id id) -> thread_local_kernel_state_t *
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
-      auto it = ::std::find_if(
-          m_threads.begin(), m_threads.end(), [id](thread_local_kernel_state_t *tlks) { return tlks->thread_id() == id; });
+      auto it = ::std::find_if(m_threads.begin(), m_threads.end(),
+                               [id](thread_local_kernel_state_t *tlks) { return tlks->thread_id() == id; });
       if (it == m_threads.end())
         return nullptr;
       return *it;
