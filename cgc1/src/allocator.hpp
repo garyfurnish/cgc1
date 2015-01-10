@@ -186,7 +186,7 @@ namespace cgc1
       Collapse the free list.
       **/
       void collapse() REQUIRES(!m_mutex);
-      auto &_mutex() RETURN_CAPABILITY(m_mutex)
+      spinlock_t &_mutex() RETURN_CAPABILITY(m_mutex)
       {
         return m_mutex;
       }

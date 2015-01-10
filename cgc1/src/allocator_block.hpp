@@ -2,6 +2,7 @@
 #include "internal_declarations.hpp"
 #include <vector>
 #include <algorithm>
+#include <string>
 #include "allocator_block.hpp"
 #include "object_state.hpp"
 namespace cgc1

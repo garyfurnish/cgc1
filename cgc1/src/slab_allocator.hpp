@@ -27,7 +27,7 @@ namespace cgc1
       next_iterator<slab_allocator_object_t> _u_object_end();
       next_iterator<slab_allocator_object_t> _u_object_current_end();
       bool _u_empty();
-      auto &_mutex() RETURN_CAPABILITY(m_mutex)
+      spinlock_t &_mutex() RETURN_CAPABILITY(m_mutex)
       {
         return m_mutex;
       }

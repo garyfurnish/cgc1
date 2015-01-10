@@ -40,6 +40,7 @@ namespace cgc1
     template <typename T>
     lock_assume_t(T &t) ACQUIRE(t)
     {
+      (void)t;
     }
     ~lock_assume_t() RELEASE()
     {

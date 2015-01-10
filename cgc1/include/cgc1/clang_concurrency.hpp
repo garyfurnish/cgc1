@@ -2,7 +2,7 @@
 // See http://clang.llvm.org/docs/ThreadSafetyAnalysis.html
 // Enable thread safety attributes only with clang.
 // The attributes can be safely erased when compiling with other compilers.
-#if defined(__clang__) && (!defined(SWIG))
+#if defined(__clang__) && (!defined(SWIG)) && __clang_major__==3 && __clang_minor__==6
 #define THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
 #else
 #define THREAD_ANNOTATION_ATTRIBUTE__(x) // no-op

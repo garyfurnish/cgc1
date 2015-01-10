@@ -77,11 +77,11 @@ void allocator_tests()
     it("test4", []() {
       for (size_t j = 0; j < 30; ++j) {
         ::std::array<cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_allocator_t<size_t>>, 5> vecs;
-        for (size_t i = 0; i < 100000; ++i) {
+        for (size_t i = 0; i < 10000; ++i) {
           for (auto &vec : vecs)
             vec.push_back(i);
         }
-        for (size_t i = 0; i < 100000; ++i) {
+        for (size_t i = 0; i < 10000; ++i) {
           for (auto &vec : vecs)
             AssertThat(vec[i], Equals(i));
         }

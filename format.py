@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/python
 #Copyright (c) 2014 Gary Furnish
 #Licensed under the MIT License (MIT)
 

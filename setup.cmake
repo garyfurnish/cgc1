@@ -1,6 +1,6 @@
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #OSX CLANG
-add_compile_options(-Wno-deprecated-declarations -Weverything -Wno-padded -Wno-c++98-compat-pedantic -Wno-reserved-id-macro -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof -Wno-weak-vtables -Wno-weak-template-vtables -Wno-missing-prototypes -Wno-covered-switch-default -Wno-unreachable-code-break)
+add_compile_options(-Weverything -Wno-deprecated-declarations -Wno-padded -Wno-c++98-compat-pedantic -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof -Wno-weak-vtables -Wno-weak-template-vtables -Wno-missing-prototypes)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 IF(${CMAKE_CXX_COMPILER} MATCHES ".*clang\\+\\+")
