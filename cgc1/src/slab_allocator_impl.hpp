@@ -1,3 +1,4 @@
+#include <stdexcept>
 namespace cgc1
 {
   namespace details

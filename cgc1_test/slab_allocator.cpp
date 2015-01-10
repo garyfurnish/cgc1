@@ -1,6 +1,6 @@
-#include "bandit.hpp"
 #include "../cgc1/src/slab_allocator.hpp"
 #include "../cgc1/src/allocator_block.hpp"
+#include "bandit.hpp"
 using namespace bandit;
 void slab_allocator_bandit_tests()
 {

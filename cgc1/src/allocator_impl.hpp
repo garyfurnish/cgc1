@@ -1,4 +1,7 @@
 #pragma once
+#if _ITERATOR_DEBUG_LEVEL!=0
+#error "IDL must be zero"
+#endif
 namespace cgc1
 {
   namespace details

@@ -9,6 +9,7 @@
 #include "thread_local_kernel_state.hpp"
 #include "allocator.hpp"
 #include <chrono>
+#include <iostream>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -331,9 +332,9 @@ namespace cgc1
             break;
           } else if (ret < 0) {
             m_mutex.unlock();
-            m_gc_allocator.unlock();
-            m_cgc_allocator.unlock();
-            ::std::lock(m_mutex, m_gc_allocator, m_cgc_allocator);
+            m_gc_allocator._mutex().unlock();
+            m_cgc_allocator._mutex().unlock();
+            ::std::lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex());
           } else {
             abort();
           }

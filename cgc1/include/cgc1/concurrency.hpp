@@ -47,7 +47,7 @@ namespace cgc1
     }
   } SCOPED_CAPABILITY;
 }
-#ifdef __clang__
+#ifndef __APPLE__
 namespace cgc1
 {
   template <typename T>
@@ -60,10 +60,12 @@ namespace cgc1
     {
       t.lock();
     }
+	lock_guard_t(const lock_guard_t<T>&) = delete;
     ~lock_guard_t() RELEASE()
     {
       m_T.unlock();
     }
+	lock_guard_t<T>& operator=(const lock_guard_t<T>&) = delete;
     T &m_T;
   } SCOPED_CAPABILITY;
 
@@ -98,11 +100,19 @@ namespace cgc1
     }
     spinlock_t(const spinlock_t &) = delete;
     spinlock_t(spinlock_t &&) = default;
-    void lock() noexcept ACQUIRE()
-    {
-      while (!try_lock())
-        __asm__ volatile("pause");
-    }
+#ifndef __clang__
+	void lock()
+	{
+		while (!try_lock())
+			_mm_pause();
+	}
+#else
+	void lock()
+	{
+		while (!try_lock())
+			__asm__ volatile("pause");
+	}
+#endif
     void unlock() noexcept RELEASE()
     {
       m_lock = false;
@@ -123,7 +133,8 @@ namespace cgc1
   };
 }
 using condition_variable_any_t = ::std::condition_variable_any;
-#else
+#endif
+#ifdef __APPLE__
 namespace cgc1
 {
   template <typename T>
@@ -210,56 +221,16 @@ namespace cgc1
     ::pthread_cond_t m_cond;
     pthread_mutex_t m_mutex;
   };
-#ifdef __APPLE__
   using mutex_t = pthread_mutex_t;
   using condition_variable_any_t = pthread_condition_variable_any_t;
-#else
-  using condition_variable_any_t = ::std::condition_variable_any;
-  using mutex_t = ::std::mutex;
-#endif
+
   template <typename T>
   using unique_lock_t = ::std::unique_lock<T>;
-  class spinlock_t
-  {
-  public:
-    spinlock_t() : m_lock(0)
-    {
-    }
-    spinlock_t(const spinlock_t &) = delete;
-    spinlock_t(spinlock_t &&) = default;
-#ifndef __clang__
-    void lock()
-    {
-      while (!try_lock())
-        _mm_pause();
-    }
 #else
-    void lock()
-    {
-      while (!try_lock())
-        __asm__ volatile("pause");
-    }
-#endif
-    void unlock()
-    {
-      m_lock = false;
-    }
-    bool try_lock()
-    {
-      bool expected = false;
-      bool desired = true;
-      return m_lock.compare_exchange_strong(expected, desired);
-    }
-
-  protected:
-    ::std::atomic<bool> m_lock;
-  };
+namespace cgc1
+{
+	using condition_variable_any_t = ::std::condition_variable_any;
 }
-#define _Guarded_by_(x)
-#define _Exclusive_Locks_Required_(...)
-#define _Exclusive_Lock_Function_(...)
-#define _Unlock_Function_(...)
-#define _Locks_Excluded_(...)
 #endif
 #define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> _cgc1_macro_lock(x);
 #define CGC1_CONCURRENCY_LOCK_ASSUME(x) cgc1::lock_assume_t _cgc1_macro_lock(x);
