@@ -26,20 +26,20 @@ namespace cgc1
       gc_thread_t &operator=(const gc_thread_t &) = delete;
       gc_thread_t &operator=(gc_thread_t &&) = delete;
       ~gc_thread_t();
-      void add_thread(::std::thread::id id) _Locks_Excluded_(m_mutex);
-      void reset() _Locks_Excluded_(m_mutex);
+      void add_thread(::std::thread::id id) REQUIRES(!m_mutex);
+      void reset() REQUIRES(!m_mutex);
       void set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
-                                gc_allocator_t::this_allocator_block_handle_t *end) _Locks_Excluded_(m_mutex);
-      void set_root_iterators(void ***begin, void ***end) _Locks_Excluded_(m_mutex);
-      void wake_up() _Locks_Excluded_(m_mutex);
+                                gc_allocator_t::this_allocator_block_handle_t *end) REQUIRES(!m_mutex);
+      void set_root_iterators(void ***begin, void ***end) REQUIRES(!m_mutex);
+      void wake_up() REQUIRES(!m_mutex);
       /**
       Start Clearing marks.
       **/
-      void start_clear();
+      void start_clear() REQUIRES(!m_mutex);
       /**
       Wait until clearing finished.
       **/
-      void wait_until_clear_finished() _No_Thread_Safety_Analysis_;
+      void wait_until_clear_finished() NO_THREAD_SAFETY_ANALYSIS;
       /**
       Start marking.
       **/
@@ -47,7 +47,7 @@ namespace cgc1
       /**
       Wait until mark phase finished.
       **/
-      void wait_until_mark_finished() _No_Thread_Safety_Analysis_;
+      void wait_until_mark_finished() NO_THREAD_SAFETY_ANALYSIS;
       /**
       Start sweeping.
       **/
@@ -55,7 +55,7 @@ namespace cgc1
       /**
       Wait until sweep phase finished.
       **/
-      void wait_until_sweep_finished() _No_Thread_Safety_Analysis_;
+      void wait_until_sweep_finished() NO_THREAD_SAFETY_ANALYSIS;
       /**
       Notify the thread that all threads have resumed from garbage collection and that it is safe to finalize.
       **/
@@ -63,40 +63,40 @@ namespace cgc1
       /**
       Wait until finalization finishes.
       **/
-      void wait_until_finalization_finished() _No_Thread_Safety_Analysis_;
+      void wait_until_finalization_finished() NO_THREAD_SAFETY_ANALYSIS;
       /**
       Returns true if finalization finished, false otherwise.
       **/
       bool finalization_finished() const;
 
     private:
-      void _u_remove_thread(::std::thread::id id) _Exclusive_Locks_Required_(m_mutex);
-      bool handle_thread(::std::thread::id id) _Exclusive_Locks_Required_(m_mutex);
+      void _u_remove_thread(::std::thread::id id) REQUIRES(m_mutex);
+      bool handle_thread(::std::thread::id id) REQUIRES(m_mutex);
       /**
       Inner thread loop.
       **/
-      void _run();
+      void _run() REQUIRES(!m_mutex);
       /**
       Clear marks.
       **/
-      void _clear_marks() _Exclusive_Locks_Required_(m_mutex);
-      void _mark() _Exclusive_Locks_Required_(m_mutex);
+      void _clear_marks() REQUIRES(m_mutex);
+      void _mark() REQUIRES(m_mutex);
       /**
       Mark a given address.
       **/
-      void _mark_addrs(void *addr, size_t depth, bool ignore_skip_marked = false) _Exclusive_Locks_Required_(m_mutex);
+      void _mark_addrs(void *addr, size_t depth, bool ignore_skip_marked = false) REQUIRES(m_mutex);
       /**
       Function called at end to mark any addresses that would have caused stack overflows.
       **/
-      void _mark_mark_vector() _Exclusive_Locks_Required_(m_mutex);
+      void _mark_mark_vector() REQUIRES(m_mutex);
       /**
       Sweep for unaccessible memory.
       **/
-      void _sweep() _Exclusive_Locks_Required_(m_mutex);
+      void _sweep() REQUIRES(m_mutex);
       /**
       Finalize.
       **/
-      void _finalize() _Exclusive_Locks_Required_(m_mutex);
+      void _finalize() REQUIRES(m_mutex);
       /**
       Mutex for condition variables and protection.
       **/
@@ -104,7 +104,7 @@ namespace cgc1
       /**
       Vector of threads whose stack this thread is responsible for.
       **/
-      cgc_internal_vector_t<::std::thread::id> m_watched_threads _Guarded_by_(m_mutex);
+      cgc_internal_vector_t<::std::thread::id> m_watched_threads GUARDED_BY(m_mutex);
       /**
       Variable for waking up.
       **/
@@ -144,22 +144,22 @@ namespace cgc1
       ::std::atomic<bool> m_clear_done, m_mark_done, m_sweep_done, m_finalization_done;
       ::std::atomic<bool> m_run;
       ::std::atomic<bool> m_do_clear, m_do_mark, m_do_sweep, m_do_all_threads_resumed;
-      gc_allocator_t::this_allocator_block_handle_t *m_block_begin _Guarded_by_(m_mutex);
-      gc_allocator_t::this_allocator_block_handle_t *m_block_end _Guarded_by_(m_mutex);
-      void ***m_root_begin _Guarded_by_(m_mutex);
-      void ***m_root_end _Guarded_by_(m_mutex);
+      gc_allocator_t::this_allocator_block_handle_t *m_block_begin GUARDED_BY(m_mutex);
+      gc_allocator_t::this_allocator_block_handle_t *m_block_end GUARDED_BY(m_mutex);
+      void ***m_root_begin GUARDED_BY(m_mutex);
+      void ***m_root_end GUARDED_BY(m_mutex);
       /**
       Normally we recurse, but if the recursion is excessive, do it here instead.
       **/
-      cgc_internal_vector_t<void *> m_addresses_to_mark _Guarded_by_(m_mutex);
+      cgc_internal_vector_t<void *> m_addresses_to_mark GUARDED_BY(m_mutex);
       /**
       Roots from stack.
       **/
-      cgc_internal_vector_t<uint8_t **> m_stack_roots _Guarded_by_(m_mutex);
+      cgc_internal_vector_t<uint8_t **> m_stack_roots GUARDED_BY(m_mutex);
       /**
       List of roots to be freed.
       **/
-      cgc_internal_vector_t<object_state_t *> m_to_be_freed _Guarded_by_(m_mutex);
+      cgc_internal_vector_t<object_state_t *> m_to_be_freed GUARDED_BY(m_mutex);
     };
   }
 }

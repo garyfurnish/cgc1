@@ -33,18 +33,6 @@ namespace cgc1
     {
       return _u_object_current_end() == _u_object_begin();
     }
-    CGC1_OPT_INLINE void slab_allocator_t::lock()
-    {
-      m_mutex.lock();
-    }
-    CGC1_OPT_INLINE void slab_allocator_t::unlock()
-    {
-      m_mutex.unlock();
-    }
-    CGC1_OPT_INLINE bool slab_allocator_t::try_lock()
-    {
-      return m_mutex.try_lock();
-    }
 
     CGC1_OPT_INLINE void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
     {

@@ -177,7 +177,7 @@ namespace cgc1
         handle_thread(thread);
       }
       for (auto root : m_stack_roots)
-        _mark_addrs(*reinterpret_cast<void **>(root), 0);
+        _mark_addrs(*unsafe_reference_cast<void **>(root), 0);
       for (auto it = m_root_begin; it != m_root_end; ++it)
         _mark_addrs(*it, 0);
       _mark_mark_vector();
@@ -194,6 +194,8 @@ namespace cgc1
       if (os < heap_begin || os >= heap_end)
         return;
       if (!g_gks.is_valid_object_state(os)) {
+        // This is calling during garbage collection, therefore no mutex is needed.
+        CGC1_CONCURRENCY_LOCK_ASSUME(g_gks._mutex());
         os = g_gks._u_find_valid_object_state(addr);
         if (!os)
           return;

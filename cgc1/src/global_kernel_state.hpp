@@ -38,7 +38,7 @@ namespace cgc1
       /**
       Perform shutdown work that must be done before destruction.
       **/
-      void shutdown();
+      void shutdown() REQUIRES(!m_mutex);
       /**
       Enable garbage collection.
       Works using a incremented variable.
@@ -56,11 +56,11 @@ namespace cgc1
       /**
       Hint to perform a garbage collection.
       **/
-      void collect() _Locks_Excluded_(m_mutex, m_thread_mutex);
+      void collect() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
       Force a garbage collection.
       **/
-      void force_collect() _Locks_Excluded_(m_mutex, m_thread_mutex);
+      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
       Return the number of collections that have happened.
       May wrap around.
@@ -70,16 +70,16 @@ namespace cgc1
       Initialize the current thread for garbage collection.
       @param top_of_stack Top of the current thread's stack.
       **/
-      void initialize_current_thread(void *top_of_stack) _No_Thread_Safety_Analysis_; //_Locks_Excluded_(m_mutex);
+      void initialize_current_thread(void *top_of_stack) NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(!m_mutex);
       /**
       Destroy the current thread state for garbage collection.
       **/
-      void destroy_current_thread() _No_Thread_Safety_Analysis_; //_Locks_Excluded_(m_mutex);
+      void destroy_current_thread() NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(!m_mutex);
       /**
       Master collect function for a given thread.
       This calls into the thread kernel state's collect.
       **/
-      void _collect_current_thread() _Locks_Excluded_(m_mutex);
+      void _collect_current_thread() REQUIRES(!m_mutex);
       /**
       Return the GC allocator.
       **/
@@ -93,89 +93,94 @@ namespace cgc1
       **/
       slab_allocator_t &_internal_slab_allocator() const;
 
-      thread_local_kernel_state_t *tlks(::std::thread::id id);
+      thread_local_kernel_state_t *tlks(::std::thread::id id) REQUIRES(!m_thread_mutex);
       /**
       Add a root the global kernel state.
       **/
-      void add_root(void **) _Locks_Excluded_(m_mutex) _No_Thread_Safety_Analysis_;
+      void add_root(void **) REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
       Remove a root from the global kernel state.
       **/
-      void remove_root(void **) _Locks_Excluded_(m_mutex) _No_Thread_Safety_Analysis_;
+      void remove_root(void **) REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
       Wait for finalization of the last collection to finish.
       **/
-      void wait_for_finalization() _Locks_Excluded_(m_thread_mutex);
+      void wait_for_finalization() REQUIRES(!m_thread_mutex);
       /**
       Wait for ongoing collection to finish.
       **/
-      void wait_for_collection() _Locks_Excluded_(m_mutex) _Exclusive_Lock_Function_(m_mutex) _No_Thread_Safety_Analysis_;
+      void wait_for_collection() REQUIRES(!m_mutex) ACQUIRE(m_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
       Wait for ongoing collection to finish.
       **/
-      void wait_for_collection2() _Exclusive_Lock_Function_(m_mutex, m_thread_mutex) _No_Thread_Safety_Analysis_;
+      void wait_for_collection2() ACQUIRE(m_mutex, m_thread_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
       Add pointers that were freed in the last collection.
       **/
       template <typename Container>
-      void _add_freed_in_last_collection(Container &container) _Locks_Excluded_(m_mutex);
+      void _add_freed_in_last_collection(Container &container) REQUIRES(!m_mutex);
       /**
       Return pointers that were freed in the last collection.
       In non-debug mode may be empty.
       **/
-      cgc_internal_vector_t<void *> _d_freed_in_last_collection() const _Locks_Excluded_(m_mutex);
+      cgc_internal_vector_t<void *> _d_freed_in_last_collection() const REQUIRES(!m_mutex);
       /**
       Return true if the object state is valid, false otherwise.
       **/
       bool is_valid_object_state(const object_state_t *os) const;
       /**
-      Find a valid object state for the given addr.
-      Return nullptr if not found.
+       * \brief Find a valid object state for the given addr.
+       * @return nullptr if not found.
+       * This does not need a mutex held if this is called during garbage collection because all of the relevant state is frozen.
       **/
-      object_state_t *_u_find_valid_object_state(void *addr) const _Exclusive_Locks_Required_(m_mutex);
+      object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex);
       /**
-      Find a valid object state for the given addr.
-      Return nullptr if not found.
+       * \brief Find a valid object state for the given addr.
+       * @return nullptr if not found.
       **/
-      object_state_t *find_valid_object_state(void *addr) const _Locks_Excluded_(m_mutex);
+      object_state_t *find_valid_object_state(void *addr) const REQUIRES(!m_mutex);
+
+      mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
 
     private:
       /**
       Initialize the global kernel state.
       This may be called multiple times, but will be a nop if already called.
       **/
-      void _u_initialize() _No_Thread_Safety_Analysis_; // _Exclusive_Locks_Required_(m_mutex);
+      void _u_initialize() NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(m_mutex);
       /**
       Pause all threads.
       Abort on error because usually these errors are unrecoverable.
       **/
-      void _u_suspend_threads() _Exclusive_Locks_Required_(m_thread_mutex);
+      void _u_suspend_threads() REQUIRES(m_thread_mutex);
       /**
       Resume all threads.
       Abort on error because usually these errors are unrecoverable.
       **/
-      void _u_resume_threads() _Exclusive_Locks_Required_(m_thread_mutex);
+      void _u_resume_threads() REQUIRES(m_thread_mutex);
       /**
-      Do per collection gc thread setup.
+       * \brief Do per collection gc thread setup.
+       *
+       * When called during collection, does not require m_thread_mutex as that data is frozen.
       **/
-      void _u_setup_gc_threads() _Exclusive_Locks_Required_(m_mutex);
+      void _u_setup_gc_threads() REQUIRES(m_mutex, m_thread_mutex);
       /**
       Do GC setup.
       Clean all existing marks.
       **/
-      void _u_gc_setup() _Exclusive_Locks_Required_(m_mutex);
+      void _u_gc_setup() REQUIRES(m_mutex);
       /**
       Do GC mark phase.
       **/
-      void _u_gc_mark() _Exclusive_Locks_Required_(m_mutex);
+      void _u_gc_mark() REQUIRES(m_mutex);
       /**
       Do GC sweep phase.
       **/
-      void _u_gc_sweep() _Exclusive_Locks_Required_(m_mutex);
+      void _u_gc_sweep() REQUIRES(m_mutex);
       /**
       Start finalization phase for gc.
       **/
-      void _u_gc_finalize() _Exclusive_Locks_Required_(m_mutex);
+      void _u_gc_finalize() REQUIRES(m_mutex);
       /**
       Internal slab allocator used for internal allocator.
       **/
@@ -192,11 +197,11 @@ namespace cgc1
       /**
       Number of paused threads in a collect cycle.
       **/
-      std::atomic<size_t> m_num_paused_threads; //_Guarded_by_(m_mutex)
+      std::atomic<size_t> m_num_paused_threads; // GUARDED_BY(m_mutex)
       /**
       Number of paused threads that have finished garbage collection.
       **/
-      std::atomic<size_t> m_num_resumed_threads; //_Guarded_by_(m_mutex)
+      std::atomic<size_t> m_num_resumed_threads; // GUARDED_BY(m_mutex)
       /**
       Number of collections that have happened.
       May wrap around.
@@ -219,11 +224,11 @@ namespace cgc1
       **/
       mutable mutex_t m_thread_mutex;
       mutable mutex_t m_block_mutex;
-      rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots _Guarded_by_(m_mutex);
+      rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
       Vector of all threads registered with the kernel.
       **/
-      cgc_internal_vector_t<details::thread_local_kernel_state_t *> m_threads _Guarded_by_(m_thread_mutex);
+      cgc_internal_vector_t<details::thread_local_kernel_state_t *> m_threads GUARDED_BY(m_thread_mutex);
       /**
       Threads that do the actual garbage collection.
       Not necesarily a one to one map.
@@ -232,7 +237,7 @@ namespace cgc1
       /**
       List of pointers freed in last collection.
       **/
-      cgc_internal_vector_t<void *> m_freed_in_last_collection _Guarded_by_(m_mutex);
+      cgc_internal_vector_t<void *> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
       True while a garbage collection is running, otherwise false.
       **/
@@ -244,7 +249,7 @@ namespace cgc1
       /**
       True if the kernel has been initialized, false otherwise.
       **/
-      bool m_initialized _Guarded_by_(m_mutex) = false;
+      bool m_initialized GUARDED_BY(m_mutex) = false;
     };
     extern global_kernel_state_t g_gks;
   }

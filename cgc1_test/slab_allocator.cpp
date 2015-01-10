@@ -1,4 +1,4 @@
-#include <bandit/bandit.h>
+#include "bandit.hpp"
 #include "../cgc1/src/slab_allocator.hpp"
 #include "../cgc1/src/allocator_block.hpp"
 using namespace bandit;
@@ -72,17 +72,17 @@ void slab_allocator_bandit_tests()
       AssertThat(alloc4 == slab.begin() + 400, IsTrue());
     });
     it("test2,", []() {
-      cgc1::rebind_vector_t<int, cgc1::cgc_internal_slab_allocator_t<int>> vec;
-      cgc1::rebind_vector_t<int, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
-      cgc1::rebind_vector_t<int, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
-      cgc1::rebind_vector_t<int, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
-      for (int i = 0; i < 1000; ++i) {
+      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
+      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
+      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
+      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
+      for (size_t i = 0; i < 1000; ++i) {
         vec.push_back(i);
         vec2.push_back(i);
         vec3.push_back(i);
         vec4.push_back(i);
       }
-      for (int i = 0; i < 1000; ++i) {
+      for (size_t i = 0; i < 1000; ++i) {
         AssertThat(vec[i], Equals(i));
         AssertThat(vec2[i], Equals(i));
         AssertThat(vec3[i], Equals(i));

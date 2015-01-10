@@ -92,11 +92,13 @@ namespace cgc1
   }
   size_t cgc_heap_size()
   {
-    return details::g_gks.gc_allocator().end() - details::g_gks.gc_allocator().begin();
+    // this cast is safe because end > begin is an invariant.
+    return static_cast<size_t>(details::g_gks.gc_allocator().end() - details::g_gks.gc_allocator().begin());
   }
   size_t cgc_heap_free()
   {
-    return details::g_gks.gc_allocator().end() - details::g_gks.gc_allocator().current_end();
+    // this cast is safe because end > current_end is an invariant.
+    return static_cast<size_t>(details::g_gks.gc_allocator().end() - details::g_gks.gc_allocator().current_end());
   }
   void cgc_enable()
   {

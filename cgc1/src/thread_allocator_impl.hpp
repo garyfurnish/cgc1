@@ -68,7 +68,8 @@ namespace cgc1
       if (sz <= 16)
         return 0;
       sz = sz >> 4;
-      size_t id = 64 - cgc1_builtin_clz1(sz);
+      // This is guarenteed to be positive.
+      size_t id = static_cast<size_t>(64 - cgc1_builtin_clz1(sz));
       if (id > c_bins - 1)
         id = c_bins - 1;
       return id;
@@ -82,7 +83,7 @@ namespace cgc1
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
-        m_allocator_multiples[i] = ::std::max((size_t)1, min_size / (2 << (i + 4)));
+        m_allocator_multiples[i] = ::std::max((size_t)1, min_size / static_cast<unsigned>(2 << (i + 4)));
         size_t min = ((size_t)1) << (i + 3);
         size_t max = (((size_t)1) << (i + 4)) - 1;
         m_allocators[i]._set_allocator_sizes(min, max);
@@ -148,16 +149,16 @@ namespace cgc1
       void *ret = m_allocators[id].allocate(sz);
       if (ret)
         return ret;
-      size_t memory_request = m_allocator_multiples[id] * (2 << (id + 4));
+      size_t memory_request = m_allocator_multiples[id] * static_cast<unsigned>(2 << (id + 4));
       try {
         auto block = m_allocator.create_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size());
         auto &abs = m_allocators[id];
         if (!abs.add_block_is_safe()) {
-          m_allocator.lock();
+          m_allocator._mutex().lock();
           m_allocator._ud_verify();
           size_t offset = abs.grow_blocks();
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
-          m_allocator.unlock();
+          m_allocator._mutex().unlock();
         }
         abs.add_block(::std::move(block));
         m_allocator.register_allocator_block(*this, abs.last_block());

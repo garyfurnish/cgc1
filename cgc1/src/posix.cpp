@@ -11,7 +11,7 @@ namespace cgc1
   namespace details
   {
     extern void thread_gc_handler(int);
-    void suspension(int sig)
+    static void suspension(int sig)
     {
       thread_gc_handler(sig);
     }
@@ -28,7 +28,7 @@ namespace cgc1
     }
     if (handler) {
       details::s_signal_handlers[signum] = handler;
-      signal(signum, [](int signum) { details::s_signal_handlers[signum](signum); });
+      signal(signum, [](int lsignum) { details::s_signal_handlers[lsignum](lsignum); });
     } else {
       signal(signum, SIG_IGN);
       details::s_signal_handlers[signum] = handler;

@@ -1,6 +1,6 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <bandit/bandit.h>
+#include "bandit.hpp"
 #include <cgc1/posix_slab.hpp>
 #include <cgc1/posix.hpp>
 #include <cgc1/aligned_allocator.hpp>
@@ -50,7 +50,7 @@ static void root_test()
 static _NoInline_ void internal_pointer_test__setup(void *&memory, size_t &old_memory)
 {
   memory = cgc1::cgc_malloc(50);
-  uint8_t *&umemory = reinterpret_cast<uint8_t *&>(memory);
+  uint8_t *&umemory = cgc1::unsafe_reference_cast<uint8_t *>(memory);
   old_memory = cgc1::hide_pointer(memory);
   umemory += 1;
   cgc1::cgc_add_root(&memory);

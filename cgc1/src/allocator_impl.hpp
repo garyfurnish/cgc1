@@ -95,7 +95,9 @@ namespace cgc1
       auto memory = get_memory(sz);
       if (!memory.first)
         throw out_of_memory_exception_t();
-      auto block = block_type(memory.first, size(memory), ::std::forward<Args>(args)...);
+      auto memory_size = size(memory);
+      assert(memory_size > 0);
+      auto block = block_type(memory.first, static_cast<size_t>(memory_size), ::std::forward<Args>(args)...);
       m_traits.on_create_allocator_block(ta, block);
       return block;
     }
@@ -281,23 +283,9 @@ namespace cgc1
           }
         }
       }
-      m_free_list.resize(m_free_list.size() - (m_free_list.end() - end));
+      // static cast is fine as end() is guarenteed to be greater then "real" end.
+      m_free_list.resize(m_free_list.size() - static_cast<size_t>(m_free_list.end() - end));
       _ud_verify();
-    }
-    template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::lock()
-    {
-      m_mutex.lock();
-    }
-    template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::unlock()
-    {
-      m_mutex.unlock();
-    }
-    template <typename Allocator, typename Traits>
-    inline bool allocator_t<Allocator, Traits>::try_lock()
-    {
-      return m_mutex.try_lock();
     }
     template <typename Allocator, typename Traits>
     inline auto allocator_t<Allocator, Traits>::_d_free_list() const -> memory_pair_vector_t

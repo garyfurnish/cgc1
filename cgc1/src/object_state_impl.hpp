@@ -67,7 +67,8 @@ namespace cgc1
     }
     CGC1_OPT_INLINE size_t object_state_t::object_size() const noexcept
     {
-      return reinterpret_cast<uint8_t *>(next()) - object_start();
+      // It is invariant that object_start() > next for all valid objects.
+      return static_cast<size_t>(reinterpret_cast<uint8_t *>(next()) - object_start());
     }
     CGC1_OPT_INLINE uint8_t *object_state_t::object_end() const noexcept
     {

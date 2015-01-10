@@ -1,6 +1,6 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <bandit/bandit.h>
+#include "bandit.hpp"
 #include <cgc1/aligned_allocator.hpp>
 #include "../cgc1/src/slab_allocator.hpp"
 #include "../cgc1/src/allocator_block.hpp"

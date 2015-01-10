@@ -226,4 +226,14 @@ namespace cgc1
   {
     secure_zero(&s, sizeof(s));
   }
+  template <typename T, typename In>
+  T &unsafe_reference_cast(In &in)
+  {
+    union {
+      T *t;
+      In *i;
+    } u;
+    u.i = &in;
+    return *u.t;
+  }
 }

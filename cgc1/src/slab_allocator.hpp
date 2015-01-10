@@ -27,14 +27,15 @@ namespace cgc1
       next_iterator<slab_allocator_object_t> _u_object_end();
       next_iterator<slab_allocator_object_t> _u_object_current_end();
       bool _u_empty();
-      void lock() _Exclusive_Lock_Function_(m_mutex);
-      void unlock() _Unlock_Function_(m_mutex);
-      bool try_lock();
+      auto &_mutex() RETURN_CAPABILITY(m_mutex)
+      {
+        return m_mutex;
+      }
 
       void *_u_split_allocate(slab_allocator_object_t *object, size_t sz);
       void *_u_allocate_raw_at_end(size_t sz);
-      void *allocate_raw(size_t sz);
-      void deallocate_raw(void *v);
+      void *allocate_raw(size_t sz) REQUIRES(!m_mutex);
+      void deallocate_raw(void *v) REQUIRES(!m_mutex);
 
     private:
       spinlock_t m_mutex;

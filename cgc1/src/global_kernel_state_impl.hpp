@@ -37,5 +37,9 @@ namespace cgc1
     {
       return details::is_valid_object_state(os, _internal_allocator()._u_begin(), _internal_allocator()._u_current_end());
     }
+    inline mutex_t &global_kernel_state_t::_mutex() const RETURN_CAPABILITY(m_mutex)
+    {
+      return m_mutex;
+    }
   }
 }

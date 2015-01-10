@@ -58,7 +58,9 @@ namespace cgc1
     }
     object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
-      auto handle = details::g_gks.gc_allocator()._u_find_block(addr);
+      // During garbage collection we may assume that the GC data is static.
+      CGC1_CONCURRENCY_LOCK_ASSUME(gc_allocator()._mutex());
+      auto handle = gc_allocator()._u_find_block(addr);
       if (!handle)
         return nullptr;
       object_state_t *os = handle->m_block->find_address(addr);
@@ -124,12 +126,6 @@ namespace cgc1
         gc_thread->wait_until_finalization_finished();
       }
     }
-    template <typename T1, typename T2, typename T3, typename T4>
-    void lock(T1 &t1, T2 &t2, T3 &t3, T4 &t4)
-        _Exclusive_Lock_Function_(t1, t2.m_mutex, t3.m_mutex, t4) _No_Thread_Safety_Analysis_
-    {
-      ::std::lock(t1, t2, t3, t4);
-    }
     void global_kernel_state_t::collect()
     {
       {
@@ -145,14 +141,10 @@ namespace cgc1
     {
       wait_for_finalization();
       // grab allocator locks so that they are in a consistent state for garbage collection.
-      ::std::lock(m_mutex, m_gc_allocator, m_cgc_allocator, m_slab_allocator, m_thread_mutex);
+      lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_thread_mutex);
       // make sure we aren't already collecting
       if (m_collect || m_num_paused_threads != m_num_resumed_threads) {
-        m_thread_mutex.unlock();
-        m_gc_allocator.unlock();
-        m_cgc_allocator.unlock();
-        m_slab_allocator.unlock();
-        m_mutex.unlock();
+        unlock(m_thread_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_mutex);
         return;
       }
       m_collect = true;
@@ -162,9 +154,9 @@ namespace cgc1
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
       // release allocator locks so they can be used.
-      m_gc_allocator.unlock();
-      m_cgc_allocator.unlock();
-      m_slab_allocator.unlock();
+      m_gc_allocator._mutex().unlock();
+      m_cgc_allocator._mutex().unlock();
+      m_slab_allocator._mutex().unlock();
       if (m_gc_allocator._u_blocks().empty()) {
         m_num_collections++;
         m_collect = false;
@@ -174,7 +166,11 @@ namespace cgc1
         return;
       }
       // do collection
-      _u_setup_gc_threads();
+      {
+        // Thread data can not be modified during collection.
+        CGC1_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
+        _u_setup_gc_threads();
+      }
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_clear();
       }
@@ -298,7 +294,10 @@ namespace cgc1
         cgc1::pthread_kill(state->thread_handle(), SIGUSR1);
       }
       // wait for all threads to stop
-      m_stop_world_condition.wait(lock, [this]() { return m_num_paused_threads == m_threads.size() - 1; });
+      m_stop_world_condition.wait(lock, [this]() { // Thread data can not be modified during collection
+        CGC1_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
+        return m_num_paused_threads == m_threads.size() - 1;
+      });
       lock.release();
     }
     void global_kernel_state_t::_u_resume_threads()

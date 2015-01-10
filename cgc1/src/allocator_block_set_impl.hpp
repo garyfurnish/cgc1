@@ -198,11 +198,11 @@ namespace cgc1
         m_blocks.reserve(sz);
       auto offset = reinterpret_cast<uint8_t *>(&m_blocks.front()) - reinterpret_cast<uint8_t *>(bbegin);
       if (m_back)
-        reinterpret_cast<uint8_t *&>(m_back) += offset;
+        unsafe_reference_cast<uint8_t *>(m_back) += offset;
       for (auto &pair : m_available_blocks) {
-        reinterpret_cast<uint8_t *&>(pair.second) += offset;
+        unsafe_reference_cast<uint8_t *>(pair.second) += offset;
       }
-      return offset;
+      return static_cast<size_t>(offset);
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() -> allocator_block_type &

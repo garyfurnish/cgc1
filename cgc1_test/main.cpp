@@ -1,5 +1,5 @@
 #include <cgc1/cgc1.hpp>
-#include <bandit/bandit.h>
+#include "bandit.hpp"
 #include "../cgc1/src/allocator.hpp"
 #ifdef _WIN32
 #pragma optimize("", off)

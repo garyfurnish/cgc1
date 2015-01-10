@@ -1,6 +1,6 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <bandit/bandit.h>
+#include "bandit.hpp"
 #include <cgc1/posix_slab.hpp>
 #include <cgc1/posix.hpp>
 #include <cgc1/aligned_allocator.hpp>
@@ -75,13 +75,13 @@ void allocator_tests()
       AssertThat(ta.allocate(100), Equals(alloc1));
     });
     it("test4", []() {
-      for (int j = 0; j < 30; ++j) {
-        ::std::array<cgc1::rebind_vector_t<int, cgc1::cgc_internal_allocator_t<int>>, 5> vecs;
-        for (int i = 0; i < 100000; ++i) {
+      for (size_t j = 0; j < 30; ++j) {
+        ::std::array<cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_allocator_t<size_t>>, 5> vecs;
+        for (size_t i = 0; i < 100000; ++i) {
           for (auto &vec : vecs)
             vec.push_back(i);
         }
-        for (int i = 0; i < 100000; ++i) {
+        for (size_t i = 0; i < 100000; ++i) {
           for (auto &vec : vecs)
             AssertThat(vec[i], Equals(i));
         }

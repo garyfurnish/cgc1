@@ -99,7 +99,8 @@ namespace cgc1
   {
     if (s_page_size)
       return s_page_size;
-    s_page_size = ::getpagesize();
+    // This is guarenteed to be positive by api.
+    s_page_size = static_cast<size_t>(::getpagesize());
     return s_page_size;
   }
   inline void *slab_t::find_hole(size_t size)
