@@ -87,5 +87,12 @@ void allocator_tests()
         }
       }
     });
+    it("thread_allocator _do_maintenance", []() {
+      ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
+      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+      cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
+      ta._do_maintenance();
+    });
+
   });
 }

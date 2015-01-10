@@ -53,7 +53,11 @@ namespace cgc1
     {
     }
     template <class _Other>
-    aligned_allocator_t<void, alignment> &operator=(const aligned_allocator_t<_Other, Alignment> &) noexcept
+    aligned_allocator_t<T, alignment> &operator=(const aligned_allocator_t<_Other, Alignment> &) noexcept
+    {
+      return *this;
+    }
+    aligned_allocator_t<T, alignment> &operator=(const aligned_allocator_t<T, Alignment> &) noexcept
     {
       return *this;
     }
