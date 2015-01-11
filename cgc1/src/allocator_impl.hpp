@@ -1,5 +1,5 @@
 #pragma once
-#if _ITERATOR_DEBUG_LEVEL!=0
+#if defined(_ITERATOR_DEBUG_LEVEL) && _ITERATOR_DEBUG_LEVEL != 0
 #error "IDL must be zero"
 #endif
 namespace cgc1
@@ -340,7 +340,7 @@ namespace cgc1
     template <typename Container>
     void allocator_t<Allocator, Traits>::bulk_destroy_memory(Container &container)
     {
-      _ud_verify();
+      _d_verify();
       for (object_state_t *os : container) {
         if (os)
           os->set_quasi_freed();

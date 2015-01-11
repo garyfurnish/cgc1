@@ -161,7 +161,7 @@ namespace cgc1
       **/
       template <typename Container>
       void _u_move_registered_blocks(const Container &blocks, size_t offset) REQUIRES(m_mutex);
-      void _u_move_registered_block(block_type *old_block, block_type *new_block);
+      void _u_move_registered_block(block_type *old_block, block_type *new_block) REQUIRES(m_mutex);
       /**
       Find the block for this allocator handle.
       Note that another thread could move the allocator block, but this can't happen without registering another block, assuming
@@ -208,7 +208,7 @@ namespace cgc1
       /**
       Internal consistency checks.
       **/
-      void _ud_verify();
+      void _ud_verify() REQUIRES(m_mutex);
       /**
       Internal consistency checks.
       **/

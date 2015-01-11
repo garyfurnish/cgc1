@@ -1,4 +1,5 @@
 #pragma once
+#include "declarations.hpp"
 #include <mutex>
 #include <thread>
 #include <atomic>
@@ -60,12 +61,12 @@ namespace cgc1
     {
       t.lock();
     }
-	lock_guard_t(const lock_guard_t<T>&) = delete;
+    lock_guard_t(const lock_guard_t<T> &) = delete;
     ~lock_guard_t() RELEASE()
     {
       m_T.unlock();
     }
-	lock_guard_t<T>& operator=(const lock_guard_t<T>&) = delete;
+    lock_guard_t<T> &operator=(const lock_guard_t<T> &) = delete;
     T &m_T;
   } SCOPED_CAPABILITY;
 
@@ -101,17 +102,17 @@ namespace cgc1
     spinlock_t(const spinlock_t &) = delete;
     spinlock_t(spinlock_t &&) = default;
 #ifndef __clang__
-	void lock()
-	{
-		while (!try_lock())
-			_mm_pause();
-	}
+    void lock()
+    {
+      while (!try_lock())
+        _mm_pause();
+    }
 #else
-	void lock()
-	{
-		while (!try_lock())
+    void lock()
+    {
+      while (!try_lock())
 			__asm__ volatile("pause");
-	}
+    }
 #endif
     void unlock() noexcept RELEASE()
     {
@@ -229,58 +230,58 @@ namespace cgc1
 #else
 namespace cgc1
 {
-	using condition_variable_any_t = ::std::condition_variable_any;
+  using condition_variable_any_t = ::std::condition_variable_any;
 }
 #endif
 #define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> _cgc1_macro_lock(x);
 #define CGC1_CONCURRENCY_LOCK_ASSUME(x) cgc1::lock_assume_t _cgc1_macro_lock(x);
-namespace cgc1
-{
-  template <typename T1, typename T2>
-  class double_lock_t
+  namespace cgc1
   {
-  public:
-    double_lock_t(T1 &t1, T2 &t2) : m_t1(&t1), m_t2(&t2)
+    template <typename T1, typename T2>
+    class double_lock_t
     {
-      ::std::lock(*m_t1, *m_t2);
-    }
-    ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
-    {
-      if (m_t1 && m_t2) {
+    public:
+      double_lock_t(T1 &t1, T2 &t2) : m_t1(&t1), m_t2(&t2)
+      {
+        ::std::lock(*m_t1, *m_t2);
+      }
+      ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
+      {
+        if (m_t1 && m_t2) {
+          m_t1->unlock();
+          m_t2->unlock();
+        }
+      }
+      void lock()
+      {
+        if (m_t1 && m_t2)
+          ::std::lock(*m_t1, *m_t2);
+        else
+          abort();
+      }
+      void unlock() NO_THREAD_SAFETY_ANALYSIS
+      {
         m_t1->unlock();
         m_t2->unlock();
       }
-    }
-    void lock()
-    {
-      if (m_t1 && m_t2)
-        ::std::lock(*m_t1, *m_t2);
-      else
-        abort();
-    }
-    void unlock() NO_THREAD_SAFETY_ANALYSIS
-    {
-      m_t1->unlock();
-      m_t2->unlock();
-    }
-    void release()
-    {
-      m_t1 = nullptr;
-      m_t2 = nullptr;
-    }
-    bool try_lock()
-    {
-      if (m_t1->try_lock()) {
-        if (m_t2->try_lock())
-          return true;
-        else
-          m_t1->unlock();
+      void release()
+      {
+        m_t1 = nullptr;
+        m_t2 = nullptr;
       }
-      return false;
-    }
+      bool try_lock()
+      {
+        if (m_t1->try_lock()) {
+          if (m_t2->try_lock())
+            return true;
+          else
+            m_t1->unlock();
+        }
+        return false;
+      }
 
-  private:
-    T1 *m_t1;
-    T2 *m_t2;
-  };
-}
+    private:
+      T1 *m_t1;
+      T2 *m_t2;
+    };
+  }

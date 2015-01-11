@@ -1,4 +1,5 @@
 #pragma once
+#include <cgc1/concurrency.hpp>
 #include "object_state.hpp"
 #include "allocator_block_set.hpp"
 #include <cgc1/posix_slab.hpp>
@@ -84,7 +85,7 @@ namespace cgc1
       Allocate memory of size.
       @return nullptr on error.
       **/
-      void *allocate(size_t size);
+      void *allocate(size_t size) NO_THREAD_SAFETY_ANALYSIS;
       /**
       Destroy a pointer allocated by this allocator.
       The common reason for failure is if this allocator did not make the pointer.
