@@ -78,6 +78,7 @@ namespace cgc1
     }
     void notify_all() noexcept
     {
+      lock_guard_t<decltype(m_mutex)> lg(m_mutex);
       if (::pthread_cond_broadcast(&m_cond))
         ::abort();
     }
