@@ -32,12 +32,15 @@ go_bandit([]() {
       void *memory1 = malloc(1000);
       void *memory2 = malloc(1000);
       it("find_block_set_id", []() {
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(16), Equals((size_t)0));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(17), Equals((size_t)1));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(32), Equals((size_t)2));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(524287), Equals((size_t)15));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000), Equals((size_t)16));
-        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000000), Equals((size_t)17));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(16), Equals(static_cast<size_t>(0)));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(17), Equals(static_cast<size_t>(1)));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(32), Equals(static_cast<size_t>(2)));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(524287),
+                   Equals(static_cast<size_t>(15)));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000),
+                   Equals(static_cast<size_t>(16)));
+        AssertThat(cgc1::details::allocator_t<>::this_thread_allocator_t::find_block_set_id(1000000000),
+                   Equals(static_cast<size_t>(17)));
       });
       free(memory1);
       free(memory2);

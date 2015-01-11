@@ -24,7 +24,7 @@ static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
   memory = cgc1::cgc_malloc(50);
   old_memory = cgc1::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
-  AssertThat(cgc1::cgc_size(memory), Equals((size_t)64));
+  AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
   AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
   AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
 }
@@ -43,7 +43,7 @@ static void root_test()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals((size_t)1));
+  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
@@ -91,7 +91,7 @@ static void atomic_test()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals((size_t)0));
+  AssertThat(last_collect.size(), Equals(static_cast<size_t>(0)));
   cgc1::cgc_set_atomic(memory, true);
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
@@ -123,9 +123,9 @@ static void finalizer_test()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals((size_t)1));
+  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
-  AssertThat((bool)finalized, IsTrue());
+  AssertThat(static_cast<bool>(finalized), IsTrue());
   // test bad parameters
   cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
   AssertThat(cgc1::cgc_start(nullptr) == nullptr, IsTrue());
@@ -150,12 +150,12 @@ static void uncollectable_test()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals((size_t)0));
+  AssertThat(last_collect.size(), Equals(static_cast<size_t>(0)));
   uncollectable_test__cleanup(old_memory);
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals((size_t)1));
+  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
   // test bad parameters
   cgc1::cgc_set_uncollectable(nullptr, true);
@@ -266,8 +266,8 @@ static void race_condition_test()
 }
 static void api_tests()
 {
-  AssertThat(cgc1::cgc_heap_size(), Is().GreaterThan((size_t)0));
-  AssertThat(cgc1::cgc_heap_free(), Is().GreaterThan((size_t)0));
+  AssertThat(cgc1::cgc_heap_size(), Is().GreaterThan(static_cast<size_t>(0)));
+  AssertThat(cgc1::cgc_heap_free(), Is().GreaterThan(static_cast<size_t>(0)));
   cgc1::cgc_disable();
   AssertThat(cgc1::cgc_is_enabled(), Is().False());
   cgc1::cgc_enable();

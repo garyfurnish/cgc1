@@ -80,9 +80,9 @@ namespace cgc1
     void thread_local_kernel_state_t::scan_stack(CONTAINER &container, uint8_t *ibegin, uint8_t *iend)
     {
       // can't recover if we didn't set stack ptrs.
-      if (!(uint8_t *)m_stack_ptr || !(uint8_t *)m_top_of_stack)
+      if (!static_cast<uint8_t *>(m_stack_ptr) || !static_cast<uint8_t *>(m_top_of_stack))
         abort();
-      uint8_t **unaligned = reinterpret_cast<uint8_t **>((uint8_t *)m_stack_ptr);
+      uint8_t **unaligned = reinterpret_cast<uint8_t **>(m_stack_ptr.load());
       uint8_t **stack_ptr = align_pow2(unaligned, 3);
       assert(unaligned == stack_ptr);
       for (uint8_t **v = stack_ptr; v != reinterpret_cast<uint8_t **>(m_top_of_stack); ++v) {

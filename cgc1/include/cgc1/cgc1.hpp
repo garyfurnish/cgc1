@@ -53,7 +53,7 @@ namespace cgc1
   template <typename T>
   void cgc_add_root(T **v)
   {
-    cgc_add_root((void **)v);
+    cgc_add_root(static_cast<void **>(v));
   }
   /**
   Remove a root to scan.
@@ -61,7 +61,7 @@ namespace cgc1
   template <typename T>
   void cgc_remove_root(T **v)
   {
-    cgc_remove_root((void **)v);
+    cgc_remove_root(static_cast<void **>(v));
   }
   /**
   Return the current heap size.

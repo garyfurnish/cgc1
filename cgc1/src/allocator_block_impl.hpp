@@ -22,9 +22,9 @@ namespace cgc1
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
     {
-      if (((size_t)m_start) % c_alignment != 0)
+      if (reinterpret_cast<size_t>(m_start) % c_alignment != 0)
         abort();
-      if (((size_t)m_end) % c_alignment != 0)
+      if (reinterpret_cast<size_t>(m_end) % c_alignment != 0)
         abort();
       m_next_alloc_ptr->set_next_valid(false);
       m_next_alloc_ptr->set_in_use(false);

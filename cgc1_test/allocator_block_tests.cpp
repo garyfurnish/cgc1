@@ -14,19 +14,19 @@ void allocator_block_tests()
     void *alloc1, *alloc2, *alloc3, *alloc4;
     it("alloc1", [&]() {
       alloc1 = block.allocate(15);
-      AssertThat(alloc1, !Equals((void *)nullptr));
+      AssertThat(alloc1, !Equals(static_cast<void *>(nullptr)));
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc1)->not_available(), IsTrue());
     });
     it("alloc2", [&]() {
       alloc2 = block.allocate(15);
-      AssertThat(alloc2, !Equals((void *)nullptr));
+      AssertThat(alloc2, !Equals(static_cast<void *>(nullptr)));
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc2)->not_available(), IsTrue());
     });
     it("alloc3", [&]() {
       alloc3 = block.allocate(15);
-      AssertThat(alloc3, !Equals((void *)nullptr));
+      AssertThat(alloc3, !Equals(static_cast<void *>(nullptr)));
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc3)->next_valid(), IsFalse());
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc3)->not_available(), IsTrue());
       auto alloc3_state = object_state_t::from_object_start(alloc3);
@@ -34,7 +34,7 @@ void allocator_block_tests()
     });
     it("alloc4", [&]() {
       alloc4 = block.allocate(15);
-      AssertThat(alloc4, Equals((void *)nullptr));
+      AssertThat(alloc4, Equals(static_cast<void *>(nullptr)));
     });
     it("re-alloc 3", [&]() {
       auto old_alloc3 = alloc3;
@@ -149,7 +149,7 @@ void allocator_block_tests()
       block.destroy(alloc2);
       block.destroy(alloc1);
       AssertThat(block.m_free_list, HasLength(1));
-      AssertThat(block.allocate(49), Equals((void *)nullptr));
+      AssertThat(block.allocate(49), Equals(static_cast<void *>(nullptr)));
       alloc1 = block.allocate(15);
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(cgc1::details::object_state_t::from_object_start(alloc1)->next_valid(), IsTrue());
@@ -164,7 +164,7 @@ void allocator_block_tests()
     it("fail massive alloc", []() {
       void *memory2 = malloc(1000);
       cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block2(memory2, 96, 16);
-      AssertThat(block2.allocate(985), Equals((void *)nullptr));
+      AssertThat(block2.allocate(985), Equals(static_cast<void *>(nullptr)));
       free(memory2);
     });
     it("empty", []() {

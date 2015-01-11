@@ -69,7 +69,7 @@ namespace cgc1
   **/
   inline constexpr size_t align_pow2(size_t size, size_t align_pow)
   {
-    return ((size + (((size_t)1) << align_pow) - 1) >> align_pow) << align_pow;
+    return ((size + (static_cast<size_t>(1) << align_pow) - 1) >> align_pow) << align_pow;
   }
   /**
   Align pointer to a given power of 2.

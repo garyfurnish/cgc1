@@ -16,7 +16,7 @@ namespace cgc1
     template <typename T>
     void print_memory_pair(T &os, const ::std::pair<uint8_t *, uint8_t *> &pair)
     {
-      os << "(" << (void *)pair.first << " " << (void *)pair.second << ")";
+      os << "(" << static_cast<void *>(pair.first) << " " << static_cast<void *>(pair.second) << ")";
     }
     ::std::string to_string(const ::std::pair<uint8_t *, uint8_t *> &pair)
     {
@@ -83,9 +83,9 @@ namespace cgc1
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
-        m_allocator_multiples[i] = ::std::max((size_t)1, min_size / static_cast<unsigned>(2 << (i + 4)));
-        size_t min = ((size_t)1) << (i + 3);
-        size_t max = (((size_t)1) << (i + 4)) - 1;
+        m_allocator_multiples[i] = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        size_t min = static_cast<size_t>(1) << (i + 3);
+        size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
         m_allocators[i]._set_allocator_sizes(min, max);
       }
     }

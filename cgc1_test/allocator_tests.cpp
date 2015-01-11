@@ -16,8 +16,8 @@ void allocator_tests()
       AssertThat(allocator->initialize(20000, 100000000), IsTrue());
       cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
       auto &allocator_set = ta.allocator_by_size(55);
-      AssertThat(allocator_set.allocator_min_size(), Is().LessThan((size_t)55));
-      AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan((size_t)55));
+      AssertThat(allocator_set.allocator_min_size(), Is().LessThan(static_cast<size_t>(55)));
+      AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(static_cast<size_t>(55)));
       AssertThat(ta.set_allocator_multiple(20, 50), IsFalse());
       void *alloc1 = ta.allocate(100);
       AssertThat(alloc1 != nullptr, IsTrue());
@@ -57,7 +57,7 @@ void allocator_tests()
       AssertThat(allocator->_d_free_list(), HasLength(1));
       allocator->collapse();
       AssertThat(allocator->_d_free_list(), HasLength(0));
-      AssertThat((void *)allocator->current_end(), Equals((void *)allocator->begin()));
+      AssertThat(static_cast<void *>(allocator->current_end()), Equals(static_cast<void *>(allocator->begin())));
     });
     it("test3", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());

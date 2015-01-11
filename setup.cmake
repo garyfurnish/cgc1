@@ -21,7 +21,7 @@ add_compile_options(/W4 /sdl /WX /MP)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 #LINUX OR OSX
-add_compile_options(-std=c++1y -Wall -Wextra -pedantic-errors -fexceptions -Wno-unused-value -Wno-invalid-offsetof -Wnonnull -Wformat=2 -Wformat-security -fPIC -Wformat-nonliteral -Winit-self  --param ssp-buffer-size=4 -fPIC -Werror -Wswitch-default -Wstrict-overflow=5 -Wcast-align  -Wcast-qual -Wdisabled-optimization -Winit-self -Wno-old-style-cast )
+add_compile_options(-std=c++1y -Wall -Wextra -pedantic-errors -fexceptions -Wno-unused-value -Wno-invalid-offsetof -Wnonnull -Wformat=2 -Wformat-security -fPIC -Wformat-nonliteral -Winit-self  --param ssp-buffer-size=4 -fPIC -Werror -Wswitch-default -Wstrict-overflow=5 -Wcast-align  -Wcast-qual -Wdisabled-optimization -Winit-self )
 add_compile_options(-fvisibility=hidden)
 add_compile_options(-fvisibility-inlines-hidden)
 add_compile_options( -Wno-unknown-pragmas)

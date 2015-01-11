@@ -36,7 +36,7 @@ void allocator_block_set_tests()
       void *alloc2 = abs.allocate(976);
       AssertThat(alloc1 != nullptr, IsTrue());
       AssertThat(alloc2 != nullptr, IsTrue());
-      AssertThat(abs.allocate(1), Equals((void *)nullptr));
+      AssertThat(abs.allocate(1), Equals(static_cast<void *>(nullptr)));
       void *old_alloc1 = alloc1;
       void *old_alloc2 = alloc2;
       abs.destroy(alloc1);

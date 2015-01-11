@@ -47,21 +47,21 @@ namespace cgc1
     **/
     inline void set_mark(object_state_t *os, bool status = true)
     {
-      os->set_user_flags((os->user_flags() & 6) | ((size_t)status));
+      os->set_user_flags((os->user_flags() & 6) | static_cast<size_t>(status));
     }
     /**
     Set the atomic flag for a given object state.
     **/
     inline void set_atomic(object_state_t *os, bool status)
     {
-      os->set_user_flags((os->user_flags() & 5) | (((size_t)status) << 1));
+      os->set_user_flags((os->user_flags() & 5) | (static_cast<size_t>(status) << 1));
     }
     /**
     Set the complex memory flag for a given object state.
     **/
     inline void set_complex(object_state_t *os, bool status)
     {
-      os->set_user_flags((os->user_flags() & 3) | (((size_t)status) << 2));
+      os->set_user_flags((os->user_flags() & 3) | (static_cast<size_t>(status) << 2));
     }
   }
 }
