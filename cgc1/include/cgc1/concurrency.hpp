@@ -89,6 +89,7 @@ namespace cgc1
     {
       return *this;
     }
+
   protected:
     ::std::mutex m_mutex;
   };
@@ -104,8 +105,8 @@ namespace cgc1
   {
   public:
     spinlock_t() noexcept : m_lock(0)
-      {
-      }
+    {
+    }
     spinlock_t(const spinlock_t &) = delete;
     spinlock_t(spinlock_t &&) = default;
 #ifndef __clang__
@@ -135,6 +136,7 @@ namespace cgc1
     {
       return *this;
     }
+
   protected:
     ::std::atomic<bool> m_lock;
   };
@@ -149,16 +151,16 @@ namespace cgc1
     ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
     {
       if (m_t1 && m_t2) {
-	m_t1->unlock();
-	m_t2->unlock();
+        m_t1->unlock();
+        m_t2->unlock();
       }
     }
     void lock()
     {
       if (m_t1 && m_t2)
-	::std::lock(*m_t1, *m_t2);
+        ::std::lock(*m_t1, *m_t2);
       else
-	abort();
+        abort();
     }
     void unlock() NO_THREAD_SAFETY_ANALYSIS
     {
@@ -173,13 +175,14 @@ namespace cgc1
     bool try_lock()
     {
       if (m_t1->try_lock()) {
-	if (m_t2->try_lock())
-	  return true;
-	else
-	  m_t1->unlock();
+        if (m_t2->try_lock())
+          return true;
+        else
+          m_t1->unlock();
       }
       return false;
     }
+
   private:
     T1 *m_t1;
     T2 *m_t2;
