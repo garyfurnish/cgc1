@@ -201,8 +201,8 @@ namespace cgc1
       **/
       const memory_pair_vector_t &_ud_free_list() const REQUIRES(m_mutex);
 
-      uint8_t *_u_begin() const NO_THREAD_SAFETY_ANALYSIS;
-      uint8_t *_u_current_end() const NO_THREAD_SAFETY_ANALYSIS;
+      uint8_t *_u_begin() const;
+      uint8_t *_u_current_end() const REQUIRES(m_mutex);
 
       mutable spinlock_t m_mutex;
       /**
@@ -237,7 +237,7 @@ namespace cgc1
       /**
       Underlying slab.
       **/
-      slab_t m_slab GUARDED_BY(m_mutex);
+      slab_t m_slab;
       using thread_allocator_unique_ptr_t =
           typename ::std::unique_ptr<this_thread_allocator_t,
                                      typename cgc_allocator_deleter_t<this_thread_allocator_t, allocator>::type>;

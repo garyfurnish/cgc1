@@ -152,6 +152,7 @@ namespace cgc1
         return false;
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
+      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
       tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end());
       return true;
     }
@@ -188,6 +189,9 @@ namespace cgc1
         m_addresses_to_mark.push_back(addr);
         return;
       }
+      // This is calling during garbage collection, therefore no mutex is needed.
+      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
+      // Find heap begin and end.
       void *heap_begin = g_gks.gc_allocator()._u_begin();
       void *heap_end = g_gks.gc_allocator()._u_current_end();
       object_state_t *os = object_state_t::from_object_start(addr);

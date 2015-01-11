@@ -70,11 +70,11 @@ namespace cgc1
       Initialize the current thread for garbage collection.
       @param top_of_stack Top of the current thread's stack.
       **/
-      void initialize_current_thread(void *top_of_stack) NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(!m_mutex);
+      void initialize_current_thread(void *top_of_stack) REQUIRES(!m_mutex, !m_thread_mutex);
       /**
       Destroy the current thread state for garbage collection.
       **/
-      void destroy_current_thread() NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(!m_mutex);
+      void destroy_current_thread() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
       Master collect function for a given thread.
       This calls into the thread kernel state's collect.
@@ -97,11 +97,11 @@ namespace cgc1
       /**
       Add a root the global kernel state.
       **/
-      void add_root(void **) REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
+      void add_root(void **) REQUIRES(!m_mutex);
       /**
       Remove a root from the global kernel state.
       **/
-      void remove_root(void **) REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
+      void remove_root(void **) REQUIRES(!m_mutex);
       /**
       Wait for finalization of the last collection to finish.
       **/
@@ -147,7 +147,7 @@ namespace cgc1
       Initialize the global kernel state.
       This may be called multiple times, but will be a nop if already called.
       **/
-      void _u_initialize() NO_THREAD_SAFETY_ANALYSIS; // REQUIRES(m_mutex);
+      void _u_initialize() REQUIRES(m_mutex);
       /**
       Pause all threads.
       Abort on error because usually these errors are unrecoverable.

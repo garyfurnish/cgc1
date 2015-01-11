@@ -39,7 +39,7 @@ namespace cgc1
       /**
       Wait until clearing finished.
       **/
-      void wait_until_clear_finished() NO_THREAD_SAFETY_ANALYSIS;
+      void wait_until_clear_finished();
       /**
       Start marking.
       **/
@@ -47,7 +47,7 @@ namespace cgc1
       /**
       Wait until mark phase finished.
       **/
-      void wait_until_mark_finished() NO_THREAD_SAFETY_ANALYSIS;
+      void wait_until_mark_finished();
       /**
       Start sweeping.
       **/
@@ -55,7 +55,7 @@ namespace cgc1
       /**
       Wait until sweep phase finished.
       **/
-      void wait_until_sweep_finished() NO_THREAD_SAFETY_ANALYSIS;
+      void wait_until_sweep_finished();
       /**
       Notify the thread that all threads have resumed from garbage collection and that it is safe to finalize.
       **/
@@ -63,7 +63,7 @@ namespace cgc1
       /**
       Wait until finalization finishes.
       **/
-      void wait_until_finalization_finished() NO_THREAD_SAFETY_ANALYSIS;
+      void wait_until_finalization_finished();
       /**
       Returns true if finalization finished, false otherwise.
       **/

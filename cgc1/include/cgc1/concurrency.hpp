@@ -25,6 +25,11 @@ namespace cgc1
   {
     ::std::lock(t1, t2, t3, t4, t5);
   }
+  template <typename T1>
+  void assume_unlock(T1 &t1) RELEASE(t1) NO_THREAD_SAFETY_ANALYSIS
+  {
+    (void)t1;
+  }
   template <typename T1, typename T2, typename T3, typename T4, typename T5>
   void unlock(T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5) RELEASE(t1, t2, t3, t4, t5) NO_THREAD_SAFETY_ANALYSIS
   {
@@ -34,7 +39,6 @@ namespace cgc1
     t4.unlock();
     t5.unlock();
   }
-
   class lock_assume_t
   {
   public:
@@ -42,6 +46,12 @@ namespace cgc1
     lock_assume_t(T &t) ACQUIRE(t)
     {
       (void)t;
+    }
+    template <typename T1, typename T2>
+    lock_assume_t(T1 &t1, T2 &t2) ACQUIRE(t1, t2)
+    {
+      (void)t1;
+      (void)t2;
     }
     ~lock_assume_t() RELEASE()
     {
@@ -97,8 +107,18 @@ namespace cgc1
 using condition_variable_any_t = ::std::condition_variable_any;
 #endif
 #include "concurrency_apple.hpp"
-#define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> _cgc1_macro_lock(x);
-#define CGC1_CONCURRENCY_LOCK_ASSUME(x) cgc1::lock_assume_t _cgc1_macro_lock(x);
+#define CGC1_CONCURRENCY_LOCK_GUARD_MERGE_(a, b) a##b
+#define CGC1_CONCURRENCY_LOCK_GUARD_LABEL_(a) CGC1_CONCURRENCY_LOCK_GUARD_MERGE_(cgc1_concurrency_lock_guard_, a)
+#define CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE CGC1_CONCURRENCY_LOCK_GUARD_LABEL_(__LINE__)
+#define CGC1_CONCURRENCY_LOCK_ASSUME_MERGE_(a, b) a##b
+#define CGC1_CONCURRENCY_LOCK_ASSUME_LABEL_(a) CGC1_CONCURRENCY_LOCK_ASSUME_MERGE_(cgc1_concurrency_lock_assume_, a)
+#define CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE CGC1_CONCURRENCY_LOCK_ASSUME_LABEL_(__LINE__)
+#define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(x);
+#define CGC1_CONCURRENCY_LOCK_ASSUME(...) cgc1::lock_assume_t CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(__VA_ARGS__);
+#define CGC1_CONCURRENCY_LOCK_GUARD_TAKE(x)                                                                                      \
+  ::std::unique_lock<decltype(x)> CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(x, ::std::adopt_lock);                                    \
+  cgc1::assume_unlock(x);                                                                                                        \
+  cgc1::lock_assume_t CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE(x);
 namespace cgc1
 {
   class CAPABILITY("mutex") spinlock_t

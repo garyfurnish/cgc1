@@ -35,6 +35,9 @@ namespace cgc1
     }
     inline bool global_kernel_state_t::is_valid_object_state(const object_state_t *os) const
     {
+      // We may assume this because the internal allocator may only grow.
+      // At worse this may be falsely negative, but then it is undef behavior race condition.
+      CGC1_CONCURRENCY_LOCK_ASSUME(_internal_allocator()._mutex());
       return details::is_valid_object_state(os, _internal_allocator()._u_begin(), _internal_allocator()._u_current_end());
     }
     inline mutex_t &global_kernel_state_t::_mutex() const RETURN_CAPABILITY(m_mutex)

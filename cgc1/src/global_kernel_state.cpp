@@ -77,7 +77,7 @@ namespace cgc1
     void global_kernel_state_t::add_root(void **r)
     {
       wait_for_collection();
-      ::std::unique_lock<decltype(m_mutex)> l(m_mutex, ::std::adopt_lock);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       auto it = find(m_roots.begin(), m_roots.end(), r);
       if (it == m_roots.end())
         m_roots.push_back(r);
@@ -85,7 +85,7 @@ namespace cgc1
     void global_kernel_state_t::remove_root(void **r)
     {
       wait_for_collection();
-      ::std::unique_lock<decltype(m_mutex)> l(m_mutex, ::std::adopt_lock);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       auto it = find(m_roots.begin(), m_roots.end(), r);
       if (it != m_roots.end())
         m_roots.erase(it);
@@ -238,8 +238,8 @@ namespace cgc1
       auto tlks = details::get_tlks();
       // do not start creating threads during an ongoing collection.
       wait_for_collection2();
-      ::std::unique_lock<decltype(m_mutex)> lock(m_mutex, ::std::adopt_lock);
-      ::std::unique_lock<decltype(m_thread_mutex)> lock2(m_thread_mutex, ::std::adopt_lock);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       if (tlks == nullptr) {
         tlks = make_unique_allocator<details::thread_local_kernel_state_t, cgc_internal_malloc_allocator_t<void>>().release();
         set_tlks(tlks);
@@ -256,8 +256,8 @@ namespace cgc1
       auto tlks = details::get_tlks();
       // do not start destroying threads during an ongoing collection.
       wait_for_collection2();
-      ::std::unique_lock<decltype(m_mutex)> lock(m_mutex, ::std::adopt_lock);
-      ::std::unique_lock<decltype(m_thread_mutex)> lock2(m_thread_mutex, ::std::adopt_lock);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       // find thread and erase it from global state
       auto it = find(m_threads.begin(), m_threads.end(), tlks);
       if (it == m_threads.end()) {
