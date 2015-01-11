@@ -89,16 +89,23 @@ namespace cgc1
     {
       return *this;
     }
-
   protected:
     ::std::mutex m_mutex;
   };
+}
+using condition_variable_any_t = ::std::condition_variable_any;
+#endif
+#include "concurrency_apple.hpp"
+#define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> _cgc1_macro_lock(x);
+#define CGC1_CONCURRENCY_LOCK_ASSUME(x) cgc1::lock_assume_t _cgc1_macro_lock(x);
+namespace cgc1
+{
   class CAPABILITY("mutex") spinlock_t
   {
   public:
     spinlock_t() noexcept : m_lock(0)
-    {
-    }
+      {
+      }
     spinlock_t(const spinlock_t &) = delete;
     spinlock_t(spinlock_t &&) = default;
 #ifndef __clang__
@@ -111,7 +118,7 @@ namespace cgc1
     void lock()
     {
       while (!try_lock())
-			__asm__ volatile("pause");
+	__asm__ volatile("pause");
     }
 #endif
     void unlock() noexcept RELEASE()
@@ -128,160 +135,53 @@ namespace cgc1
     {
       return *this;
     }
-
   protected:
     ::std::atomic<bool> m_lock;
   };
-}
-using condition_variable_any_t = ::std::condition_variable_any;
-#endif
-#ifdef __APPLE__
-namespace cgc1
-{
-  template <typename T>
-  using lock_guard_t = ::std::lock_guard<T>;
-  class pthread_mutex_t
+  template <typename T1, typename T2>
+  class double_lock_t
   {
   public:
-    pthread_mutex_t() noexcept
+    double_lock_t(T1 &t1, T2 &t2) : m_t1(&t1), m_t2(&t2)
     {
-      if (pthread_mutex_init(&m_mutex, 0))
-        ::abort();
+      ::std::lock(*m_t1, *m_t2);
     }
-    pthread_mutex_t(const pthread_mutex_t &) = delete;
-    pthread_mutex_t(pthread_mutex_t &&) = default;
-    ~pthread_mutex_t()
+    ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
     {
-      if (::pthread_mutex_destroy(&m_mutex))
-        ::abort();
+      if (m_t1 && m_t2) {
+	m_t1->unlock();
+	m_t2->unlock();
+      }
     }
-    void lock() noexcept
+    void lock()
     {
-      if (::pthread_mutex_lock(&m_mutex))
-        ::abort();
+      if (m_t1 && m_t2)
+	::std::lock(*m_t1, *m_t2);
+      else
+	abort();
     }
-    void unlock() noexcept
+    void unlock() NO_THREAD_SAFETY_ANALYSIS
     {
-      if (::pthread_mutex_unlock(&m_mutex))
-        ::abort();
+      m_t1->unlock();
+      m_t2->unlock();
     }
-    bool try_lock() noexcept
+    void release()
     {
-      auto result = ::pthread_mutex_trylock(&m_mutex);
-      if (result == 0)
-        return true;
+      m_t1 = nullptr;
+      m_t2 = nullptr;
+    }
+    bool try_lock()
+    {
+      if (m_t1->try_lock()) {
+	if (m_t2->try_lock())
+	  return true;
+	else
+	  m_t1->unlock();
+      }
       return false;
     }
-    using native_handle_type = ::pthread_mutex_t *;
-    native_handle_type native_handle() noexcept
-    {
-      return &m_mutex;
-    }
-
   private:
-    ::pthread_mutex_t m_mutex;
+    T1 *m_t1;
+    T2 *m_t2;
   };
-  class pthread_condition_variable_any_t
-  {
-  public:
-    pthread_condition_variable_any_t() noexcept
-    {
-      if (::pthread_cond_init(&m_cond, 0))
-        ::abort();
-    }
-    pthread_condition_variable_any_t(const pthread_condition_variable_any_t &) = delete;
-    pthread_condition_variable_any_t(pthread_condition_variable_any_t &&) = default;
-    ~pthread_condition_variable_any_t()
-    {
-      if (::pthread_cond_destroy(&m_cond))
-        ::abort();
-    }
-    template <typename Lock, typename Pred>
-    void wait(Lock &lock, const Pred &pred)
-    {
-      while (!pred())
-        wait(lock);
-    }
-    template <typename Lock>
-    void wait(Lock &lock)
-    {
-      m_mutex.lock();
-      lock.unlock();
-      if (::pthread_cond_wait(&m_cond, m_mutex.native_handle()))
-        ::abort();
-      m_mutex.unlock();
-      lock.lock();
-    }
-    void notify_all() noexcept
-    {
-      if (::pthread_cond_broadcast(&m_cond))
-        ::abort();
-    }
-
-  private:
-    ::pthread_cond_t m_cond;
-    pthread_mutex_t m_mutex;
-  };
-  using mutex_t = pthread_mutex_t;
-  using condition_variable_any_t = pthread_condition_variable_any_t;
-
-  template <typename T>
-  using unique_lock_t = ::std::unique_lock<T>;
-#else
-namespace cgc1
-{
-  using condition_variable_any_t = ::std::condition_variable_any;
 }
-#endif
-#define CGC1_CONCURRENCY_LOCK_GUARD(x) cgc1::lock_guard_t<decltype(x)> _cgc1_macro_lock(x);
-#define CGC1_CONCURRENCY_LOCK_ASSUME(x) cgc1::lock_assume_t _cgc1_macro_lock(x);
-  namespace cgc1
-  {
-    template <typename T1, typename T2>
-    class double_lock_t
-    {
-    public:
-      double_lock_t(T1 &t1, T2 &t2) : m_t1(&t1), m_t2(&t2)
-      {
-        ::std::lock(*m_t1, *m_t2);
-      }
-      ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
-      {
-        if (m_t1 && m_t2) {
-          m_t1->unlock();
-          m_t2->unlock();
-        }
-      }
-      void lock()
-      {
-        if (m_t1 && m_t2)
-          ::std::lock(*m_t1, *m_t2);
-        else
-          abort();
-      }
-      void unlock() NO_THREAD_SAFETY_ANALYSIS
-      {
-        m_t1->unlock();
-        m_t2->unlock();
-      }
-      void release()
-      {
-        m_t1 = nullptr;
-        m_t2 = nullptr;
-      }
-      bool try_lock()
-      {
-        if (m_t1->try_lock()) {
-          if (m_t2->try_lock())
-            return true;
-          else
-            m_t1->unlock();
-        }
-        return false;
-      }
-
-    private:
-      T1 *m_t1;
-      T2 *m_t2;
-    };
-  }
