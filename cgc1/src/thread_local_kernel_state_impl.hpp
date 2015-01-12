@@ -76,7 +76,7 @@ namespace cgc1
     {
       return m_thread_id;
     }
-    inline void thread_local_kernel_state_t::add_potential_root(void * root)
+    inline void thread_local_kernel_state_t::add_potential_root(void *root)
     {
       if (m_potential_roots.size() == m_potential_roots.capacity())
         throw ::std::runtime_error("CGC1 TLKS potential roots full");
@@ -86,7 +86,7 @@ namespace cgc1
     {
       m_potential_roots.clear();
     }
-    inline const cgc_internal_vector_t<void*>& thread_local_kernel_state_t::_potential_roots() const
+    inline const cgc_internal_vector_t<void *> &thread_local_kernel_state_t::_potential_roots() const
     {
       return m_potential_roots;
     }

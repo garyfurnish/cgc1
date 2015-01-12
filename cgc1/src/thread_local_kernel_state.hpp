@@ -60,19 +60,20 @@ namespace cgc1
       void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end);
       /**
       * \brief Add a location that may potentially hold a root.
-      * 
+      *
       * This is typically used to hold registers.
       * @param root Potential root, may be nullptr.
       **/
-      void add_potential_root(void* root);
+      void add_potential_root(void *root);
       /**
       * \brief Clear all potential roots.
       **/
       void clear_potential_roots();
-      const cgc_internal_vector_t<void*>& _potential_roots() const;
+      const cgc_internal_vector_t<void *> &_potential_roots() const;
+
     private:
       /**
-      * \briefNative thread handle for this thread.
+      * \brief Native thread handle for this thread.
       **/
       ::std::thread::native_handle_type m_thread_handle;
       /**
@@ -93,10 +94,10 @@ namespace cgc1
       ::std::atomic<bool> m_in_signal_handler;
       /**
       * \brief List of other potential roots.
-      * 
+      *
       * This is typically used to hold registers on machines that do not push them onto the stack.
       **/
-      cgc_internal_vector_t<void*> m_potential_roots;
+      cgc_internal_vector_t<void *> m_potential_roots;
     };
   }
 }

@@ -164,12 +164,12 @@ static void linked_list_test()
 {
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
-  std::atomic<bool> keep_going{ true };
+  std::atomic<bool> keep_going{true};
   auto test_thread = [&keep_going]() {
     CGC1_INITIALIZE_THREAD();
-    volatile void **foo = reinterpret_cast<volatile void **>(cgc1::cgc_malloc(100));
+    void **foo = reinterpret_cast<void **>(cgc1::cgc_malloc(100));
     {
-      volatile void **bar = foo;
+      void **bar = foo;
       for (int i = 0; i < 3000; ++i) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
@@ -177,7 +177,7 @@ static void linked_list_test()
         }
         memset(bar, 0, 100);
         *bar = cgc1::cgc_malloc(100);
-        bar = (volatile void **)(*bar);
+        bar = reinterpret_cast<void **>(*bar);
       }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
@@ -215,7 +215,7 @@ static void linked_list_test()
 static void race_condition_test()
 {
   for (int j = 0; j < 10; ++j) {
-    ::std::atomic<bool> keep_going{ true };
+    ::std::atomic<bool> keep_going{true};
     auto test_thread = [&keep_going]() {
       CGC1_INITIALIZE_THREAD();
       char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
