@@ -16,6 +16,10 @@ namespace cgc1
       auto lth = ::GetCurrentThread();
       DuplicateHandle(GetCurrentProcess(), lth, GetCurrentProcess(), &m_thread_handle, 0, FALSE, DUPLICATE_SAME_ACCESS);
       assert(m_thread_handle);
+      CONTEXT context;
+      void** reg_begin = reinterpret_cast<void**>(&context.Rax);
+      void** reg_end = reinterpret_cast<void**>(&context.VectorControl);
+      m_potential_roots.reserve(reg_end - reg_begin);
     }
     thread_local_kernel_state_t::~thread_local_kernel_state_t()
     {

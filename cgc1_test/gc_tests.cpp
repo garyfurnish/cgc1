@@ -14,7 +14,6 @@
 #include "../cgc1/src/internal_allocator.hpp"
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"
-
 static ::std::vector<void *> locations;
 static ::std::mutex debug_mutex;
 using namespace bandit;
@@ -165,13 +164,12 @@ static void linked_list_test()
 {
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
-  std::atomic<bool> keep_going;
-  keep_going = true;
+  std::atomic<bool> keep_going{ true };
   auto test_thread = [&keep_going]() {
     CGC1_INITIALIZE_THREAD();
-    void **foo = reinterpret_cast<void **>(cgc1::cgc_malloc(100));
+    volatile void **foo = reinterpret_cast<volatile void **>(cgc1::cgc_malloc(100));
     {
-      void **bar = foo;
+      volatile void **bar = foo;
       for (int i = 0; i < 3000; ++i) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
@@ -179,7 +177,7 @@ static void linked_list_test()
         }
         memset(bar, 0, 100);
         *bar = cgc1::cgc_malloc(100);
-        bar = reinterpret_cast<void **>(*bar);
+        bar = (volatile void **)(*bar);
       }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
@@ -217,8 +215,7 @@ static void linked_list_test()
 static void race_condition_test()
 {
   for (int j = 0; j < 10; ++j) {
-    std::atomic<bool> keep_going;
-    keep_going = true;
+    ::std::atomic<bool> keep_going{ true };
     auto test_thread = [&keep_going]() {
       CGC1_INITIALIZE_THREAD();
       char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));

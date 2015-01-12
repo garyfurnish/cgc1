@@ -3,7 +3,9 @@
 #include <cgc1/declarations.hpp>
 #include <atomic>
 #include <thread>
+#include <vector>
 #include <assert.h>
+#include "internal_allocator.hpp"
 namespace cgc1
 {
   namespace details
@@ -52,32 +54,49 @@ namespace cgc1
       **/
       ::std::thread::id thread_id() const;
       /**
-      Scan stack for addresses between begin and end.
+      * \brief Scan stack for addresses between begin and end.
       **/
       template <typename CONTAINER>
       void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end);
-
+      /**
+      * \brief Add a location that may potentially hold a root.
+      * 
+      * This is typically used to hold registers.
+      * @param root Potential root, may be nullptr.
+      **/
+      void add_potential_root(void* root);
+      /**
+      * \brief Clear all potential roots.
+      **/
+      void clear_potential_roots();
+      const cgc_internal_vector_t<void*>& _potential_roots() const;
     private:
       /**
-      Native thread handle for this thread.
+      * \briefNative thread handle for this thread.
       **/
       ::std::thread::native_handle_type m_thread_handle;
       /**
-      Thread id for this thread.
+      * \brief Thread id for this thread.
       **/
       ::std::thread::id m_thread_id;
       /**
-      Top of stack for this thread.
+      * \brief Top of stack for this thread.
       **/
       uint8_t *m_top_of_stack = nullptr;
       /**
-      Current stack pointer.
+      * \brief Current stack pointer.
       **/
       ::std::atomic<uint8_t *> m_stack_ptr;
       /**
-      True if in signal handler for this thread, false otherwise.
+      * \brief True if in signal handler for this thread, false otherwise.
       **/
       ::std::atomic<bool> m_in_signal_handler;
+      /**
+      * \brief List of other potential roots.
+      * 
+      * This is typically used to hold registers on machines that do not push them onto the stack.
+      **/
+      cgc_internal_vector_t<void*> m_potential_roots;
     };
   }
 }

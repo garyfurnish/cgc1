@@ -336,6 +336,7 @@ namespace cgc1
             m_cgc_allocator._mutex().unlock();
             ::std::lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex());
           } else {
+	      		::std::cout << "Suspend thread failed\n";
             abort();
           }
         }
@@ -346,6 +347,7 @@ namespace cgc1
         context.ContextFlags = CONTEXT_FULL;
         auto ret = ::GetThreadContext(state->thread_handle(), &context);
         if (!ret) {
+		      ::std::cerr << "Get thread context failed\n";
           ::abort();
         }
         uint8_t *stack_ptr = nullptr;
@@ -357,7 +359,17 @@ namespace cgc1
         if (!stack_ptr)
           abort();
         state->set_stack_ptr(stack_ptr);
+        void** reg_begin = reinterpret_cast<void**>(&context.Rax);
+        void** reg_end = reinterpret_cast<void**>(&context.VectorControl);
+        for (auto context_it = reg_begin; context_it != reg_end; ++context_it)
+        {
+          //we skip stack register since we already handle that specially.
+          if (context_it == reinterpret_cast<const void**>(&context.Rsp))
+            continue;
+          state->add_potential_root(*context_it);
+        }
       }
+      ::std::atomic_thread_fence(std::memory_order_release);
     }
     void global_kernel_state_t::_u_resume_threads()
     {
@@ -369,6 +381,7 @@ namespace cgc1
           abort();
         state->set_in_signal_handler(false);
       }
+      ::std::atomic_thread_fence(std::memory_order_release);
     }
     void global_kernel_state_t::_collect_current_thread()
     {

@@ -153,6 +153,11 @@ namespace cgc1
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
       CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
+      //add potential roots (ex: registers).
+      m_addresses_to_mark.insert(m_addresses_to_mark.end(), tlks->_potential_roots().begin(), tlks->_potential_roots().end());
+      //clear potential roots for next time.
+      tlks->clear_potential_roots();
+      //scan stack.
       tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end());
       return true;
     }
