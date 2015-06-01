@@ -19,11 +19,29 @@ static ::std::mutex debug_mutex;
 using namespace bandit;
 namespace cgc1
 {
-  template <size_t bytes = 500>
+  template <size_t bytes = 5000>
   static _NoInline_ void clean_stack()
   {
     int array[bytes];
     cgc1::secure_zero(array, bytes);
+    __asm__ __volatile__(
+        "xorl %%eax, %%eax\n"
+        "xorl %%ebx, %%ebx\n"
+        "xorl %%ecx, %%ecx\n"
+        "xorl %%edx, %%edx\n"
+        "xorl %%esi, %%esi\n"
+        "xorl %%edi, %%edi\n"
+        "xorl %%r8d, %%r8d\n"
+        "xorl %%r9d, %%r9d\n"
+        "xorl %%r10d, %%r10d\n"
+        "xorl %%r11d, %%r11d\n"
+        "xorl %%r12d, %%r12d\n"
+        "xorl %%r13d, %%r13d\n"
+        "xorl %%r14d, %%r15d\n"
+        "xorl %%r15d, %%r15d\n"
+        :
+        :
+        : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15");
   }
 }
 static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
