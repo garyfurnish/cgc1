@@ -17,7 +17,15 @@
 static ::std::vector<void *> locations;
 static ::std::mutex debug_mutex;
 using namespace bandit;
-
+namespace cgc1
+{
+  template <size_t bytes = 500>
+  static _NoInline_ void clean_stack()
+  {
+    int array[bytes];
+    cgc1::secure_zero(array, bytes);
+  }
+}
 static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
 {
   memory = cgc1::cgc_malloc(50);
@@ -175,7 +183,7 @@ static void linked_list_test()
           CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
           locations.push_back(bar);
         }
-        memset(bar, 0, 100);
+        cgc1::secure_zero(bar, 100);
         *bar = cgc1::cgc_malloc(100);
         bar = reinterpret_cast<void **>(*bar);
       }
@@ -214,55 +222,53 @@ static void linked_list_test()
 }
 static void race_condition_test()
 {
-  for (int j = 0; j < 10; ++j) {
-    ::std::atomic<bool> keep_going{true};
-    auto test_thread = [&keep_going]() {
-      CGC1_INITIALIZE_THREAD();
-      char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
-      memset(foo, 0, 100);
-      {
-        CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+  ::std::atomic<bool> keep_going{true};
+  auto test_thread = [&keep_going]() {
+    CGC1_INITIALIZE_THREAD();
+    char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
+    cgc1::secure_zero(foo, 100);
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+      locations.push_back(foo);
+    }
+    while (keep_going) {
+      ::std::stringstream ss;
+      ss << foo << ::std::endl;
+    };
+
+    foo = nullptr;
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+      for (int i = 0; i < 5000; ++i) {
+        foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
+        cgc1::secure_zero(foo, 100);
         locations.push_back(foo);
       }
-      while (keep_going) {
-        ::std::stringstream ss;
-        ss << foo << ::std::endl;
-      };
-
-      foo = nullptr;
-      {
-        CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        for (int i = 0; i < 5000; ++i) {
-          foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
-          memset(foo, 0, 100);
-          locations.push_back(foo);
-        }
-      }
-      cgc1::cgc_unregister_thread();
-    };
-    ::std::thread t1(test_thread);
-    //    ::std::thread t2(test_thread);
-    for (int i = 0; i < 10; ++i) {
-      cgc1::cgc_force_collect();
-      cgc1::details::g_gks.wait_for_finalization();
-      auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
-      assert(freed_last.empty());
-      AssertThat(freed_last, HasLength(0));
     }
-    keep_going = false;
-    t1.join();
-    //    t2.join();
+    cgc1::cgc_unregister_thread();
+  };
+  ::std::thread t1(test_thread);
+  ::std::thread t2(test_thread);
+  for (int i = 0; i < 0; ++i) {
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
-    auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-    ::std::sort(locations.begin(), locations.end());
-    ::std::sort(last_collect.begin(), last_collect.end());
-    for (void *v : locations) {
-      assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
-      AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
-    }
-    locations.clear();
+    auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+    assert(freed_last.empty());
+    AssertThat(freed_last, HasLength(0));
   }
+  keep_going = false;
+  t1.join();
+  t2.join();
+  cgc1::cgc_force_collect();
+  cgc1::details::g_gks.wait_for_finalization();
+  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  ::std::sort(locations.begin(), locations.end());
+  ::std::sort(last_collect.begin(), last_collect.end());
+  for (void *v : locations) {
+    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
+    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
+  }
+  locations.clear();
 }
 static void api_tests()
 {
@@ -276,13 +282,23 @@ static void api_tests()
 void gc_bandit_tests()
 {
   describe("GC", []() {
-    it("race condition", []() { race_condition_test(); });
+    for (size_t i = 0; i < 10; ++i) {
+      it("race condition", []() { race_condition_test(); });
+      cgc1::clean_stack();
+    }
     it("linked list test", []() { linked_list_test(); });
+    cgc1::clean_stack();
     it("root", []() { root_test(); });
+    cgc1::clean_stack();
     it("internal pointer", []() { internal_pointer_test(); });
+    cgc1::clean_stack();
     it("finalizers", []() { finalizer_test(); });
+    cgc1::clean_stack();
     it("atomic", []() { atomic_test(); });
+    cgc1::clean_stack();
     it("uncollectable", []() { uncollectable_test(); });
+    cgc1::clean_stack();
     it("api_tests", []() { api_tests(); });
+    cgc1::clean_stack();
   });
 }

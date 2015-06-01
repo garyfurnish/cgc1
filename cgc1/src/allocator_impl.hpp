@@ -106,8 +106,12 @@ namespace cgc1
           auto old_block_addr = &*found_block;
           block = ::std::move(*found_block);
           _u_move_registered_block(old_block_addr, &block);
-          // TODO: The size of this will grow uncontrollabley!  This needs fixing.
-          //          m_global_blocks.erase(found_block);
+          // figure out location in vector that shifted.
+          size_t location = static_cast<size_t>(found_block - m_global_blocks.begin());
+          m_global_blocks.erase(found_block);
+          // move everything back one.
+          for (size_t i = location; i < m_global_blocks.size(); ++i)
+            _u_move_registered_block(&m_global_blocks[i + 1], &m_global_blocks[i]);
           return;
         }
       }
