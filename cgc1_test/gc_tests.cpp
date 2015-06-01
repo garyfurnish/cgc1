@@ -232,13 +232,16 @@ static void race_condition_test()
       foo = nullptr;
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        for (int i = 0; i < 5000; ++i)
-          locations.push_back(cgc1::cgc_malloc(100));
+        for (int i = 0; i < 5000; ++i) {
+          foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
+          memset(foo, 0, 100);
+          locations.push_back(foo);
+        }
       }
       cgc1::cgc_unregister_thread();
     };
     ::std::thread t1(test_thread);
-    ::std::thread t2(test_thread);
+    //    ::std::thread t2(test_thread);
     for (int i = 0; i < 10; ++i) {
       cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
@@ -248,7 +251,7 @@ static void race_condition_test()
     }
     keep_going = false;
     t1.join();
-    t2.join();
+    //    t2.join();
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
     auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();

@@ -174,6 +174,12 @@ namespace cgc1
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
+    inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block() -> allocator_block_type &
+    {
+      add_block(allocator_block_type());
+      return m_blocks.back();
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
     inline void
     allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
     {

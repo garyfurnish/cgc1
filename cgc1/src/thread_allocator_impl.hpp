@@ -151,8 +151,9 @@ namespace cgc1
         return ret;
       size_t memory_request = m_allocator_multiples[id] * static_cast<unsigned>(2 << (id + 4));
       try {
-        auto block = m_allocator.create_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size());
+        // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
+        // see if safe to add a block
         if (!abs.add_block_is_safe()) {
           m_allocator._mutex().lock();
           m_allocator._ud_verify();
@@ -160,8 +161,11 @@ namespace cgc1
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
-        abs.add_block(::std::move(block));
-        m_allocator.register_allocator_block(*this, abs.last_block());
+        // gcreate and grab the empty block.
+        typename global_allocator::block_type &block = abs.add_block();
+        // fill the empty block.
+        m_allocator.get_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                        m_allocators[id].allocator_max_size(), sz, block);
       } catch (out_of_memory_exception_t) {
         abort();
         // we aren't going to try to handle out of memory at this point.

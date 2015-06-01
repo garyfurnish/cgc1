@@ -2,6 +2,7 @@
 #if defined(_ITERATOR_DEBUG_LEVEL) && _ITERATOR_DEBUG_LEVEL != 0
 #error "IDL must be zero"
 #endif
+#include <iostream>
 namespace cgc1
 {
   namespace details
@@ -91,16 +92,40 @@ namespace cgc1
       return ret;
     }
     template <typename Allocator, typename Traits>
-    template <typename... Args>
-    inline auto allocator_t<Allocator, Traits>::create_allocator_block(this_thread_allocator_t &ta, size_t sz, Args &&... args)
-        -> block_type
+    void allocator_t<Allocator, Traits>::get_allocator_block(this_thread_allocator_t &ta,
+                                                             size_t create_sz,
+                                                             size_t minimum_alloc_length,
+                                                             size_t maximum_alloc_length,
+                                                             size_t allocate_sz,
+                                                             block_type &block)
+    {
+      {
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
+        if (found_block != m_global_blocks.end()) {
+          auto old_block_addr = &*found_block;
+          block = ::std::move(*found_block);
+          _u_move_registered_block(old_block_addr, &block);
+          // TODO: The size of this will grow uncontrollabley!  This needs fixing.
+          //          m_global_blocks.erase(found_block);
+          return;
+        }
+      }
+      block = _create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length);
+      register_allocator_block(ta, block);
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_create_allocator_block(this_thread_allocator_t &ta,
+                                                                        size_t sz,
+                                                                        size_t minimum_alloc_length,
+                                                                        size_t maximum_alloc_length) -> block_type
     {
       auto memory = get_memory(sz);
       if (!memory.first)
         throw out_of_memory_exception_t();
       auto memory_size = size(memory);
       assert(memory_size > 0);
-      auto block = block_type(memory.first, static_cast<size_t>(memory_size), ::std::forward<Args>(args)...);
+      auto block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       m_traits.on_create_allocator_block(ta, block);
       return block;
     }
@@ -124,6 +149,12 @@ namespace cgc1
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _ud_verify();
+      for (auto &&it : m_blocks) {
+        if (it.m_block == &block)
+          abort();
+        if (it.m_begin == block.begin())
+          abort();
+      }
       this_allocator_block_handle_t handle(&ta, &block, block.begin());
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       m_blocks.emplace(ub, &ta, &block, block.begin());
@@ -133,6 +164,12 @@ namespace cgc1
     inline void allocator_t<Allocator, Traits>::unregister_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      _u_unregister_allocator_block(ta, block);
+    }
+
+    template <typename Allocator, typename Traits>
+    inline void allocator_t<Allocator, Traits>::_u_unregister_allocator_block(this_thread_allocator_t &ta, block_type &block)
+    {
       _ud_verify();
       this_allocator_block_handle_t handle(&ta, &block, block.begin());
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
@@ -175,10 +212,13 @@ namespace cgc1
           }
           _ud_verify();
         } else {
+          ::std::cerr << "CGC1: Unable to find block to move\n";
+          ::std::cerr << old_block << " " << new_block << ::std::endl;
           // This should never happen, so memory corruption issue if it has, so kill the program.
           abort();
         }
       } else {
+        ::std::cerr << "CGC1: Unable to find block to move, lb is end\n";
         // This should never happen, so memory corruption issue if it has, so kill the program.
         abort();
       }
@@ -213,7 +253,7 @@ namespace cgc1
     inline void allocator_t<Allocator, Traits>::to_global_allocator_block(block_type &&block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      if (m_global_blocks.empty())
+      if (!m_global_blocks.capacity())
         m_global_blocks.reserve(20000);
       auto old_block_addr = &block;
       m_global_blocks.emplace_back(std::move(block));
@@ -346,6 +386,32 @@ namespace cgc1
           os->set_quasi_freed();
       }
       container.clear();
+    }
+    template <typename Allocator, typename Traits>
+    size_t allocator_t<Allocator, Traits>::num_global_blocks()
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_num_global_blocks();
+    }
+    template <typename Allocator, typename Traits>
+    size_t allocator_t<Allocator, Traits>::_u_num_global_blocks()
+    {
+      return m_global_blocks.size();
+    }
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::_u_find_global_allocator_block(size_t sz,
+                                                                        size_t minimum_alloc_length,
+                                                                        size_t maximum_alloc_length) ->
+        typename global_block_vector_type::iterator
+    {
+      minimum_alloc_length = object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length);
+      maximum_alloc_length = object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length);
+      auto it = ::std::find_if(m_global_blocks.begin(), m_global_blocks.end(), [this, sz, minimum_alloc_length,
+                                                                                maximum_alloc_length](const block_type &block) {
+        return block.minimum_allocation_length() == minimum_alloc_length &&
+               block.maximum_allocation_length() == maximum_alloc_length && block.max_alloc_available() >= sz;
+      });
+      return it;
     }
   }
 }

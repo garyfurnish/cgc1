@@ -10,7 +10,7 @@ void allocator_block_tests()
   describe("Block", []() {
     void *memory = malloc(100);
     using cgc1::details::object_state_t;
-    cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block(memory, 96, 16);
+    cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block(memory, 96, 16, cgc1::details::c_infinite_length);
     void *alloc1, *alloc2, *alloc3, *alloc4;
     it("alloc1", [&]() {
       alloc1 = block.allocate(15);
@@ -163,13 +163,15 @@ void allocator_block_tests()
     });
     it("fail massive alloc", []() {
       void *memory2 = malloc(1000);
-      cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block2(memory2, 96, 16);
+      cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block2(memory2, 96, 16,
+                                                                                 cgc1::details::c_infinite_length);
       AssertThat(block2.allocate(985), Equals(static_cast<void *>(nullptr)));
       free(memory2);
     });
     it("empty", []() {
       void *memory2 = malloc(1000);
-      cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block2(memory2, 992, 16);
+      cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t> block2(memory2, 992, 16,
+                                                                                 cgc1::details::c_infinite_length);
       AssertThat(block2.empty(), IsTrue());
       auto m = block2.allocate(500);
       AssertThat(block2.empty(), IsFalse());

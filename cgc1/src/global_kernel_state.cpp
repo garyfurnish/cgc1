@@ -336,7 +336,7 @@ namespace cgc1
             m_cgc_allocator._mutex().unlock();
             ::std::lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex());
           } else {
-            ::std::cout << "Suspend thread failed\n";
+            ::std::cerr << "Suspend thread failed\n";
             abort();
           }
         }

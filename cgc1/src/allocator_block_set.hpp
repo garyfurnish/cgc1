@@ -71,6 +71,10 @@ namespace cgc1
       **/
       void add_block(allocator_block_type &&block);
       /**
+       * \brief Add an empty block to the set.
+      **/
+      auto add_block() -> allocator_block_type &;
+      /**
       Remove a block from the set.
       **/
       void remove_block(typename allocator_block_vector_t::iterator it);

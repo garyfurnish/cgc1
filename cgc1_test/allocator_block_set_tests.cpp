@@ -15,8 +15,10 @@ void allocator_block_set_tests()
     it("free_empty_blocks", [&]() {
       cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t> abs(16, 10000);
       abs.grow_blocks(2);
-      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16));
-      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
       AssertThat(abs.m_blocks, HasLength(2));
       ::std::vector<cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>> memory_ranges;
       abs.free_empty_blocks(memory_ranges);
@@ -30,8 +32,10 @@ void allocator_block_set_tests()
     it("allocator_block_set allocation", [&]() {
       cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t> abs(16, 10000);
       abs.grow_blocks(2);
-      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16));
-      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
       void *alloc1 = abs.allocate(976);
       void *alloc2 = abs.allocate(976);
       AssertThat(alloc1 != nullptr, IsTrue());
