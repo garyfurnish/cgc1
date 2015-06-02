@@ -83,7 +83,12 @@ namespace cgc1
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
-        m_allocator_multiples[i] = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        auto &abs_data = m_allocator_multiples[i];
+        size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        if (allocator_multiple > ::std::numeric_limits<uint32_t>().max())
+          throw ::std::runtime_error("Allocator multiple too large");
+        abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
+        abs_data.set_max_blocks_before_recycle(5);
         size_t min = static_cast<size_t>(1) << (i + 3);
         size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
         m_allocators[i]._set_allocator_sizes(min, max);
@@ -94,7 +99,9 @@ namespace cgc1
     {
       if (id > c_bins)
         return false;
-      m_allocator_multiples[id] = multiple;
+      if (multiple > ::std::numeric_limits<uint32_t>().max())
+        return false;
+      m_allocator_multiples[id].set_allocator_multiple(static_cast<uint32_t>(multiple));
       return true;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
@@ -107,7 +114,7 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_block_size(size_t id) const
     {
-      return m_allocator_multiples[id] * (2 << (id + 4));
+      return m_allocator_multiples[id].allocator_multiple() * (2 << (id + 4));
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz)
@@ -149,7 +156,7 @@ namespace cgc1
       void *ret = m_allocators[id].allocate(sz);
       if (ret)
         return ret;
-      size_t memory_request = m_allocator_multiples[id] * static_cast<unsigned>(2 << (id + 4));
+      size_t memory_request = m_allocator_multiples[id].allocator_multiple() * static_cast<unsigned>(2 << (id + 4));
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
