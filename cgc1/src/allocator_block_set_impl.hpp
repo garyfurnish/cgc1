@@ -238,11 +238,11 @@ namespace cgc1
       for (auto &block : m_blocks) {
         // now go through empty blocks
         if (block.empty()) {
+          if (num_empty <= min_to_leave)
+            break;
+          num_empty--;
           // remove them until we hit our min to leave.
           t.emplace_back(std::move(block));
-          num_empty--;
-          if (num_empty == min_to_leave)
-            break;
         }
       }
       // we test for validity since moving invalidates the block.

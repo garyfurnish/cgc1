@@ -108,10 +108,6 @@ namespace cgc1
       **/
       void free_empty_blocks(size_t min_to_leave, bool force);
       /**
-       * \brief Free all empty blocks back to allocator.
-      **/
-      //      void free_all_blocks();
-      /**
        * \brief Do maintance on thread associated blocks.
        * This incldues coalescing, etc.
       **/
