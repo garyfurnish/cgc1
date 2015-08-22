@@ -23,7 +23,6 @@ namespace cgc1
   static _NoInline_ void clean_stack()
   {
     int array[bytes];
-    cgc1::secure_zero(array, bytes);
     __asm__ __volatile__(
         "xorl %%eax, %%eax\n"
         "xorl %%ebx, %%ebx\n"
@@ -39,9 +38,27 @@ namespace cgc1
         "xorl %%r13d, %%r13d\n"
         "xorl %%r14d, %%r15d\n"
         "xorl %%r15d, %%r15d\n"
+	"pxor %%xmm0, %%xmm0\n"
+	"pxor %%xmm1, %%xmm1\n"
+	"pxor %%xmm2, %%xmm2\n"
+	"pxor %%xmm3, %%xmm3\n"
+	"pxor %%xmm4, %%xmm4\n"
+	"pxor %%xmm5, %%xmm5\n"
+	"pxor %%xmm6, %%xmm6\n"
+	"pxor %%xmm7, %%xmm7\n"
+	"pxor %%xmm8, %%xmm8\n"
+	"pxor %%xmm9, %%xmm9\n"
+	"pxor %%xmm10, %%xmm10\n"
+	"pxor %%xmm11, %%xmm11\n"
+	"pxor %%xmm12, %%xmm12\n"
+	"pxor %%xmm13, %%xmm13\n"
+	"pxor %%xmm14, %%xmm14\n"
+	"pxor %%xmm15, %%xmm15\n"
         :
         :
-        : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15");
+        : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7",
+	  "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15");
+    cgc1::secure_zero(array, bytes);
   }
 }
 static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
@@ -242,6 +259,7 @@ static void race_condition_test()
 {
   ::std::atomic<bool> keep_going{true};
   auto test_thread = [&keep_going]() {
+    cgc1::clean_stack();
     CGC1_INITIALIZE_THREAD();
     char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
     cgc1::secure_zero(foo, 100);
@@ -264,6 +282,7 @@ static void race_condition_test()
       }
     }
     cgc1::cgc_unregister_thread();
+    cgc1::clean_stack();
   };
   ::std::thread t1(test_thread);
   ::std::thread t2(test_thread);
@@ -283,8 +302,9 @@ static void race_condition_test()
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
   for (void *v : locations) {
-    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
-    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
+    bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
+    assert(found);
+    AssertThat(found, IsTrue());
   }
   locations.clear();
 }
@@ -301,22 +321,14 @@ void gc_bandit_tests()
 {
   describe("GC", []() {
     for (size_t i = 0; i < 10; ++i) {
-      it("race condition", []() { race_condition_test(); });
-      cgc1::clean_stack();
+      it("race condition", []() { cgc1::clean_stack(); race_condition_test();       cgc1::clean_stack();});
     }
-    it("linked list test", []() { linked_list_test(); });
-    cgc1::clean_stack();
-    it("root", []() { root_test(); });
-    cgc1::clean_stack();
-    it("internal pointer", []() { internal_pointer_test(); });
-    cgc1::clean_stack();
-    it("finalizers", []() { finalizer_test(); });
-    cgc1::clean_stack();
-    it("atomic", []() { atomic_test(); });
-    cgc1::clean_stack();
-    it("uncollectable", []() { uncollectable_test(); });
-    cgc1::clean_stack();
-    it("api_tests", []() { api_tests(); });
-    cgc1::clean_stack();
-  });
+    it("linked list test", []() { cgc1::clean_stack(); linked_list_test();       cgc1::clean_stack();});
+    it("root", []() { cgc1::clean_stack(); root_test();       cgc1::clean_stack();});
+    it("internal pointer", []() { cgc1::clean_stack(); internal_pointer_test();       cgc1::clean_stack();});
+    it("finalizers", []() { cgc1::clean_stack(); finalizer_test();       cgc1::clean_stack();});
+    it("atomic", []() { cgc1::clean_stack(); atomic_test();       cgc1::clean_stack();});
+    it("uncollectable", []() { cgc1::clean_stack(); uncollectable_test();       cgc1::clean_stack();});
+    it("api_tests", []() { cgc1::clean_stack(); api_tests();       cgc1::clean_stack();});
+    });
 }
