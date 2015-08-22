@@ -36,7 +36,7 @@ namespace cgc1
       for (auto &abs : m_allocators)
         abs._verify();
       m_allocator._d_verify();
-      free_empty_blocks();
+      free_empty_blocks(0, true);
       for (auto &abs : m_allocators) {
         for (auto &&block : abs.m_blocks) {
           if (block.valid()) {
@@ -47,10 +47,25 @@ namespace cgc1
       }
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_empty_blocks()
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_empty_blocks(size_t min_to_leave, bool force)
     {
       m_allocator._d_verify();
-      rebind_vector_t<allocator_block_t<Allocator> *, Allocator> empty_blocks;
+      typename this_allocator_block_set_t::allocator_block_vector_t empty_blocks;
+      for (auto &abs : m_allocators) {
+        if (force || abs.num_destroyed_since_last_free() > 10) {
+          abs.free_empty_blocks(empty_blocks, min_to_leave);
+        }
+      }
+      for (auto &block : empty_blocks) {
+        m_allocator._d_verify();
+        m_allocator.destroy_allocator_block(*this, std::move(block));
+        m_allocator._d_verify();
+      }
+    }
+    /*    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_all_blocks()
+    {
+      m_allocator._d_verify();
       for (auto &abs : m_allocators) {
         for (auto &&block : abs.m_blocks) {
           m_allocator._d_verify();
@@ -61,7 +76,8 @@ namespace cgc1
           m_allocator._d_verify();
         }
       }
-    }
+      }*/
+
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::find_block_set_id(size_t sz)
     {

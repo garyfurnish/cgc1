@@ -142,6 +142,7 @@ namespace cgc1
             _verify();
           } else {
           }
+          m_num_destroyed_since_free += 1;
           _verify();
           return true;
         }
@@ -224,20 +225,40 @@ namespace cgc1
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
     template <typename T>
-    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(T &t)
+    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(T &t, size_t min_to_leave)
     {
+      // this looks really complicated but it is actually quite light weight since blocks are tiny and everything is contiguous.
+      size_t num_empty = 0;
+      // first we collect and see how many total empty blocks there are.
       for (auto &block : m_blocks) {
         block.collect();
         if (block.empty())
-          t.emplace_back(std::move(block));
+          num_empty++;
       }
+      for (auto &block : m_blocks) {
+        // now go through empty blocks
+        if (block.empty()) {
+          // remove them until we hit our min to leave.
+          t.emplace_back(std::move(block));
+          num_empty--;
+          if (num_empty == min_to_leave)
+            break;
+        }
+      }
+      // we test for validity since moving invalidates the block.
       auto it = ::std::remove_if(m_blocks.begin(), m_blocks.end(),
-                                 [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return block.empty(); });
-      auto num_to_remove = m_blocks.end() - it;
+                                 [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return !block.valid(); });
+      ptrdiff_t num_to_remove = m_blocks.end() - it;
       // this is needed because we can't resize because allocator_block is not trivially constructable.
-      for (decltype(num_to_remove) i = 0; i < num_to_remove; ++i)
+      for (ptrdiff_t i = 0; i < num_to_remove - static_cast<ptrdiff_t>(min_to_leave); ++i)
         m_blocks.pop_back();
       regenerate_available_blocks();
+      m_num_destroyed_since_free = 0;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::num_destroyed_since_last_free() const noexcept -> size_t
+    {
+      return m_num_destroyed_since_free;
     }
   }
 }

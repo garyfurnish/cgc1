@@ -103,8 +103,14 @@ namespace cgc1
       auto allocators() const -> const ::std::array<this_allocator_block_set_t, c_bins> &;
       /**
        * Free all empty blocks back to allocator.
+       * @param min_to_leave Minimum number of free blocks to leave in this set.
+       * @param force True if should force freeing even if suboptimal timing.
       **/
-      void free_empty_blocks();
+      void free_empty_blocks(size_t min_to_leave, bool force);
+      /**
+       * \brief Free all empty blocks back to allocator.
+      **/
+      //      void free_all_blocks();
       /**
        * \brief Do maintance on thread associated blocks.
        * This incldues coalescing, etc.

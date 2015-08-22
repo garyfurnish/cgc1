@@ -21,8 +21,10 @@ void allocator_block_set_tests()
                                                                                         cgc1::details::c_infinite_length));
       AssertThat(abs.m_blocks, HasLength(2));
       ::std::vector<cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>> memory_ranges;
-      abs.free_empty_blocks(memory_ranges);
+      //      abs.free_empty_blocks(memory_ranges,2);
       AssertThat(abs.m_blocks, HasLength(2));
+      abs.free_empty_blocks(memory_ranges);
+      AssertThat(abs.m_blocks, HasLength(0));
       AssertThat(memory_ranges, HasLength(2));
       AssertThat(memory_ranges[0].begin(), Equals(memory1));
       AssertThat(memory_ranges[1].begin(), Equals(memory2));

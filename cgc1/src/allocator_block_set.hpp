@@ -7,7 +7,7 @@ namespace cgc1
   {
     using memory_range_t = ::std::pair<void *, void *>;
     /**
-    This is a set of allocator blocks with the same minimum and maximum allocation size.
+     * \brief This is a set of allocator blocks with the same minimum and maximum allocation size.
     **/
     template <typename Allocator = ::std::allocator<void>, typename Allocator_Block_User_Data = user_data_base_t>
     class allocator_block_set_t
@@ -26,48 +26,48 @@ namespace cgc1
       allocator_block_set_t &operator=(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
       allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
       /**
-      Constructor
-      @param allocator_min_size Minimum allocation size.
-      @param allocator_max_size Maximum allocation size.
+       * \brief Constructor
+       * @param allocator_min_size Minimum allocation size.
+       * @param allocator_max_size Maximum allocation size.
       **/
       allocator_block_set_t(size_t allocator_min_size, size_t allocator_max_size);
       /**
-      Set minimum and maximum allocation size.
-      This should not be called after first use.
+       * \brief Set minimum and maximum allocation size.
+       * This should not be called after first use.
       **/
       void _set_allocator_sizes(size_t min, size_t max);
       /**
-      Return the minimum allocation size.
+       * \brief Return the minimum allocation size.
       **/
       size_t allocator_min_size() const;
       /**
-      Return the maximum object allocation size.
+       * \brief Return the maximum object allocation size.
       **/
       size_t allocator_max_size() const;
       /**
-      Return the number of blocks in the set.
+       * \brief Return the number of blocks in the set.
       **/
       size_t size() const;
       /**
-      Regenerate available blocks in case it is stale.
-      Also should be called if m_blocks may have changed locations because of allocation.
+       * \brief Regenerate available blocks in case it is stale.
+       * Also should be called if m_blocks may have changed locations because of allocation.
       **/
       void regenerate_available_blocks();
       /**
-      Collect all blocks in set.
+       * \brief Collect all blocks in set.
       **/
       void collect();
       /**
-      Allocate memory of given size, return nullptr if not possible in existing blocks.
+       * \brief Allocate memory of given size, return nullptr if not possible in existing blocks.
       **/
       void *allocate(size_t sz);
       /**
-      Destroy memory.
-      @return True if this block set allocated the memory and thus destroyed it, false otherwise.
+       * \brief Destroy memory.
+       * @return True if this block set allocated the memory and thus destroyed it, false otherwise.
       **/
       bool destroy(void *v);
       /**
-      Add a block to the set.
+       * \brief Add a block to the set.
       **/
       void add_block(allocator_block_type &&block);
       /**
@@ -75,56 +75,70 @@ namespace cgc1
       **/
       auto add_block() -> allocator_block_type &;
       /**
-      Remove a block from the set.
+       * \brief Remove a block from the set.
       **/
       void remove_block(typename allocator_block_vector_t::iterator it);
       /**
-      Return if add_block would cause the container of blocks to move in memory.
+       * \brief Return true if add_block would cause the container of blocks to move in memory, false otherwise.
       **/
       bool add_block_is_safe() const;
       /**
-      Grow the capacity of m_blocks.  Return the offset by which it moved.
-      Thus subtract offset from m_blocks[i] to get the old position.
-      @param sz If provided, the number of blocks to reserve.
+       * \brief Grow the capacity of m_blocks.  Return the offset by which it moved.
+       * Thus subtract offset from m_blocks[i] to get the old position.
+       * @param sz If provided, the number of blocks to reserve.
       **/
       size_t grow_blocks(size_t sz = 0);
       /**
-      Return reference to last added block.
+       * \brief Return reference to last added block.
       **/
       allocator_block_type &last_block();
       /**
-      Push all empty block memory ranges onto container t and then remove them.
+       * \brief Push all empty block memory ranges onto container t and then remove them.
+       * @param t Container to add to.
+       * @param min_to_leave Minimum number of free blocks to leave in this set.
       **/
       template <typename T>
-      void free_empty_blocks(T &t);
+      void free_empty_blocks(T &t, size_t min_to_leave = 0);
+
+      /**
+       * \brief Return the number of memory addresses destroyed since last free empty blocks operation.
+       **/
+      auto num_destroyed_since_last_free() const noexcept -> size_t;
+      /**
+
+       **/
       allocator_block_type *m_back = nullptr;
       /**
-      All blocks.
+       * \brief All blocks.
       **/
       allocator_block_vector_t m_blocks;
       /**
-      Blocks that are available for placement.
+       * \brief Blocks that are available for placement.
       **/
       allocator_block_reference_vector_t m_available_blocks;
       /**
-      Do internal verification.
+       * \brief Do internal verification.
       **/
       void _verify() const;
       /**
-      Do maintance on thread associated blocks.
-      (coalescing, etc)
+       * \brief Do maintance on thread associated blocks.
+       * (coalescing, etc)
       **/
       void _do_maintenance();
 
     private:
       /**
-      Minimum allocation size.
+       * \brief Minimum allocation size.
       **/
       size_t m_allocator_min_size = 0;
       /**
-      Maximum allocation size.
+       * \brief Maximum allocation size.
       **/
       size_t m_allocator_max_size = 0;
+      /*
+       * \brief Number of memory addresses destroyed since last free empty blocks operation.
+       **/
+      size_t m_num_destroyed_since_free = 0;
     };
   }
 }
