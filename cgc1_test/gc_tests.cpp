@@ -38,26 +38,27 @@ namespace cgc1
         "xorl %%r13d, %%r13d\n"
         "xorl %%r14d, %%r15d\n"
         "xorl %%r15d, %%r15d\n"
-	"pxor %%xmm0, %%xmm0\n"
-	"pxor %%xmm1, %%xmm1\n"
-	"pxor %%xmm2, %%xmm2\n"
-	"pxor %%xmm3, %%xmm3\n"
-	"pxor %%xmm4, %%xmm4\n"
-	"pxor %%xmm5, %%xmm5\n"
-	"pxor %%xmm6, %%xmm6\n"
-	"pxor %%xmm7, %%xmm7\n"
-	"pxor %%xmm8, %%xmm8\n"
-	"pxor %%xmm9, %%xmm9\n"
-	"pxor %%xmm10, %%xmm10\n"
-	"pxor %%xmm11, %%xmm11\n"
-	"pxor %%xmm12, %%xmm12\n"
-	"pxor %%xmm13, %%xmm13\n"
-	"pxor %%xmm14, %%xmm14\n"
-	"pxor %%xmm15, %%xmm15\n"
+        "pxor %%xmm0, %%xmm0\n"
+        "pxor %%xmm1, %%xmm1\n"
+        "pxor %%xmm2, %%xmm2\n"
+        "pxor %%xmm3, %%xmm3\n"
+        "pxor %%xmm4, %%xmm4\n"
+        "pxor %%xmm5, %%xmm5\n"
+        "pxor %%xmm6, %%xmm6\n"
+        "pxor %%xmm7, %%xmm7\n"
+        "pxor %%xmm8, %%xmm8\n"
+        "pxor %%xmm9, %%xmm9\n"
+        "pxor %%xmm10, %%xmm10\n"
+        "pxor %%xmm11, %%xmm11\n"
+        "pxor %%xmm12, %%xmm12\n"
+        "pxor %%xmm13, %%xmm13\n"
+        "pxor %%xmm14, %%xmm14\n"
+        "pxor %%xmm15, %%xmm15\n"
         :
         :
-        : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7",
-	  "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13", "%xmm14", "%xmm15");
+        : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%xmm0",
+          "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13",
+          "%xmm14", "%xmm15");
     cgc1::secure_zero(array, bytes);
   }
 }
@@ -321,14 +322,46 @@ void gc_bandit_tests()
 {
   describe("GC", []() {
     for (size_t i = 0; i < 10; ++i) {
-      it("race condition", []() { cgc1::clean_stack(); race_condition_test();       cgc1::clean_stack();});
+      it("race condition", []() {
+        cgc1::clean_stack();
+        race_condition_test();
+        cgc1::clean_stack();
+      });
     }
-    it("linked list test", []() { cgc1::clean_stack(); linked_list_test();       cgc1::clean_stack();});
-    it("root", []() { cgc1::clean_stack(); root_test();       cgc1::clean_stack();});
-    it("internal pointer", []() { cgc1::clean_stack(); internal_pointer_test();       cgc1::clean_stack();});
-    it("finalizers", []() { cgc1::clean_stack(); finalizer_test();       cgc1::clean_stack();});
-    it("atomic", []() { cgc1::clean_stack(); atomic_test();       cgc1::clean_stack();});
-    it("uncollectable", []() { cgc1::clean_stack(); uncollectable_test();       cgc1::clean_stack();});
-    it("api_tests", []() { cgc1::clean_stack(); api_tests();       cgc1::clean_stack();});
+    it("linked list test", []() {
+      cgc1::clean_stack();
+      linked_list_test();
+      cgc1::clean_stack();
     });
+    it("root", []() {
+      cgc1::clean_stack();
+      root_test();
+      cgc1::clean_stack();
+    });
+    it("internal pointer", []() {
+      cgc1::clean_stack();
+      internal_pointer_test();
+      cgc1::clean_stack();
+    });
+    it("finalizers", []() {
+      cgc1::clean_stack();
+      finalizer_test();
+      cgc1::clean_stack();
+    });
+    it("atomic", []() {
+      cgc1::clean_stack();
+      atomic_test();
+      cgc1::clean_stack();
+    });
+    it("uncollectable", []() {
+      cgc1::clean_stack();
+      uncollectable_test();
+      cgc1::clean_stack();
+    });
+    it("api_tests", []() {
+      cgc1::clean_stack();
+      api_tests();
+      cgc1::clean_stack();
+    });
+  });
 }
