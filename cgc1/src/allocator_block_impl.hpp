@@ -17,11 +17,18 @@ namespace cgc1
     {
     }
     template <typename Allocator, typename User_Data>
-    inline allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start, size_t length, size_t minimum_alloc_length)
+    inline allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
+                                                                      size_t length,
+                                                                      size_t minimum_alloc_length,
+                                                                      size_t maximum_alloc_length)
         : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
-          m_start(reinterpret_cast<uint8_t *>(start))
+          m_start(reinterpret_cast<uint8_t *>(start)),
+          m_maximum_alloc_length(maximum_alloc_length == cgc1::details::c_infinite_length
+                                     ? cgc1::details::c_infinite_length
+                                     : object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length))
     {
+      assert(m_minimum_alloc_length <= m_maximum_alloc_length);
       if (reinterpret_cast<size_t>(m_start) % c_alignment != 0)
         abort();
       if (reinterpret_cast<size_t>(m_end) % c_alignment != 0)
@@ -36,7 +43,7 @@ namespace cgc1
     inline allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block)
         : m_free_list(std::move(block.m_free_list)), m_next_alloc_ptr(block.m_next_alloc_ptr), m_end(block.m_end),
           m_minimum_alloc_length(block.m_minimum_alloc_length), m_start(block.m_start),
-          m_default_user_data(std::move(block.m_default_user_data))
+          m_default_user_data(std::move(block.m_default_user_data)), m_maximum_alloc_length(block.m_maximum_alloc_length)
     {
       block.clear();
     }
@@ -44,11 +51,13 @@ namespace cgc1
     inline allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
     operator=(allocator_block_t<Allocator, User_Data> &&block)
     {
+      m_default_user_data = ::std::move(block.m_default_user_data);
       m_free_list = std::move(block.m_free_list);
       m_next_alloc_ptr = block.m_next_alloc_ptr;
       m_end = block.m_end;
       m_minimum_alloc_length = block.m_minimum_alloc_length;
       m_start = block.m_start;
+      m_maximum_alloc_length = block.m_maximum_alloc_length;
       block.clear();
       return *this;
     }
@@ -135,12 +144,15 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     inline void *allocator_block_t<Allocator, User_Data>::allocate(size_t size)
     {
+      assert(minimum_allocation_length() <= maximum_allocation_length());
       _verify(nullptr);
       cgc1_builtin_prefetch(this);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
       const size_t original_size = size;
       size = object_state_t::needed_size(sizeof(object_state_t), size);
+      assert(size >= minimum_allocation_length());
+      assert(size <= maximum_allocation_length());
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_next));
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + 8 == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_user_data));
       // if the free list isn't trivial, check it first.
@@ -280,6 +292,17 @@ namespace cgc1
         _verify(state);
       }
     }
+    template <typename Allocator, typename User_Data>
+    size_t allocator_block_t<Allocator, User_Data>::minimum_allocation_length() const
+    {
+      return m_minimum_alloc_length;
+    }
+    template <typename Allocator, typename User_Data>
+    size_t allocator_block_t<Allocator, User_Data>::maximum_allocation_length() const
+    {
+      return m_maximum_alloc_length;
+    }
+
     inline bool
     is_valid_object_state(const object_state_t *state, const uint8_t *user_data_range_begin, const uint8_t *user_data_range_end)
     {

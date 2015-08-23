@@ -139,7 +139,7 @@ namespace cgc1
     void lock()
     {
       while (!try_lock())
-	__asm__ volatile("pause");
+        __asm__ volatile("pause");
     }
 #endif
     void unlock() noexcept RELEASE()

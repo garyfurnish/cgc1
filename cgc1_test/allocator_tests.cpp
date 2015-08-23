@@ -12,21 +12,23 @@ void allocator_tests()
 {
   describe("allocator", []() {
     it("test1", []() {
-      ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
-      cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
-      auto &allocator_set = ta.allocator_by_size(55);
-      AssertThat(allocator_set.allocator_min_size(), Is().LessThan(static_cast<size_t>(55)));
-      AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(static_cast<size_t>(55)));
-      AssertThat(ta.set_allocator_multiple(20, 50), IsFalse());
-      void *alloc1 = ta.allocate(100);
-      AssertThat(alloc1 != nullptr, IsTrue());
-      void *alloc2 = ta.allocate(100);
-      AssertThat(alloc2 != nullptr, IsTrue());
-      void *alloc3 = ta.allocate(100);
-      AssertThat(alloc3 != nullptr, IsTrue());
-      AssertThat(ta.destroy(alloc1), IsTrue());
-      AssertThat(ta.allocate(100), Equals(alloc1));
+      {
+        ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
+        AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+        cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
+        auto &allocator_set = ta.allocator_by_size(55);
+        AssertThat(allocator_set.allocator_min_size(), Is().LessThan(static_cast<size_t>(55)));
+        AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(static_cast<size_t>(55)));
+        AssertThat(ta.set_allocator_multiple(20, 50), IsFalse());
+        void *alloc1 = ta.allocate(100);
+        AssertThat(alloc1 != nullptr, IsTrue());
+        void *alloc2 = ta.allocate(100);
+        AssertThat(alloc2 != nullptr, IsTrue());
+        void *alloc3 = ta.allocate(100);
+        AssertThat(alloc3 != nullptr, IsTrue());
+        AssertThat(ta.destroy(alloc1), IsTrue());
+        AssertThat(ta.allocate(100), Equals(alloc1));
+      }
     });
     it("test2", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
@@ -93,6 +95,16 @@ void allocator_tests()
       cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
       ta._do_maintenance();
     });
-
+    it("test global block recycling", []() {
+      ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
+      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+      auto &ta = allocator->initialize_thread();
+      void *alloc1 = ta.allocate(100);
+      AssertThat(alloc1 != nullptr, IsTrue());
+      allocator->destroy_thread();
+      auto &ta2 = allocator->initialize_thread();
+      void *alloc2 = ta2.allocate(100);
+      (void)alloc2;
+    });
   });
 }

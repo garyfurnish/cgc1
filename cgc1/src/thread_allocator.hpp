@@ -2,6 +2,7 @@
 #include <cgc1/concurrency.hpp>
 #include "object_state.hpp"
 #include "allocator_block_set.hpp"
+#include "thread_allocator_abs_data.hpp"
 #include <cgc1/posix_slab.hpp>
 #include <array>
 namespace cgc1
@@ -28,7 +29,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     class allocator_t;
     /**
-    Per thread allocator for a global slab allocator.
+     * \brief Per thread allocator for a global allocator.
     **/
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     class thread_allocator_t
@@ -82,31 +83,33 @@ namespace cgc1
       **/
       ::std::array<size_t, c_bins> allocator_block_sizes() const;
       /**
-      Allocate memory of size.
-      @return nullptr on error.
+      * \brief Allocate memory of size.
+      * @return nullptr on error.
       **/
       void *allocate(size_t size) NO_THREAD_SAFETY_ANALYSIS;
       /**
-      Destroy a pointer allocated by this allocator.
-      The common reason for failure is if this allocator did not make the pointer.
-      @return True on success, false on failure.
+      * \brief Destroy a pointer allocated by this allocator.
+      * The common reason for failure is if this allocator did not make the pointer.
+      * @return True on success, false on failure.
       **/
       bool destroy(void *v);
       /**
-      Return the array of multiples for debugging purposes.
+       * Return the array of multiples for debugging purposes.
       **/
       auto allocator_multiples() const -> const ::std::array<size_t, c_bins> &;
       /**
-      Return the array of allocators for debugging purposes.
+       * Return the array of allocators for debugging purposes.
       **/
       auto allocators() const -> const ::std::array<this_allocator_block_set_t, c_bins> &;
       /**
-      Free all empty blocks back to allocator.
+       * Free all empty blocks back to allocator.
+       * @param min_to_leave Minimum number of free blocks to leave in this set.
+       * @param force True if should force freeing even if suboptimal timing.
       **/
-      void free_empty_blocks();
+      void free_empty_blocks(size_t min_to_leave, bool force);
       /**
-      Do maintance on thread associated blocks.
-      (coalescing, etc)
+       * \brief Do maintance on thread associated blocks.
+       * This incldues coalescing, etc.
       **/
       void _do_maintenance();
 
@@ -118,7 +121,7 @@ namespace cgc1
       /**
       Allocator multiple for requesting new blocks.
       **/
-      ::std::array<size_t, c_bins> m_allocator_multiples;
+      ::std::array<thread_allocator_abs_data_t, c_bins> m_allocator_multiples;
       /**
       Allocators used to allocate various sizes of memory.
       **/

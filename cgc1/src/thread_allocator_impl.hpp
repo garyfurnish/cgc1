@@ -36,7 +36,7 @@ namespace cgc1
       for (auto &abs : m_allocators)
         abs._verify();
       m_allocator._d_verify();
-      free_empty_blocks();
+      free_empty_blocks(0, true);
       for (auto &abs : m_allocators) {
         for (auto &&block : abs.m_blocks) {
           if (block.valid()) {
@@ -47,10 +47,25 @@ namespace cgc1
       }
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_empty_blocks()
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_empty_blocks(size_t min_to_leave, bool force)
     {
       m_allocator._d_verify();
-      rebind_vector_t<allocator_block_t<Allocator> *, Allocator> empty_blocks;
+      typename this_allocator_block_set_t::allocator_block_vector_t empty_blocks;
+      for (auto &abs : m_allocators) {
+        if (force || abs.num_destroyed_since_last_free() > 10) {
+          abs.free_empty_blocks(empty_blocks, min_to_leave);
+        }
+      }
+      for (auto &block : empty_blocks) {
+        m_allocator._d_verify();
+        m_allocator.destroy_allocator_block(*this, std::move(block));
+        m_allocator._d_verify();
+      }
+    }
+    /*    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_all_blocks()
+    {
+      m_allocator._d_verify();
       for (auto &abs : m_allocators) {
         for (auto &&block : abs.m_blocks) {
           m_allocator._d_verify();
@@ -61,7 +76,8 @@ namespace cgc1
           m_allocator._d_verify();
         }
       }
-    }
+      }*/
+
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::find_block_set_id(size_t sz)
     {
@@ -83,7 +99,12 @@ namespace cgc1
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
-        m_allocator_multiples[i] = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        auto &abs_data = m_allocator_multiples[i];
+        size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        if (allocator_multiple > ::std::numeric_limits<uint32_t>().max())
+          throw ::std::runtime_error("Allocator multiple too large");
+        abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
+        abs_data.set_max_blocks_before_recycle(5);
         size_t min = static_cast<size_t>(1) << (i + 3);
         size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
         m_allocators[i]._set_allocator_sizes(min, max);
@@ -94,7 +115,9 @@ namespace cgc1
     {
       if (id > c_bins)
         return false;
-      m_allocator_multiples[id] = multiple;
+      if (multiple > ::std::numeric_limits<uint32_t>().max())
+        return false;
+      m_allocator_multiples[id].set_allocator_multiple(static_cast<uint32_t>(multiple));
       return true;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
@@ -107,7 +130,7 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_block_size(size_t id) const
     {
-      return m_allocator_multiples[id] * (2 << (id + 4));
+      return m_allocator_multiples[id].allocator_multiple() * (2 << (id + 4));
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz)
@@ -149,10 +172,11 @@ namespace cgc1
       void *ret = m_allocators[id].allocate(sz);
       if (ret)
         return ret;
-      size_t memory_request = m_allocator_multiples[id] * static_cast<unsigned>(2 << (id + 4));
+      size_t memory_request = m_allocator_multiples[id].allocator_multiple() * static_cast<unsigned>(2 << (id + 4));
       try {
-        auto block = m_allocator.create_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size());
+        // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
+        // see if safe to add a block
         if (!abs.add_block_is_safe()) {
           m_allocator._mutex().lock();
           m_allocator._ud_verify();
@@ -160,8 +184,11 @@ namespace cgc1
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
-        abs.add_block(::std::move(block));
-        m_allocator.register_allocator_block(*this, abs.last_block());
+        // gcreate and grab the empty block.
+        typename global_allocator::block_type &block = abs.add_block();
+        // fill the empty block.
+        m_allocator.get_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                        m_allocators[id].allocator_max_size(), sz, block);
       } catch (out_of_memory_exception_t) {
         abort();
         // we aren't going to try to handle out of memory at this point.
