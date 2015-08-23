@@ -34,6 +34,8 @@ namespace cgc1
       /**
        * \brief Set minimum and maximum allocation size.
        * This should not be called after first use.
+       * @param min Minimum allocation size.
+       * @param max Maximum allocation size.
       **/
       void _set_allocator_sizes(size_t min, size_t max);
       /**
@@ -59,6 +61,8 @@ namespace cgc1
       void collect();
       /**
        * \brief Allocate memory of given size, return nullptr if not possible in existing blocks.
+       * @param sz Size to allocate.
+       * @return A pointer to allocated memory, nullptr on failure.
       **/
       void *allocate(size_t sz);
       /**

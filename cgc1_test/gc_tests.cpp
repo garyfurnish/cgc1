@@ -23,6 +23,7 @@ namespace cgc1
   static _NoInline_ void clean_stack()
   {
     int array[bytes];
+    // this nukes all registers and forces spills.
     __asm__ __volatile__(
         "xorl %%eax, %%eax\n"
         "xorl %%ebx, %%ebx\n"
@@ -59,37 +60,58 @@ namespace cgc1
         : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%xmm0",
           "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13",
           "%xmm14", "%xmm15");
+    // zero the stack.
     cgc1::secure_zero(array, bytes);
   }
 }
+/**
+ * \brief Setup for root test.
+ * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
+ **/
 static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
 {
   memory = cgc1::cgc_malloc(50);
+  // hide a pointer away for comparison testing.
   old_memory = cgc1::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
   AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
   AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
   AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
 }
+/**
+ * \brief Test root functionality.
+ **/
 static void root_test()
 {
   void *memory;
   size_t old_memory;
+  // setup a root.
   root_test__setup(memory, old_memory);
+  // force collection
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
+  // verify that nothing was collected.
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect, HasLength(0));
+  // remove the root.
   cgc1::cgc_remove_root(&memory);
+  // make sure that the we zero the memory so the pointer doesn't linger.
   cgc1::secure_zero_pointer(memory);
   auto num_collections = cgc1::debug::num_gc_collections();
+  // force collection.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  // now we should collect.
   AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
+  // verify it collected the correct address.
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  // verify that we did perform a collection.
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
+/**
+ * \brief Setup for internal pointer test.
+ **/
 static _NoInline_ void internal_pointer_test__setup(void *&memory, size_t &old_memory)
 {
   memory = cgc1::cgc_malloc(50);
@@ -98,24 +120,37 @@ static _NoInline_ void internal_pointer_test__setup(void *&memory, size_t &old_m
   umemory += 1;
   cgc1::cgc_add_root(&memory);
 }
+/**
+ * \brief This tests pointers pointing to the inside of an object as opposed to the start.
+ **/
 static void internal_pointer_test()
 {
   void *memory;
   size_t old_memory;
+  // setup a buffer to point into.
   internal_pointer_test__setup(memory, old_memory);
+  // force collection.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  // it should stick around because it has a root.
   AssertThat(last_collect, HasLength(0));
+  // remove the root.
   cgc1::cgc_remove_root(&memory);
+  // make sure that we zero the memory so the pointer doesn't linger.
   cgc1::secure_zero_pointer(memory);
+  // force collection.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  // now we should collect.
   AssertThat(last_collect, HasLength(1));
+  // verify it collected the correct address.
   AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
 }
-
+/**
+ * \brief Setup for atomic object test.
+ **/
 static _NoInline_ void atomic_test__setup(void *&memory, size_t &old_memory)
 {
   memory = cgc1::cgc_malloc(50);
@@ -125,7 +160,9 @@ static _NoInline_ void atomic_test__setup(void *&memory, size_t &old_memory)
   old_memory = cgc1::hide_pointer(memory2);
   cgc1::secure_zero_pointer(memory2);
 }
-
+/**
+ * \brief Test atomic object functionality.
+ **/
 static void atomic_test()
 {
   void *memory;
@@ -256,10 +293,15 @@ static void linked_list_test()
   }
   locations.clear();
 }
+/**
+ * \brief Try to create a race condition in the garbage collector.
+ **/
 static void race_condition_test()
 {
   ::std::atomic<bool> keep_going{true};
-  auto test_thread = [&keep_going]() {
+  ::std::atomic<bool> finished_part1{true};
+  // lambda for thread test.
+  auto test_thread = [&keep_going, &finished_part1]() {
     cgc1::clean_stack();
     CGC1_INITIALIZE_THREAD();
     char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
@@ -268,6 +310,8 @@ static void race_condition_test()
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
       locations.push_back(foo);
     }
+    finished_part1 = true;
+    // the only point of this is to prevent highly aggressive compiler optimzations.
     while (keep_going) {
       ::std::stringstream ss;
       ss << foo << ::std::endl;
@@ -287,40 +331,81 @@ static void race_condition_test()
   };
   ::std::thread t1(test_thread);
   ::std::thread t2(test_thread);
-  for (int i = 0; i < 0; ++i) {
+  // try to force a race condition by interrupting threads.
+  // this is obviously stochastic.
+  while (!finished_part1) {
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
     auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
     assert(freed_last.empty());
     AssertThat(freed_last, HasLength(0));
+    // prevent test from hammering gc before threads are setup.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
+  // wait for threads to finish.
   keep_going = false;
   t1.join();
   t2.join();
+  // force collection.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  // pointers might be in arbitrary order so sort them.
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
+  // make sure all pointers have been collected.
   for (void *v : locations) {
     bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
     assert(found);
     AssertThat(found, IsTrue());
   }
+  // cleanup
   locations.clear();
 }
+static void return_to_global_test1()
+{
+  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  const auto start_num_global_blocks = allocator.num_global_blocks();
+  auto test_thread = []() {
+    cgc1::clean_stack();
+    CGC1_INITIALIZE_THREAD();
+    cgc1::cgc_malloc(100);
+    cgc1::cgc_unregister_thread();
+    cgc1::clean_stack();
+  };
+  ::std::thread t1(test_thread);
+  t1.join();
+  cgc1::cgc_force_collect();
+  cgc1::details::g_gks.wait_for_finalization();
+  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+  AssertThat(freed_last, HasLength(1));
+  auto num_global_blocks = allocator.num_global_blocks();
+  AssertThat(num_global_blocks, Equals(start_num_global_blocks + 1));
+}
+/**
+ * \brief Test various APIs.
+**/
 static void api_tests()
 {
+  // test heap size api call.
   AssertThat(cgc1::cgc_heap_size(), Is().GreaterThan(static_cast<size_t>(0)));
+  // test heap free api call.
   AssertThat(cgc1::cgc_heap_free(), Is().GreaterThan(static_cast<size_t>(0)));
+  // try disabling gc.
   cgc1::cgc_disable();
   AssertThat(cgc1::cgc_is_enabled(), Is().False());
+  // try enabling gc.
   cgc1::cgc_enable();
   AssertThat(cgc1::cgc_is_enabled(), Is().True());
 }
 void gc_bandit_tests()
 {
   describe("GC", []() {
+    it("return_to_global_test1", []() {
+      cgc1::clean_stack();
+      return_to_global_test1();
+      cgc1::clean_stack();
+    });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack();

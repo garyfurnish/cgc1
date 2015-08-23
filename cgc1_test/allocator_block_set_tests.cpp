@@ -35,30 +35,37 @@ void allocator_block_set_tests()
       AssertThat(memory_ranges[1].begin(), Equals(memory2));
       AssertThat(memory_ranges[0].end(), Equals(reinterpret_cast<uint8_t *>(memory1) + 992));
       AssertThat(memory_ranges[1].end(), Equals(reinterpret_cast<uint8_t *>(memory2) + 992));
+      // done
     });
     it("allocator_block_set allocation", [&]() {
+      // setup an allocator with two blocks for testing.
       cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t> abs(16, 10000);
       abs.grow_blocks(2);
       abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16,
                                                                                         cgc1::details::c_infinite_length));
       abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16,
                                                                                         cgc1::details::c_infinite_length));
+      // allocator two memory locations with max size.
       void *alloc1 = abs.allocate(976);
       void *alloc2 = abs.allocate(976);
       AssertThat(alloc1 != nullptr, IsTrue());
       AssertThat(alloc2 != nullptr, IsTrue());
+      // test that trying to allocate more memory fails.
       AssertThat(abs.allocate(1), Equals(static_cast<void *>(nullptr)));
       void *old_alloc1 = alloc1;
       void *old_alloc2 = alloc2;
+      // try to destroy and recreate some memory.
       abs.destroy(alloc1);
       alloc1 = abs.allocate(976);
       AssertThat(alloc1, Equals(old_alloc1));
+      // try to destroy and recreate both memory addresses.
       abs.destroy(alloc2);
       abs.destroy(alloc1);
       alloc1 = abs.allocate(976);
       AssertThat(alloc1, Equals(old_alloc1));
       alloc2 = abs.allocate(976);
       AssertThat(alloc2, Equals(old_alloc2));
+      // done
     });
     free(memory1);
     free(memory2);

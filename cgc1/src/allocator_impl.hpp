@@ -7,6 +7,9 @@ namespace cgc1
 {
   namespace details
   {
+    /**
+     * \brief Return 2^n.
+    **/
     inline constexpr size_t pow2(int n)
     {
       return static_cast<size_t>(2) << (n - 1);

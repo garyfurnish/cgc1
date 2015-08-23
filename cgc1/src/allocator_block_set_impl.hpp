@@ -142,6 +142,7 @@ namespace cgc1
             _verify();
           } else {
           }
+          // increment destroyed count.
           m_num_destroyed_since_free += 1;
           _verify();
           return true;
