@@ -113,10 +113,6 @@ namespace cgc1
        **/
       auto num_destroyed_since_last_free() const noexcept -> size_t;
       /**
-
-       **/
-      allocator_block_type *m_back = nullptr;
-      /**
        * \brief All blocks.
       **/
       allocator_block_vector_t m_blocks;
