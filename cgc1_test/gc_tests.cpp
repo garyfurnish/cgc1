@@ -15,7 +15,7 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"
 static ::std::vector<size_t> locations;
-static ::std::mutex debug_mutex;
+static cgc1::spinlock_t debug_mutex;
 using namespace bandit;
 namespace cgc1
 {
@@ -274,7 +274,7 @@ static void linked_list_test()
     cgc1::cgc_unregister_thread();
   };
   ::std::thread t1(test_thread);
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  ::std::this_thread::yield();
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
@@ -314,7 +314,7 @@ namespace race_condition_test_detail
     ++finished_part1;
     // syncronize with tests in main thread.
     while (keep_going) {
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    ::std::this_thread::yield();
     }
     cgc1::secure_zero(&foo, sizeof(foo));
     {
@@ -351,7 +351,7 @@ namespace race_condition_test_detail
       assert(freed_last.empty());
       AssertThat(freed_last, HasLength(0));
       // prevent test from hammering gc before threads are setup.
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      ::std::this_thread::yield();
     }
     // wait for threads to finish.
     keep_going = false;
@@ -496,7 +496,7 @@ static _NoInline_ void return_to_global_test2()
     ready_for_test = true;
     // wait for test to finish.
     while (!test_done)
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      ::std::this_thread::yield();
     test_done = false;
     // reset stats on last block (it may not exist).
     begin = end = nullptr;
@@ -518,14 +518,14 @@ static _NoInline_ void return_to_global_test2()
     ready_for_test = true;
     // wait for test to finish.
     while (!test_done)
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+      ::std::this_thread::yield();
     cgc1::cgc_unregister_thread();
     cgc1::clean_stack(0, 0, 0, 0, 0);
   };
   ::std::thread t1(test_thread);
   // wait for thread to setup.
   while (!ready_for_test)
-    std::this_thread::sleep_for(std::chrono::microseconds(1));
+    ::std::this_thread::yield();
   // Verify that we haven't created any global blocks.
   AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   // Verify that the block that contained the freed allocation is now in the global free list.
@@ -539,7 +539,7 @@ static _NoInline_ void return_to_global_test2()
   test_done = true;
   // wait for thread to setup next phase of testing.
   while (!ready_for_test)
-    std::this_thread::sleep_for(std::chrono::microseconds(1));
+    ::std::this_thread::yield();
   // the last block should not be in global free here.
   pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   in_free = allocator.in_free_list(*pair);
