@@ -121,6 +121,14 @@ namespace cgc1
       **/
       void release_memory(const memory_pair_t &pair) REQUIRES(!m_mutex);
       /**
+       * \brief Return true if the interval of memory is in the free list.
+       **/
+      REQUIRES(!m_mutex) auto in_free_list(const memory_pair_t &pair) const noexcept -> bool;
+      /**
+       * \brief Return length of free list.
+       **/
+      REQUIRES(!m_mutex) auto free_list_length() const noexcept -> size_t;
+      /**
        * \brief Instead of destroying a block that is still in use, release to global allocator control.
       **/
       void to_global_allocator_block(block_type &&block) REQUIRES(!m_mutex);
@@ -189,9 +197,9 @@ namespace cgc1
       **/
       const memory_pair_vector_t &_ud_free_list() const REQUIRES(m_mutex);
 
-      uint8_t *_u_begin() const;
+      uint8_t *_u_begin() const noexcept;
       uint8_t *_u_current_end() const REQUIRES(m_mutex);
-
+      uint8_t *_u_end() const noexcept;
       /**
        * \brief Internal consistency checks without locking.
       **/

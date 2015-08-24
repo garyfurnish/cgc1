@@ -259,6 +259,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     inline void allocator_t<Allocator, Traits>::to_global_allocator_block(block_type &&block)
     {
+      assert(block.valid());
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       if (!m_global_blocks.capacity())
         m_global_blocks.reserve(20000);
@@ -282,15 +283,38 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::in_free_list(const memory_pair_t &pair) const noexcept -> bool
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      if (_u_current_end() <= pair.first && pair.second <= _u_end())
+        return true;
+      for (auto &&fpair : m_free_list) {
+        if (fpair.first <= pair.first && pair.second <= fpair.second)
+          return true;
+      }
+      return false;
+    }
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::free_list_length() const noexcept -> size_t
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return m_free_list.size();
+    }
+    template <typename Allocator, typename Traits>
     inline uint8_t *allocator_t<Allocator, Traits>::begin() const
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       return m_slab.begin();
     }
     template <typename Allocator, typename Traits>
-    inline uint8_t *allocator_t<Allocator, Traits>::_u_begin() const
+    inline auto allocator_t<Allocator, Traits>::_u_begin() const noexcept -> uint8_t *
     {
       return m_slab.begin();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_u_end() const noexcept -> uint8_t *
+    {
+      return m_slab.end();
     }
     template <typename Allocator, typename Traits>
     inline uint8_t *allocator_t<Allocator, Traits>::_u_current_end() const

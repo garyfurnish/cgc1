@@ -87,19 +87,19 @@ namespace cgc1
       /**
        * \brief Return the allocation multiple for a given allocator bin.
       **/
-      size_t get_allocator_multiple(size_t id);
+      size_t get_allocator_multiple(size_t id) noexcept;
       /**
        * \brief Return the block size for a given allocator bin.
       **/
-      size_t get_allocator_block_size(size_t id) const;
+      size_t get_allocator_block_size(size_t id) const noexcept;
       /**
        * \brief Return a reference to the allocator for a given size.
       **/
-      this_allocator_block_set_t &allocator_by_size(size_t sz);
+      this_allocator_block_set_t &allocator_by_size(size_t sz) noexcept;
       /**
        * \brief Return an array of block sizes for all of the bins.
       **/
-      ::std::array<size_t, c_bins> allocator_block_sizes() const;
+      ::std::array<size_t, c_bins> allocator_block_sizes() const noexcept;
       /**
       * \brief Allocate memory of size.
       * @return nullptr on error.

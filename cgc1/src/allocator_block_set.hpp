@@ -95,14 +95,18 @@ namespace cgc1
       /**
        * \brief Return reference to last added block.
       **/
-      allocator_block_type &last_block();
+      auto last_block() -> allocator_block_type &;
+      /**
+       * \brief Return reference to last added block.
+      **/
+      auto last_block() const -> const allocator_block_type &;
       /**
        * \brief Push all empty block memory ranges onto container t and then remove them.
-       * @param t Container to add to.
+       * @param l Function to call on removed blocks (called multiple times with r val block ref).
        * @param min_to_leave Minimum number of free blocks to leave in this set.
       **/
-      template <typename T>
-      void free_empty_blocks(T &t, size_t min_to_leave = 0);
+      template <typename L>
+      void free_empty_blocks(L &&l, size_t min_to_leave = 0);
 
       /**
        * \brief Return the number of memory addresses destroyed since last free empty blocks operation.

@@ -362,10 +362,19 @@ static void race_condition_test()
   // cleanup
   locations.clear();
 }
-static void return_to_global_test1()
+static size_t expected_global_blocks(const size_t start, size_t taken, const size_t put_back)
 {
+  taken = ::std::min(start, taken);
+  return start - taken + put_back;
+}
+static void return_to_global_test0()
+{
+  // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
+  // get the number of global blocks starting.
   const auto start_num_global_blocks = allocator.num_global_blocks();
+  // this thread will create an object (which will create a thread local block)
+  // then it will exit, returning the block to global.
   auto test_thread = []() {
     cgc1::clean_stack();
     CGC1_INITIALIZE_THREAD();
@@ -375,13 +384,121 @@ static void return_to_global_test1()
   };
   ::std::thread t1(test_thread);
   t1.join();
+  // wait for thread to terminate.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
+  // make sure exactly one memory location was freed.
   auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(freed_last, HasLength(1));
+  // make sure that exactly one global block was added.
   auto num_global_blocks = allocator.num_global_blocks();
-  AssertThat(num_global_blocks, Equals(start_num_global_blocks + 1));
+  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 1, 1)));
 }
+static void return_to_global_test1()
+{
+  // get the global allocator
+  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  // put block bounds here.
+  uint8_t *begin = nullptr;
+  uint8_t *end = nullptr;
+  // thread local lambda.
+  auto test_thread = [&allocator, &begin, &end]() {
+    cgc1::clean_stack();
+    CGC1_INITIALIZE_THREAD();
+    // get thread local state.
+    auto &tls = allocator.initialize_thread();
+    const size_t size_to_alloc = 100;
+    // get block set id.
+    auto id = tls.find_block_set_id(size_to_alloc);
+    auto &abs = tls.allocators()[id];
+    // allocate some memory and immediately free it.
+    cgc1::cgc_free(cgc1::cgc_malloc(size_to_alloc));
+    // get the stats on the last block so that we can test to see if it is freed to global
+    auto &lb = abs.last_block();
+    begin = lb.begin();
+    end = lb.end();
+    cgc1::cgc_unregister_thread();
+    cgc1::clean_stack();
+  };
+  ::std::thread t1(test_thread);
+  t1.join();
+  // wait for thread to terminate.
+  cgc1::cgc_force_collect();
+  cgc1::details::g_gks.wait_for_finalization();
+  // make sure nothing was freed (as it should have already been freed)
+  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+  AssertThat(freed_last, HasLength(0));
+  // check that the memory was returned to global free list.
+  bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  AssertThat(in_free, IsTrue());
+}
+/*static void return_to_global_test2()
+{
+  // get the global allocator
+  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  // get the number of global blocks starting.
+  const auto start_num_global_blocks = allocator.num_global_blocks();
+  ::std::atomic<bool> ready_for_test{false};
+  ::std::atomic<bool> test_done{false};
+  auto test_thread = [&allocator, &ready_for_test, &test_done]() {
+    cgc1::clean_stack();
+    CGC1_INITIALIZE_THREAD();
+    // get thread local state.
+    auto &tls = allocator.initialize_thread();
+    // get block set id.
+    auto id = tls.find_block_set_id(100);
+    // get multiple for blocks.
+    auto multiple = tls.get_allocator_multiple(id);
+    auto &abs = tls.allocators()[id];
+    tls.set_destroy_threshold(0);
+    tls.set_minimum_local_blocks(1);
+    auto min_sz = abs.allocator_min_size();
+    auto max_sz = abs.allocator_max_size();
+    ::std::cout << id << " " << multiple << " " << tls.get_allocator_block_size(id) << " " << min_sz << " " << max_sz << "\n";
+    ::std::cout << abs.size() << ::std::endl;
+    ::std::vector<void *> ptrs;
+    ::std::cout << "start\n";
+    while (abs.size() != 2) {
+      ptrs.push_back(cgc1::cgc_malloc(max_sz));
+    }
+    ::std::cout << "end\n";
+    ::std::cout << abs.size() << ::std::endl;
+    //        cgc1::cgc_free(ptrs.back());
+    tls.destroy(ptrs.back());
+    ptrs.pop_back();
+    ::std::cout << abs.size() << ::std::endl;
+    ::std::cout << "HERE4" << ::std::endl;
+    ready_for_test = true;
+    while (!test_done)
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //      ::std::cout << "HERE2" << ::std::endl;
+    cgc1::cgc_unregister_thread();
+    cgc1::clean_stack();
+    ::std::cout << "HERE" << ::std::endl;
+  };
+  ::std::thread t1(test_thread);
+  while (!ready_for_test)
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  ::std::cout << "HERE3" << ::std::endl;
+  ::std::cout << "GLOBAL BLOCKS " << allocator.num_global_blocks() << " " << expected_global_blocks(start_num_global_blocks, 2, 1)
+              << ::std::endl;
+  assert(allocator.num_global_blocks() == expected_global_blocks(start_num_global_blocks, 2, 1));
+  AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 1)));
+  ::std::cout << "HERE5" << ::std::endl;
+  test_done = true;
+  t1.join();
+  // wait for thread to terminate.
+  cgc1::cgc_force_collect();
+  cgc1::details::g_gks.wait_for_finalization();
+  // make sure exactly one memory location was freed.
+  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+  AssertThat(freed_last, HasLength(1));
+  // make sure we now have one more global block.
+  auto num_global_blocks = allocator.num_global_blocks();
+  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 2)));
+  ::std::cout << "HERE7" << ::std::endl;
+}
+*/
 /**
  * \brief Test various APIs.
 **/
@@ -401,11 +518,22 @@ static void api_tests()
 void gc_bandit_tests()
 {
   describe("GC", []() {
+    it("return_to_global_test0", []() {
+      cgc1::clean_stack();
+      return_to_global_test0();
+      cgc1::clean_stack();
+    });
+
     it("return_to_global_test1", []() {
       cgc1::clean_stack();
       return_to_global_test1();
       cgc1::clean_stack();
     });
+    /*        it("return_to_global_test2", []() {
+      cgc1::clean_stack();
+      return_to_global_test2();
+      cgc1::clean_stack();
+      });*/
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack();
