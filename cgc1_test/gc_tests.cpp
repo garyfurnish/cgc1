@@ -340,7 +340,7 @@ static void race_condition_test()
     assert(freed_last.empty());
     AssertThat(freed_last, HasLength(0));
     // prevent test from hammering gc before threads are setup.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
   }
   // wait for threads to finish.
   keep_going = false;
@@ -432,7 +432,7 @@ static void return_to_global_test1()
   bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
   AssertThat(in_free, IsTrue());
 }
-/*static void return_to_global_test2()
+static void return_to_global_test2()
 {
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
@@ -440,65 +440,106 @@ static void return_to_global_test1()
   const auto start_num_global_blocks = allocator.num_global_blocks();
   ::std::atomic<bool> ready_for_test{false};
   ::std::atomic<bool> test_done{false};
-  auto test_thread = [&allocator, &ready_for_test, &test_done]() {
+  uint8_t *begin = nullptr;
+  uint8_t *end = nullptr;
+
+  auto test_thread = [&allocator, &ready_for_test, &test_done, &begin, &end]() {
     cgc1::clean_stack();
     CGC1_INITIALIZE_THREAD();
     // get thread local state.
     auto &tls = allocator.initialize_thread();
     // get block set id.
     auto id = tls.find_block_set_id(100);
-    // get multiple for blocks.
-    auto multiple = tls.get_allocator_multiple(id);
     auto &abs = tls.allocators()[id];
+    // set destroy threshold to 0 so thread allocator always tries to return memory to global.
     tls.set_destroy_threshold(0);
+    // set minimum local blocks to 1 so thread allocator tries to keep a block in reserve even if empty.
     tls.set_minimum_local_blocks(1);
-    auto min_sz = abs.allocator_min_size();
     auto max_sz = abs.allocator_max_size();
-    ::std::cout << id << " " << multiple << " " << tls.get_allocator_block_size(id) << " " << min_sz << " " << max_sz << "\n";
-    ::std::cout << abs.size() << ::std::endl;
+    // create a bunch of memory allocations.
     ::std::vector<void *> ptrs;
-    ::std::cout << "start\n";
     while (abs.size() != 2) {
       ptrs.push_back(cgc1::cgc_malloc(max_sz));
     }
-    ::std::cout << "end\n";
-    ::std::cout << abs.size() << ::std::endl;
-    //        cgc1::cgc_free(ptrs.back());
+    // get the stats on the last block so that we can test to see if it is freed to global.
+    auto &lb1 = abs.last_block();
+    begin = lb1.begin();
+    end = lb1.end();
+    // Verify the memory is not already considered free.
+    bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+    // take care of unused variable warning in release mode.
+    (void)in_free;
+    // this is an assert because there is no good way to report a test failure from another thread
+    // a failure in these asserts will be picked up later anyway.
+    assert(!in_free);
     tls.destroy(ptrs.back());
+    // Verify the memory for the first deallocation is now considered free.
+    in_free = allocator.in_free_list(::std::make_pair(begin, end));
+    assert(in_free);
     ptrs.pop_back();
-    ::std::cout << abs.size() << ::std::endl;
-    ::std::cout << "HERE4" << ::std::endl;
     ready_for_test = true;
+    // wait for test to finish.
     while (!test_done)
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    //      ::std::cout << "HERE2" << ::std::endl;
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    test_done = false;
+    // reset stats on last block (it may not exist).
+    begin = end = nullptr;
+    // free the rest of the memory.
+    // this should not actually release the block to global!
+    for (auto &&ptr : ptrs) {
+      tls.destroy(ptr);
+    }
+    ptrs.clear();
+    // there should be a block left, but check before we try to access it.
+    if (abs.size()) {
+      // get the stats on the last block so that we can test to see if it is freed to global.
+      auto &lb2 = abs.last_block();
+      assert(lb2.valid());
+      assert(lb2.empty());
+      begin = lb2.begin();
+      end = lb2.end();
+    }
+    ready_for_test = true;
+    // wait for test to finish.
+    while (!test_done)
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
     cgc1::cgc_unregister_thread();
     cgc1::clean_stack();
-    ::std::cout << "HERE" << ::std::endl;
   };
   ::std::thread t1(test_thread);
+  // wait for thread to setup.
   while (!ready_for_test)
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-  ::std::cout << "HERE3" << ::std::endl;
-  ::std::cout << "GLOBAL BLOCKS " << allocator.num_global_blocks() << " " << expected_global_blocks(start_num_global_blocks, 2, 1)
-              << ::std::endl;
-  assert(allocator.num_global_blocks() == expected_global_blocks(start_num_global_blocks, 2, 1));
-  AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 1)));
-  ::std::cout << "HERE5" << ::std::endl;
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
+  // Verify that we haven't created any global blocks.
+  AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
+  // Verify that the block that contained the freed allocation is now in the global free list.
+  bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  AssertThat(in_free, IsTrue());
+  // reset readyness.
+  ready_for_test = false;
+  // signal to the thread that it can go ahead and finish.
   test_done = true;
-  t1.join();
+  // wait for thread to setup next phase of testing.
+  while (!ready_for_test)
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
+  // the last block should not be in global free here.
+  in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  AssertThat(in_free, IsFalse());
+  // done testing, resume thread.
+  test_done = true;
   // wait for thread to terminate.
+  t1.join();
+  // now everything should be freed, so now the last block should be in global free.
+  in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  AssertThat(in_free, IsTrue());
+  // force a collection to cleanup.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
-  // make sure exactly one memory location was freed.
-  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(freed_last, HasLength(1));
-  // make sure we now have one more global block.
+  // Verify that we haven't created any global blocks.
   auto num_global_blocks = allocator.num_global_blocks();
-  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 2)));
-  ::std::cout << "HERE7" << ::std::endl;
+  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
 }
-*/
+
 /**
  * \brief Test various APIs.
 **/
@@ -529,11 +570,11 @@ void gc_bandit_tests()
       return_to_global_test1();
       cgc1::clean_stack();
     });
-    /*        it("return_to_global_test2", []() {
+    it("return_to_global_test2", []() {
       cgc1::clean_stack();
       return_to_global_test2();
       cgc1::clean_stack();
-      });*/
+    });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack();
