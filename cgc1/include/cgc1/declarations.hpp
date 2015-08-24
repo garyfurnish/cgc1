@@ -206,11 +206,11 @@ namespace cgc1
   {
     return ~t;
   }
-  inline size_t hide_pointer(void *v)
+  __attribute__((always_inline)) inline uintptr_t hide_pointer(void *v)
   {
     return ~reinterpret_cast<size_t>(v);
   }
-  inline void *unhide_pointer(size_t sz)
+  __attribute__((always_inline)) inline void *unhide_pointer(uintptr_t sz)
   {
     return reinterpret_cast<void *>(~sz);
   }

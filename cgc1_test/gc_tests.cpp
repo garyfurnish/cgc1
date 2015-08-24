@@ -14,7 +14,7 @@
 #include "../cgc1/src/internal_allocator.hpp"
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"
-static ::std::vector<void *> locations;
+static ::std::vector<size_t> locations;
 static ::std::mutex debug_mutex;
 using namespace bandit;
 namespace cgc1
@@ -254,7 +254,7 @@ static void linked_list_test()
       for (int i = 0; i < 3000; ++i) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-          locations.push_back(bar);
+          locations.push_back(cgc1::hide_pointer(bar));
         }
         cgc1::secure_zero(bar, 100);
         *bar = cgc1::cgc_malloc(100);
@@ -262,7 +262,7 @@ static void linked_list_test()
       }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        locations.push_back(bar);
+        locations.push_back(cgc1::hide_pointer(bar));
       }
     }
     while (keep_going) {
@@ -287,80 +287,95 @@ static void linked_list_test()
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
-  for (void *v : locations) {
-    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
-    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
+  for (size_t v : locations) {
+    assert(::std::find(last_collect.begin(), last_collect.end(), ::cgc1::unhide_pointer(v)) != last_collect.end());
+    AssertThat(::std::find(last_collect.begin(), last_collect.end(), ::cgc1::unhide_pointer(v)) != last_collect.end(), IsTrue());
   }
   locations.clear();
 }
-/**
- * \brief Try to create a race condition in the garbage collector.
- **/
-static void race_condition_test()
+namespace race_condition_test_detail
 {
-  ::std::atomic<bool> keep_going{true};
-  ::std::atomic<bool> finished_part1{true};
-  // lambda for thread test.
-  auto test_thread = [&keep_going, &finished_part1]() {
+  static ::std::vector<uintptr_t> llocations;
+  static ::std::atomic<bool> keep_going{true};
+  static ::std::atomic<size_t> finished_part1{0};
+
+
+  static _NoInline_ void test_thread()
+  {
     cgc1::clean_stack();
     CGC1_INITIALIZE_THREAD();
-    char *foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
-    cgc1::secure_zero(foo, 100);
+    void* foo = nullptr;
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-      locations.push_back(foo);
+      foo = cgc1::cgc_malloc(100);
+      llocations.push_back(cgc1::hide_pointer(foo));
     }
-    finished_part1 = true;
-    // the only point of this is to prevent highly aggressive compiler optimzations.
+    ++finished_part1;
+    //syncronize with tests in main thread.
     while (keep_going) {
       ::std::stringstream ss;
-      ss << foo << ::std::endl;
-    };
-
-    foo = nullptr;
+      ss << foo;
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-      for (int i = 0; i < 5000; ++i) {
-        foo = reinterpret_cast<char *>(cgc1::cgc_malloc(100));
-        cgc1::secure_zero(foo, 100);
-        locations.push_back(foo);
+      for (int i = 0; i < 1000; ++i) {
+	llocations.push_back(cgc1::cgc_hidden_malloc(100));
       }
     }
     cgc1::cgc_unregister_thread();
     cgc1::clean_stack();
-  };
-  ::std::thread t1(test_thread);
-  ::std::thread t2(test_thread);
-  // try to force a race condition by interrupting threads.
-  // this is obviously stochastic.
-  while (!finished_part1) {
+  }
+  /**
+   * \brief Try to create a race condition in the garbage collector.
+ **/
+  static _NoInline_ void race_condition_test()
+  {
+    //these must be cleared each time to prevent race conditions.
+    llocations.clear();
+    keep_going = true;
+    finished_part1=0;
+    //get number of hardware threads
+    const size_t num_threads = ::std::thread::hardware_concurrency();
+    //    const size_t num_threads = 2;
+    //start threads
+    ::std::vector<::std::thread> threads;
+    for(size_t i = 0; i < num_threads; ++i)
+      threads.emplace_back(test_thread);
+    // try to force a race condition by interrupting threads.
+    // this is obviously stochastic.
+    while (finished_part1!=num_threads) {
+      /*      cgc1::cgc_force_collect();
+      cgc1::details::g_gks.wait_for_finalization();
+      auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+      assert(freed_last.empty());
+      AssertThat(freed_last, HasLength(0));*/
+      // prevent test from hammering gc before threads are setup.
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+    // wait for threads to finish.
+    keep_going = false;
+    for(auto&& thread :threads)
+      thread.join();
+  // force collection.
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
-    auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
-    assert(freed_last.empty());
-    AssertThat(freed_last, HasLength(0));
-    // prevent test from hammering gc before threads are setup.
-    std::this_thread::sleep_for(std::chrono::microseconds(1));
+    auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+    // pointers might be in arbitrary order so sort them.
+    ::std::sort(llocations.begin(), llocations.end());
+    ::std::sort(last_collect.begin(), last_collect.end());
+    // make sure all pointers have been collected.
+    assert(last_collect.size()==1001*num_threads);
+    AssertThat(last_collect,HasLength(1001*num_threads));
+    for (uintptr_t v : llocations) {
+      bool found = ::std::find_if(last_collect.begin(), last_collect.end(),[v](void* a){return cgc1::hide_pointer(a) == v;}) != last_collect.end();
+      assert(found);
+      AssertThat(found, IsTrue());
+    }
+    last_collect.clear();
+    // cleanup
+    llocations.clear();
   }
-  // wait for threads to finish.
-  keep_going = false;
-  t1.join();
-  t2.join();
-  // force collection.
-  cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  // pointers might be in arbitrary order so sort them.
-  ::std::sort(locations.begin(), locations.end());
-  ::std::sort(last_collect.begin(), last_collect.end());
-  // make sure all pointers have been collected.
-  for (void *v : locations) {
-    bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
-    assert(found);
-    AssertThat(found, IsTrue());
-  }
-  // cleanup
-  locations.clear();
 }
 static size_t expected_global_blocks(const size_t start, size_t taken, const size_t put_back)
 {
@@ -434,6 +449,7 @@ static void return_to_global_test1()
 }
 static void return_to_global_test2()
 {
+  cgc1::clean_stack();
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   // get the number of global blocks starting.
@@ -538,8 +554,10 @@ static void return_to_global_test2()
   // Verify that we haven't created any global blocks.
   auto num_global_blocks = allocator.num_global_blocks();
   AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
+  cgc1::secure_zero(&begin,sizeof(begin));
+  cgc1::secure_zero(&end,sizeof(end));
+  cgc1::clean_stack();
 }
-
 /**
  * \brief Test various APIs.
 **/
@@ -559,26 +577,26 @@ static void api_tests()
 void gc_bandit_tests()
 {
   describe("GC", []() {
-    it("return_to_global_test0", []() {
+      it("return_to_global_test0", []() {
       cgc1::clean_stack();
       return_to_global_test0();
       cgc1::clean_stack();
     });
-
-    it("return_to_global_test1", []() {
+	  
+	      it("return_to_global_test1", []() {
       cgc1::clean_stack();
       return_to_global_test1();
       cgc1::clean_stack();
     });
-    it("return_to_global_test2", []() {
+            it("return_to_global_test2", []() {
       cgc1::clean_stack();
       return_to_global_test2();
       cgc1::clean_stack();
-    });
+      });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack();
-        race_condition_test();
+        race_condition_test_detail::race_condition_test();
         cgc1::clean_stack();
       });
     }

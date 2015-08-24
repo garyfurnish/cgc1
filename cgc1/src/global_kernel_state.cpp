@@ -35,7 +35,7 @@ namespace cgc1
     {
       g_gks._internal_slab_allocator().deallocate_raw(p);
     }
-    global_kernel_state_t::global_kernel_state_t() : m_slab_allocator(50000000, 50000000), m_num_collections(0)
+    global_kernel_state_t::global_kernel_state_t() : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
     {
       m_enabled_count = 1;
       details::initialize_tlks();
@@ -268,6 +268,8 @@ namespace cgc1
       m_cgc_allocator.destroy_thread();
       m_threads.erase(it);
       ::std::unique_ptr<details::thread_local_kernel_state_t, cgc_internal_malloc_deleter_t> tlks_deleter(tlks);
+      //do this to make any changes to state globally visible.
+      ::std::atomic_thread_fence(::std::memory_order_release);
     }
     void global_kernel_state_t::_u_initialize()
     {

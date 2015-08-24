@@ -144,13 +144,14 @@ namespace cgc1
 #endif
     void unlock() noexcept RELEASE()
     {
+      ::std::atomic_thread_fence(::std::memory_order_release);
       m_lock = false;
     }
     bool try_lock() noexcept TRY_ACQUIRE(true)
     {
       bool expected = false;
       bool desired = true;
-      return m_lock.compare_exchange_strong(expected, desired);
+      return m_lock.compare_exchange_strong(expected, desired, ::std::memory_order_acquire);
     }
     const spinlock_t &operator!() const
     {

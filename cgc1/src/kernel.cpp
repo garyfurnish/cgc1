@@ -42,6 +42,12 @@ namespace cgc1
     auto &ta = details::g_gks.gc_allocator().initialize_thread();
     return ta.allocate(sz);
   }
+  extern uintptr_t cgc_hidden_malloc(size_t sz)
+  {
+    void* addr = cgc_malloc(sz);
+    secure_zero(addr,sz);
+    return hide_pointer(addr);
+  }
   void *cgc_realloc(void *v, size_t sz)
   {
     void *ret = cgc_malloc(sz);
