@@ -105,6 +105,6 @@ void allocator_tests()
       auto &ta2 = allocator->initialize_thread();
       void *alloc2 = ta2.allocate(100);
       (void)alloc2;
-      });
+    });
   });
 }

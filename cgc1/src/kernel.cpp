@@ -44,8 +44,8 @@ namespace cgc1
   }
   extern uintptr_t cgc_hidden_malloc(size_t sz)
   {
-    void* addr = cgc_malloc(sz);
-    secure_zero(addr,sz);
+    void *addr = cgc_malloc(sz);
+    secure_zero(addr, sz);
     return hide_pointer(addr);
   }
   void *cgc_realloc(void *v, size_t sz)

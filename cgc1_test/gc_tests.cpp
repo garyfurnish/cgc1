@@ -20,9 +20,8 @@ using namespace bandit;
 namespace cgc1
 {
   template <size_t bytes = 5000>
-  static _NoInline_ void clean_stack()
+  static inline __attribute__((always_inline)) void clean_stack(size_t, size_t, size_t, size_t, size_t)
   {
-    int array[bytes];
     // this nukes all registers and forces spills.
     __asm__ __volatile__(
         "xorl %%eax, %%eax\n"
@@ -60,8 +59,11 @@ namespace cgc1
         : "%eax", "%ebx", "%ecx", "%edx", "%esi", "%edi", "%r8", "%r9", "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%xmm0",
           "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", "%xmm8", "%xmm9", "%xmm10", "%xmm11", "%xmm12", "%xmm13",
           "%xmm14", "%xmm15");
+    ::std::atomic_thread_fence(::std::memory_order_acq_rel);
     // zero the stack.
+    int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
     cgc1::secure_zero(array, bytes);
+    assert(*array == 0);
   }
 }
 /**
@@ -105,7 +107,7 @@ static void root_test()
   // now we should collect.
   AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
   // verify it collected the correct address.
-  AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(last_collect[0] == old_memory, IsTrue());
   // verify that we did perform a collection.
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
@@ -146,7 +148,7 @@ static void internal_pointer_test()
   // now we should collect.
   AssertThat(last_collect, HasLength(1));
   // verify it collected the correct address.
-  AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(last_collect[0] == old_memory, IsTrue());
 }
 /**
  * \brief Setup for atomic object test.
@@ -177,7 +179,7 @@ static void atomic_test()
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect, HasLength(1));
-  AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(last_collect[0] == old_memory, IsTrue());
   cgc1::cgc_remove_root(&memory);
   cgc1::secure_zero_pointer(memory);
   cgc1::cgc_force_collect();
@@ -204,7 +206,7 @@ static void finalizer_test()
   cgc1::details::g_gks.wait_for_finalization();
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
-  AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(last_collect[0] == old_memory, IsTrue());
   AssertThat(static_cast<bool>(finalized), IsTrue());
   // test bad parameters
   cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
@@ -236,7 +238,7 @@ static void uncollectable_test()
   cgc1::details::g_gks.wait_for_finalization();
   last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
-  AssertThat(last_collect[0] == cgc1::unhide_pointer(old_memory), IsTrue());
+  AssertThat(last_collect[0] == old_memory, IsTrue());
   // test bad parameters
   cgc1::cgc_set_uncollectable(nullptr, true);
   cgc1::cgc_set_uncollectable(&old_memory, true);
@@ -288,8 +290,8 @@ static void linked_list_test()
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
   for (size_t v : locations) {
-    assert(::std::find(last_collect.begin(), last_collect.end(), ::cgc1::unhide_pointer(v)) != last_collect.end());
-    AssertThat(::std::find(last_collect.begin(), last_collect.end(), ::cgc1::unhide_pointer(v)) != last_collect.end(), IsTrue());
+    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
+    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
   }
   locations.clear();
 }
@@ -299,65 +301,63 @@ namespace race_condition_test_detail
   static ::std::atomic<bool> keep_going{true};
   static ::std::atomic<size_t> finished_part1{0};
 
-
   static _NoInline_ void test_thread()
   {
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
     CGC1_INITIALIZE_THREAD();
-    void* foo = nullptr;
+    void *foo = nullptr;
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
       foo = cgc1::cgc_malloc(100);
       llocations.push_back(cgc1::hide_pointer(foo));
     }
     ++finished_part1;
-    //syncronize with tests in main thread.
+    // syncronize with tests in main thread.
     while (keep_going) {
-      ::std::stringstream ss;
-      ss << foo;
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
+    cgc1::secure_zero(&foo, sizeof(foo));
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
       for (int i = 0; i < 1000; ++i) {
-	llocations.push_back(cgc1::cgc_hidden_malloc(100));
+        llocations.push_back(cgc1::cgc_hidden_malloc(100));
       }
     }
     cgc1::cgc_unregister_thread();
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
   }
   /**
    * \brief Try to create a race condition in the garbage collector.
  **/
   static _NoInline_ void race_condition_test()
   {
-    //these must be cleared each time to prevent race conditions.
+    // these must be cleared each time to prevent race conditions.
     llocations.clear();
     keep_going = true;
-    finished_part1=0;
-    //get number of hardware threads
+    finished_part1 = 0;
+    // get number of hardware threads
     const size_t num_threads = ::std::thread::hardware_concurrency();
-    //    const size_t num_threads = 2;
-    //start threads
+    // const size_t num_threads = 2;
+    // start threads
     ::std::vector<::std::thread> threads;
-    for(size_t i = 0; i < num_threads; ++i)
+    for (size_t i = 0; i < num_threads; ++i)
       threads.emplace_back(test_thread);
     // try to force a race condition by interrupting threads.
     // this is obviously stochastic.
-    while (finished_part1!=num_threads) {
-      /*      cgc1::cgc_force_collect();
+    while (finished_part1 != num_threads) {
+      cgc1::cgc_force_collect();
       cgc1::details::g_gks.wait_for_finalization();
       auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
       assert(freed_last.empty());
-      AssertThat(freed_last, HasLength(0));*/
+      AssertThat(freed_last, HasLength(0));
       // prevent test from hammering gc before threads are setup.
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     // wait for threads to finish.
     keep_going = false;
-    for(auto&& thread :threads)
+    for (auto &&thread : threads)
       thread.join();
-  // force collection.
+    // force collection.
     cgc1::cgc_force_collect();
     cgc1::details::g_gks.wait_for_finalization();
     auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
@@ -365,10 +365,10 @@ namespace race_condition_test_detail
     ::std::sort(llocations.begin(), llocations.end());
     ::std::sort(last_collect.begin(), last_collect.end());
     // make sure all pointers have been collected.
-    assert(last_collect.size()==1001*num_threads);
-    AssertThat(last_collect,HasLength(1001*num_threads));
+    assert(last_collect.size() == 1001 * num_threads);
+    AssertThat(last_collect, HasLength(1001 * num_threads));
     for (uintptr_t v : llocations) {
-      bool found = ::std::find_if(last_collect.begin(), last_collect.end(),[v](void* a){return cgc1::hide_pointer(a) == v;}) != last_collect.end();
+      bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
       assert(found);
       AssertThat(found, IsTrue());
     }
@@ -391,11 +391,11 @@ static void return_to_global_test0()
   // this thread will create an object (which will create a thread local block)
   // then it will exit, returning the block to global.
   auto test_thread = []() {
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
     CGC1_INITIALIZE_THREAD();
     cgc1::cgc_malloc(100);
     cgc1::cgc_unregister_thread();
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
   };
   ::std::thread t1(test_thread);
   t1.join();
@@ -418,7 +418,7 @@ static void return_to_global_test1()
   uint8_t *end = nullptr;
   // thread local lambda.
   auto test_thread = [&allocator, &begin, &end]() {
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
     CGC1_INITIALIZE_THREAD();
     // get thread local state.
     auto &tls = allocator.initialize_thread();
@@ -433,7 +433,7 @@ static void return_to_global_test1()
     begin = lb.begin();
     end = lb.end();
     cgc1::cgc_unregister_thread();
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
   };
   ::std::thread t1(test_thread);
   t1.join();
@@ -447,20 +447,20 @@ static void return_to_global_test1()
   bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
   AssertThat(in_free, IsTrue());
 }
-static void return_to_global_test2()
+static _NoInline_ void return_to_global_test2()
 {
-  cgc1::clean_stack();
+  cgc1::clean_stack(0, 0, 0, 0, 0);
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   // get the number of global blocks starting.
   const auto start_num_global_blocks = allocator.num_global_blocks();
   ::std::atomic<bool> ready_for_test{false};
   ::std::atomic<bool> test_done{false};
-  uint8_t *begin = nullptr;
-  uint8_t *end = nullptr;
+  ::std::atomic<uint8_t *> begin{nullptr};
+  ::std::atomic<uint8_t *> end{nullptr};
 
   auto test_thread = [&allocator, &ready_for_test, &test_done, &begin, &end]() {
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
     CGC1_INITIALIZE_THREAD();
     // get thread local state.
     auto &tls = allocator.initialize_thread();
@@ -482,16 +482,16 @@ static void return_to_global_test2()
     begin = lb1.begin();
     end = lb1.end();
     // Verify the memory is not already considered free.
-    bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+    //    bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
     // take care of unused variable warning in release mode.
-    (void)in_free;
+    //    (void)in_free;
     // this is an assert because there is no good way to report a test failure from another thread
     // a failure in these asserts will be picked up later anyway.
-    assert(!in_free);
+    //    assert(!in_free);
     tls.destroy(ptrs.back());
     // Verify the memory for the first deallocation is now considered free.
-    in_free = allocator.in_free_list(::std::make_pair(begin, end));
-    assert(in_free);
+    //    in_free = allocator.in_free_list(::std::make_pair(begin, end));
+    //    assert(in_free);
     ptrs.pop_back();
     ready_for_test = true;
     // wait for test to finish.
@@ -520,7 +520,7 @@ static void return_to_global_test2()
     while (!test_done)
       std::this_thread::sleep_for(std::chrono::microseconds(1));
     cgc1::cgc_unregister_thread();
-    cgc1::clean_stack();
+    cgc1::clean_stack(0, 0, 0, 0, 0);
   };
   ::std::thread t1(test_thread);
   // wait for thread to setup.
@@ -529,7 +529,9 @@ static void return_to_global_test2()
   // Verify that we haven't created any global blocks.
   AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   // Verify that the block that contained the freed allocation is now in the global free list.
-  bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  bool in_free = allocator.in_free_list(*pair);
+  assert(in_free);
   AssertThat(in_free, IsTrue());
   // reset readyness.
   ready_for_test = false;
@@ -539,14 +541,17 @@ static void return_to_global_test2()
   while (!ready_for_test)
     std::this_thread::sleep_for(std::chrono::microseconds(1));
   // the last block should not be in global free here.
-  in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  in_free = allocator.in_free_list(*pair);
+  assert(!in_free);
   AssertThat(in_free, IsFalse());
   // done testing, resume thread.
   test_done = true;
   // wait for thread to terminate.
   t1.join();
   // now everything should be freed, so now the last block should be in global free.
-  in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  in_free = allocator.in_free_list(*pair);
   AssertThat(in_free, IsTrue());
   // force a collection to cleanup.
   cgc1::cgc_force_collect();
@@ -554,9 +559,9 @@ static void return_to_global_test2()
   // Verify that we haven't created any global blocks.
   auto num_global_blocks = allocator.num_global_blocks();
   AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
-  cgc1::secure_zero(&begin,sizeof(begin));
-  cgc1::secure_zero(&end,sizeof(end));
-  cgc1::clean_stack();
+  cgc1::secure_zero(&begin, sizeof(begin));
+  cgc1::secure_zero(&end, sizeof(end));
+  cgc1::clean_stack(0, 0, 0, 0, 0);
 }
 /**
  * \brief Test various APIs.
@@ -577,63 +582,64 @@ static void api_tests()
 void gc_bandit_tests()
 {
   describe("GC", []() {
-      it("return_to_global_test0", []() {
-      cgc1::clean_stack();
+    it("return_to_global_test0", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       return_to_global_test0();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
-	  
-	      it("return_to_global_test1", []() {
-      cgc1::clean_stack();
+
+    it("return_to_global_test1", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       return_to_global_test1();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
-            it("return_to_global_test2", []() {
-      cgc1::clean_stack();
+    (void)return_to_global_test2;
+    it("return_to_global_test2", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       return_to_global_test2();
-      cgc1::clean_stack();
-      });
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
-        cgc1::clean_stack();
+        cgc1::clean_stack(0, 0, 0, 0, 0);
         race_condition_test_detail::race_condition_test();
-        cgc1::clean_stack();
+        cgc1::clean_stack(0, 0, 0, 0, 0);
       });
     }
     it("linked list test", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       linked_list_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("root", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       root_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("internal pointer", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       internal_pointer_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("finalizers", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       finalizer_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("atomic", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       atomic_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("uncollectable", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       uncollectable_test();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("api_tests", []() {
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
       api_tests();
-      cgc1::clean_stack();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
     });
   });
 }

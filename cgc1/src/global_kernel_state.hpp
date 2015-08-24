@@ -123,7 +123,7 @@ namespace cgc1
        * \brief Return pointers that were freed in the last collection.
        * In non-debug mode may be empty.
       **/
-      cgc_internal_vector_t<void *> _d_freed_in_last_collection() const REQUIRES(!m_mutex);
+      cgc_internal_vector_t<uintptr_t> _d_freed_in_last_collection() const REQUIRES(!m_mutex);
       /**
        * \brief Return true if the object state is valid, false otherwise.
       **/
@@ -197,15 +197,15 @@ namespace cgc1
       /**
        * Number of paused threads in a collect cycle.
       **/
-      std::atomic<size_t> m_num_paused_threads; // GUARDED_BY(m_mutex)
-      /**
-       * Number of paused threads that have finished garbage collection.
-      **/
+      std::atomic<size_t> m_num_paused_threads;  // GUARDED_BY(m_mutex)
+                                                 /**
+                                                  * Number of paused threads that have finished garbage collection.
+                                                 **/
       std::atomic<size_t> m_num_resumed_threads; // GUARDED_BY(m_mutex)
-      /**
-       * \brief Number of collections that have happened.
-       * May wrap around.
-      **/
+                                                 /**
+                                                  * \brief Number of collections that have happened.
+                                                  * May wrap around.
+                                                 **/
       mutable ::std::atomic<size_t> m_num_collections;
 #ifndef _WIN32
       /**
@@ -237,7 +237,7 @@ namespace cgc1
       /**
        * List of pointers freed in last collection.
       **/
-      cgc_internal_vector_t<void *> m_freed_in_last_collection GUARDED_BY(m_mutex);
+      cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
        * True while a garbage collection is running, otherwise false.
       **/
@@ -252,7 +252,7 @@ namespace cgc1
       bool m_initialized GUARDED_BY(m_mutex) = false;
       /*
        * \brief Size of slab allocator at start.
-      */ 
+      */
       static const size_t m_slab_allocator_start_size = 50000000;
     };
     extern global_kernel_state_t g_gks;
