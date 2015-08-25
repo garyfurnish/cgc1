@@ -56,11 +56,11 @@ namespace cgc1
       /**
        * \brief Hint to perform a garbage collection.
       **/
-      void collect() REQUIRES(!m_mutex, !m_thread_mutex);
+      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Force a garbage collection.
       **/
-      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex);
+      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Return the number of collections that have happened.
        * May wrap around.
@@ -79,7 +79,7 @@ namespace cgc1
        * \brief Master collect function for a given thread.
        * This calls into the thread kernel state's collect.
       **/
-      void _collect_current_thread() REQUIRES(!m_mutex);
+      void _collect_current_thread() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Return the GC allocator.
       **/
@@ -203,9 +203,13 @@ namespace cgc1
                                                  **/
       std::atomic<size_t> m_num_resumed_threads; // GUARDED_BY(m_mutex)
                                                  /**
-                                                  * \brief Number of collections that have happened.
-                                                  * May wrap around.
-                                                 **/
+                                                  * \brief True if during collection allocators are unlocked yet.
+                                                  **/
+      ::std::atomic<bool> m_allocators_available;
+      /**
+       * \brief Number of collections that have happened.
+       * May wrap around.
+      **/
       mutable ::std::atomic<size_t> m_num_collections;
 #ifndef _WIN32
       /**
@@ -213,7 +217,7 @@ namespace cgc1
        * 1) When a thread has stopped and is in the signal handler.
        * 2) When a thread should resume normal operations.
       **/
-      mutable condition_variable_any_t m_stop_world_condition;
+      //      mutable condition_variable_any_t m_stop_world_condition;
       /**
        * \brief Condition variable used to broadcast when threads should start garbage collection.
       **/
@@ -224,6 +228,10 @@ namespace cgc1
       **/
       mutable mutex_t m_thread_mutex;
       mutable mutex_t m_block_mutex;
+      /**
+       * \brief This mutex is locked when mutexes are unavailable.
+       **/
+      mutable mutex_t m_allocators_unavailable_mutex;
       rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
        * \brief Vector of all threads registered with the kernel.

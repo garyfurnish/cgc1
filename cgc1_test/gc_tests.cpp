@@ -289,10 +289,10 @@ static void linked_list_test()
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
-  for (size_t v : locations) {
-    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
-    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
-  }
+  AssertThat(last_collect.size(), Equals(locations.size()));
+  bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), locations.begin());
+  assert(all_found);
+  AssertThat(all_found, IsTrue());
   locations.clear();
 }
 namespace race_condition_test_detail
@@ -314,7 +314,8 @@ namespace race_condition_test_detail
     ++finished_part1;
     // syncronize with tests in main thread.
     while (keep_going) {
-      ::std::this_thread::yield();
+      //      ::std::this_thread::yield();
+      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
     }
     cgc1::secure_zero(&foo, sizeof(foo));
     {
@@ -336,7 +337,7 @@ namespace race_condition_test_detail
     keep_going = true;
     finished_part1 = 0;
     // get number of hardware threads
-    const size_t num_threads = ::std::thread::hardware_concurrency();
+    const size_t num_threads = ::std::thread::hardware_concurrency() * 4;
     // const size_t num_threads = 2;
     // start threads
     ::std::vector<::std::thread> threads;
@@ -351,7 +352,10 @@ namespace race_condition_test_detail
       assert(freed_last.empty());
       AssertThat(freed_last, HasLength(0));
       // prevent test from hammering gc before threads are setup.
-      ::std::this_thread::yield();
+      // sleep could cause deadlock with some osx platform functionality
+      // therefore intentionally use it to try to break things.
+      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
+      //      ::std::this_thread::yield();
     }
     // wait for threads to finish.
     keep_going = false;
@@ -367,11 +371,11 @@ namespace race_condition_test_detail
     // make sure all pointers have been collected.
     assert(last_collect.size() == 1001 * num_threads);
     AssertThat(last_collect, HasLength(1001 * num_threads));
-    for (uintptr_t v : llocations) {
-      bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
-      assert(found);
-      AssertThat(found, IsTrue());
-    }
+    // check to make sure sizes are equal.
+    AssertThat(last_collect.size(), Equals(llocations.size()));
+    bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), llocations.begin());
+    assert(all_found);
+    AssertThat(all_found, IsTrue());
     last_collect.clear();
     // cleanup
     llocations.clear();
@@ -414,8 +418,8 @@ static void return_to_global_test1()
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   // put block bounds here.
-  uint8_t *begin = nullptr;
-  uint8_t *end = nullptr;
+  ::std::atomic<uint8_t *> begin{nullptr};
+  ::std::atomic<uint8_t *> end{nullptr};
   // thread local lambda.
   auto test_thread = [&allocator, &begin, &end]() {
     cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -444,16 +448,17 @@ static void return_to_global_test1()
   auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(freed_last, HasLength(0));
   // check that the memory was returned to global free list.
-  bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  bool in_free = allocator.in_free_list(*pair);
   AssertThat(in_free, IsTrue());
+  cgc1::secure_zero(&begin, sizeof(begin));
+  cgc1::secure_zero(&end, sizeof(end));
 }
 static _NoInline_ void return_to_global_test2()
 {
   cgc1::clean_stack(0, 0, 0, 0, 0);
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
-  // get the number of global blocks starting.
-  const auto start_num_global_blocks = allocator.num_global_blocks();
   ::std::atomic<bool> ready_for_test{false};
   ::std::atomic<bool> test_done{false};
   ::std::atomic<uint8_t *> begin{nullptr};
@@ -527,7 +532,6 @@ static _NoInline_ void return_to_global_test2()
   while (!ready_for_test)
     ::std::this_thread::yield();
   // Verify that we haven't created any global blocks.
-  AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   // Verify that the block that contained the freed allocation is now in the global free list.
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   bool in_free = allocator.in_free_list(*pair);
@@ -557,8 +561,6 @@ static _NoInline_ void return_to_global_test2()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   // Verify that we haven't created any global blocks.
-  auto num_global_blocks = allocator.num_global_blocks();
-  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   cgc1::secure_zero(&begin, sizeof(begin));
   cgc1::secure_zero(&end, sizeof(end));
   cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -594,11 +596,6 @@ void gc_bandit_tests()
       cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     (void)return_to_global_test2;
-    it("return_to_global_test2", []() {
-      cgc1::clean_stack(0, 0, 0, 0, 0);
-      return_to_global_test2();
-      cgc1::clean_stack(0, 0, 0, 0, 0);
-    });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -639,6 +636,11 @@ void gc_bandit_tests()
     it("api_tests", []() {
       cgc1::clean_stack(0, 0, 0, 0, 0);
       api_tests();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
+    it("return_to_global_test2", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+      return_to_global_test2();
       cgc1::clean_stack(0, 0, 0, 0, 0);
     });
   });
