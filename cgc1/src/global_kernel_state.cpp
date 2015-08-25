@@ -152,6 +152,7 @@ namespace cgc1
       m_collect = true;
       m_freed_in_last_collection.clear();
       m_num_paused_threads = m_num_resumed_threads = 0;
+      m_allocators_available = false;
       _u_suspend_threads();
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
@@ -159,6 +160,7 @@ namespace cgc1
       m_gc_allocator._mutex().unlock();
       m_cgc_allocator._mutex().unlock();
       m_slab_allocator._mutex().unlock();
+      m_allocators_available = true;
       if (m_gc_allocator._u_blocks().empty()) {
         m_num_collections++;
         m_collect = false;
@@ -299,10 +301,15 @@ namespace cgc1
           abort();
       }
       // wait for all threads to stop
-      m_stop_world_condition.wait(lock, [this]() { // Thread data can not be modified during collection
-        CGC1_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
-        return m_num_paused_threads == m_threads.size() - 1;
-      });
+      {
+        // note threads.size() can not change out from under us here by logic.
+        // in particular we can't add threads during collection cycle.
+        lock.unlock();
+        while (m_num_paused_threads != m_threads.size() - 1) {
+          ::std::this_thread::yield();
+        }
+        lock.lock();
+      }
       lock.release();
     }
     void global_kernel_state_t::_u_resume_threads()
@@ -317,7 +324,14 @@ namespace cgc1
       unique_lock_t<decltype(m_mutex)> lock(m_mutex);
       tlks->set_stack_ptr(__builtin_frame_address(0));
       m_num_paused_threads++;
-      m_stop_world_condition.notify_all();
+      {
+        lock.unlock();
+        while (!m_allocators_available) {
+          ::std::this_thread::yield();
+        }
+        lock.lock();
+      }
+      // this is deadlocking because we can't allocate the list for the condition variable yet.
       m_start_world_condition.wait(lock, [this]() { return !m_collect; });
       m_num_resumed_threads++;
       lock.unlock();

@@ -336,7 +336,7 @@ namespace race_condition_test_detail
     keep_going = true;
     finished_part1 = 0;
     // get number of hardware threads
-    const size_t num_threads = ::std::thread::hardware_concurrency();
+    const size_t num_threads = ::std::thread::hardware_concurrency() * 2;
     // const size_t num_threads = 2;
     // start threads
     ::std::vector<::std::thread> threads;

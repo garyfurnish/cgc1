@@ -270,3 +270,8 @@ namespace cgc1
       ::std::is_same<cgc_internal_slab_deleter_t, cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
       "Error with internal deleter");
 }
+#include <cgc1/condition_variable.hpp>
+namespace cgc1
+{
+  using condition_variable_any_t = internal_condition_variable_t<cgc_internal_allocator_t<void>>;
+}

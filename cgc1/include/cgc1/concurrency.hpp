@@ -104,7 +104,6 @@ namespace cgc1
     ::std::mutex m_mutex;
   };
 }
-using condition_variable_any_t = ::std::condition_variable_any;
 #endif
 #include "concurrency_apple.hpp"
 #define CGC1_CONCURRENCY_LOCK_GUARD_MERGE_(a, b) a##b
@@ -193,7 +192,7 @@ namespace cgc1
       m_t1 = nullptr;
       m_t2 = nullptr;
     }
-    bool try_lock()
+    bool try_lock() NO_THREAD_SAFETY_ANALYSIS
     {
       if (m_t1->try_lock()) {
         if (m_t2->try_lock())
