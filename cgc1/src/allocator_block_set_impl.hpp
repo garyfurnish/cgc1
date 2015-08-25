@@ -1,6 +1,7 @@
 #pragma once
 #include "allocator_block_set.hpp"
 #include <assert.h>
+#include <iostream>
 namespace cgc1
 {
   namespace details
@@ -40,7 +41,7 @@ namespace cgc1
       };
       m_available_blocks.clear();
       for (auto &block : m_blocks) {
-        if (&block == m_back)
+        if (&block == &m_blocks.back())
           continue;
         if (!block.full()) {
           sized_block_ref_t pair = ::std::make_pair(block.max_alloc_available(), &block);
@@ -53,9 +54,11 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::collect()
     {
+      // collect all blocks.
       for (auto &block : m_blocks) {
         block.collect();
       }
+      // some blocks may have become available so regenerate available blocks.
       regenerate_available_blocks();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -84,10 +87,11 @@ namespace cgc1
       auto lower_bound =
           ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), sized_block_ref_t(sz, nullptr), abrvr_compare);
       if (lower_bound == m_available_blocks.end()) {
-        if (m_back) {
-          void *ret = m_back->allocate(sz);
-          if (ret)
+        if (!m_blocks.empty()) {
+          void *ret = m_blocks.back().allocate(sz);
+          if (ret) {
             return ret;
+          }
         }
         return nullptr;
       }
@@ -120,7 +124,7 @@ namespace cgc1
       for (typename allocator_block_vector_t::iterator it = m_blocks.begin(); it != m_blocks.end(); ++it) {
         size_t prev_available = it->max_alloc_available();
         if (it->destroy(v)) {
-          if (&*it != m_back && !it->full()) {
+          if (it != (m_blocks.end() - 1) && !it->full()) {
             sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
             auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
             auto ab_it =
@@ -142,6 +146,7 @@ namespace cgc1
             _verify();
           } else {
           }
+          // increment destroyed count.
           m_num_destroyed_since_free += 1;
           _verify();
           return true;
@@ -157,21 +162,19 @@ namespace cgc1
       _verify();
       if (!m_blocks.empty()) {
         typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
+        auto &back = m_blocks.back();
         m_blocks.emplace_back(::std::move(block));
         // if moved on emplacement.
         if (&m_blocks.front() != bbegin) {
           // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
           abort();
         }
-        if (m_back) {
-          size_t avail = m_back->max_alloc_available();
-          if (avail)
-            m_available_blocks.emplace_back(::std::make_pair(avail, m_back));
-          _verify();
-        }
+        size_t avail = back.max_alloc_available();
+        if (avail)
+          m_available_blocks.emplace_back(::std::make_pair(avail, &back));
+        _verify();
       } else
         m_blocks.emplace_back(::std::move(block));
-      m_back = &m_blocks.back();
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -185,7 +188,8 @@ namespace cgc1
     allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
     {
       m_blocks.erase(it);
-      auto ait = ::std::find(m_available_blocks.begin(), m_available_blocks.end(), &*it);
+      auto ait =
+          ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(), [&it](auto &&abp) { return abp.second == &*it; });
       if (ait != m_available_blocks.end())
         m_available_blocks.erase(ait);
       _verify();
@@ -193,6 +197,7 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline bool allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block_is_safe() const
     {
+      // If capacity is equal to size then adding a block will trigger a reallocation of the internal vector.
       return m_blocks.capacity() != m_blocks.size();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -204,8 +209,6 @@ namespace cgc1
       else
         m_blocks.reserve(sz);
       auto offset = reinterpret_cast<uint8_t *>(&m_blocks.front()) - reinterpret_cast<uint8_t *>(bbegin);
-      if (m_back)
-        unsafe_reference_cast<uint8_t *>(m_back) += offset;
       for (auto &pair : m_available_blocks) {
         unsafe_reference_cast<uint8_t *>(pair.second) += offset;
       }
@@ -224,34 +227,38 @@ namespace cgc1
       return m_blocks.back();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    template <typename T>
-    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(T &t, size_t min_to_leave)
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() const -> const allocator_block_type &
+    {
+      return m_blocks.back();
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    template <typename Lambda>
+    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(Lambda &&l, size_t min_to_leave)
     {
       // this looks really complicated but it is actually quite light weight since blocks are tiny and everything is contiguous.
       size_t num_empty = 0;
       // first we collect and see how many total empty blocks there are.
       for (auto &block : m_blocks) {
         block.collect();
-        if (block.empty())
+        if (block.empty()) {
           num_empty++;
+        } else {
+        }
       }
-      for (auto &block : m_blocks) {
+      for (auto it = m_blocks.begin(); it != m_blocks.end(); ++it) {
+        auto &block = *it;
         // now go through empty blocks
         if (block.empty()) {
-          if (num_empty <= min_to_leave)
+          if (m_blocks.size() - num_empty < min_to_leave)
             break;
           num_empty--;
           // remove them until we hit our min to leave.
-          t.emplace_back(std::move(block));
+          l(::std::move(block));
+          remove_block(it);
+          it--;
         }
       }
-      // we test for validity since moving invalidates the block.
-      auto it = ::std::remove_if(m_blocks.begin(), m_blocks.end(),
-                                 [](allocator_block_t<Allocator, Allocator_Block_User_Data> &block) { return !block.valid(); });
-      ptrdiff_t num_to_remove = m_blocks.end() - it;
-      // this is needed because we can't resize because allocator_block is not trivially constructable.
-      for (ptrdiff_t i = 0; i < num_to_remove - static_cast<ptrdiff_t>(min_to_leave); ++i)
-        m_blocks.pop_back();
+      // Regenerate available blocks since we have altered m_blocks.
       regenerate_available_blocks();
       m_num_destroyed_since_free = 0;
     }

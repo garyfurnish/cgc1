@@ -35,7 +35,8 @@ namespace cgc1
     {
       g_gks._internal_slab_allocator().deallocate_raw(p);
     }
-    global_kernel_state_t::global_kernel_state_t() : m_slab_allocator(50000000, 50000000), m_num_collections(0)
+    global_kernel_state_t::global_kernel_state_t()
+        : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
     {
       m_enabled_count = 1;
       details::initialize_tlks();
@@ -200,7 +201,7 @@ namespace cgc1
       m_thread_mutex.unlock();
       m_mutex.unlock();
     }
-    cgc_internal_vector_t<void *> global_kernel_state_t::_d_freed_in_last_collection() const
+    cgc_internal_vector_t<uintptr_t> global_kernel_state_t::_d_freed_in_last_collection() const
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       return m_freed_in_last_collection;
@@ -268,6 +269,8 @@ namespace cgc1
       m_cgc_allocator.destroy_thread();
       m_threads.erase(it);
       ::std::unique_ptr<details::thread_local_kernel_state_t, cgc_internal_malloc_deleter_t> tlks_deleter(tlks);
+      // do this to make any changes to state globally visible.
+      ::std::atomic_thread_fence(::std::memory_order_release);
     }
     void global_kernel_state_t::_u_initialize()
     {
@@ -292,7 +295,8 @@ namespace cgc1
       for (auto state : m_threads) {
         if (state->thread_id() == ::std::this_thread::get_id())
           continue;
-        cgc1::pthread_kill(state->thread_handle(), SIGUSR1);
+        if (cgc1::pthread_kill(state->thread_handle(), SIGUSR1))
+          abort();
       }
       // wait for all threads to stop
       m_stop_world_condition.wait(lock, [this]() { // Thread data can not be modified during collection

@@ -50,33 +50,14 @@ namespace cgc1
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_empty_blocks(size_t min_to_leave, bool force)
     {
       m_allocator._d_verify();
-      typename this_allocator_block_set_t::allocator_block_vector_t empty_blocks;
       for (auto &abs : m_allocators) {
-        if (force || abs.num_destroyed_since_last_free() > 10) {
-          abs.free_empty_blocks(empty_blocks, min_to_leave);
+        if (force || abs.num_destroyed_since_last_free() > destroy_threshold()) {
+          abs.free_empty_blocks([this](typename this_allocator_block_set_t::allocator_block_type &&block) {
+            m_allocator.destroy_allocator_block(*this, ::std::move(block));
+          }, min_to_leave);
         }
-      }
-      for (auto &block : empty_blocks) {
-        m_allocator._d_verify();
-        m_allocator.destroy_allocator_block(*this, std::move(block));
-        m_allocator._d_verify();
       }
     }
-    /*    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::free_all_blocks()
-    {
-      m_allocator._d_verify();
-      for (auto &abs : m_allocators) {
-        for (auto &&block : abs.m_blocks) {
-          m_allocator._d_verify();
-          block.collect();
-          m_allocator._d_verify();
-          if (block.empty())
-            m_allocator.destroy_allocator_block(*this, std::move(block));
-          m_allocator._d_verify();
-        }
-      }
-      }*/
 
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::find_block_set_id(size_t sz)
@@ -100,7 +81,7 @@ namespace cgc1
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
         auto &abs_data = m_allocator_multiples[i];
-        size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 4)));
+        size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 3)));
         if (allocator_multiple > ::std::numeric_limits<uint32_t>().max())
           throw ::std::runtime_error("Allocator multiple too large");
         abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
@@ -113,35 +94,40 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     bool thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_allocator_multiple(size_t id, size_t multiple)
     {
+      // sanity check id.
       if (id > c_bins)
         return false;
+      // sanity check multiple.
       if (multiple > ::std::numeric_limits<uint32_t>().max())
         return false;
       m_allocator_multiples[id].set_allocator_multiple(static_cast<uint32_t>(multiple));
       return true;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_multiple(size_t id)
+    size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_multiple(size_t id) noexcept
     {
+      // sanity check id.
       if (id > c_bins)
         return 0;
-      return m_allocator_multiples[id];
+      // return multiple.
+      return m_allocator_multiples[id].allocator_multiple();
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_block_size(size_t id) const
+    size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::get_allocator_block_size(size_t id) const noexcept
     {
-      return m_allocator_multiples[id].allocator_multiple() * (2 << (id + 4));
+      return m_allocator_multiples[id].allocator_multiple() * static_cast<unsigned>(2 << (id + 4));
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz)
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_by_size(size_t sz) noexcept
         -> this_allocator_block_set_t &
     {
       return m_allocators[find_block_set_id(sz)];
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_block_sizes() const
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_block_sizes() const noexcept
         -> ::std::array<size_t, c_bins>
     {
+      // build an array in place, this should get optimized away.
       ::std::array<size_t, c_bins> array;
       for (size_t id = 0; id < c_bins; ++id)
         array[id] = get_allocator_block_size(id);
@@ -150,8 +136,25 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     bool thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy(void *v)
     {
+      // get object state
       object_state_t *os = object_state_t::from_object_start(v);
-      return m_allocators[find_block_set_id(os->object_size())].destroy(v);
+      // find block set id for object.
+      auto block_id = find_block_set_id(os->object_size());
+      // get a reference to the allocator.
+      auto allocator = &m_allocators[block_id];
+      // destroy object.
+      auto ret = allocator->destroy(v);
+      if (!ret && block_id > 0) {
+        allocator = &m_allocators[block_id - 1];
+        ret = allocator->destroy(v);
+      }
+
+      // do book keeping for returning memory to global.
+      if (allocator->num_destroyed_since_last_free()) {
+        // ok, this needs to be tweaked.
+        free_empty_blocks(m_minimum_local_blocks, false);
+      }
+      return ret;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const
@@ -172,7 +175,7 @@ namespace cgc1
       void *ret = m_allocators[id].allocate(sz);
       if (ret)
         return ret;
-      size_t memory_request = m_allocator_multiples[id].allocator_multiple() * static_cast<unsigned>(2 << (id + 4));
+      size_t memory_request = get_allocator_block_size(id);
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
@@ -198,6 +201,29 @@ namespace cgc1
         abort();
       return ret;
     }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy_threshold() const noexcept
+        -> destroy_threshold_type
+    {
+      return m_destroy_threshold;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::minimum_local_blocks() const noexcept -> uint16_t
+    {
+      return m_minimum_local_blocks;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void
+    thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_destroy_threshold(destroy_threshold_type threshold)
+    {
+      m_destroy_threshold = threshold;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_minimum_local_blocks(uint16_t minimum)
+    {
+      m_minimum_local_blocks = minimum;
+    }
+
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
     {

@@ -22,7 +22,7 @@ namespace cgc1
     slab_t &operator=(const slab_t &) = delete;
     slab_t &operator=(slab_t &&) = default;
     /**
-    Constructor aborts on failure.
+    \brief Constructor aborts on failure.
     @param size Size of memory to allocate.
     @param addr Address to allocate at.
     **/
@@ -42,7 +42,7 @@ namespace cgc1
     **/
     size_type size() const;
     /**
-    Return true if the slab is valid, false otherwise.
+    \brief Return true if the slab is valid, false otherwise.
     **/
     bool valid() const;
     /**

@@ -146,6 +146,7 @@ namespace cgc1
     {
       assert(minimum_allocation_length() <= maximum_allocation_length());
       _verify(nullptr);
+      // these help, especially when prefetch crosses cache boundry.
       cgc1_builtin_prefetch(this);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);

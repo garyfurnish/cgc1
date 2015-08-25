@@ -250,7 +250,7 @@ namespace cgc1
     }
     void gc_thread_t::_finalize()
     {
-      cgc_internal_vector_t<void *> to_be_freed;
+      cgc_internal_vector_t<uintptr_t> to_be_freed;
       for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
@@ -271,7 +271,7 @@ namespace cgc1
 #else
         ::memset(os->object_start(), 0, os->object_size());
 #endif
-        to_be_freed.push_back(os->object_start());
+        to_be_freed.push_back(hide_pointer(os->object_start()));
       }
       g_gks._add_freed_in_last_collection(to_be_freed);
       g_gks.gc_allocator().bulk_destroy_memory(m_to_be_freed);

@@ -61,8 +61,11 @@ namespace cgc1
     return ret != nullptr;
   }
 #ifdef __APPLE__
-  inline bool slab_t::expand(size_t)
+  inline bool slab_t::expand(size_t size)
   {
+    ::std::cerr << "Apple can not expand memory\n";
+    ::std::cerr << "Requested size is " << size << "\n";
+    ::std::cerr << "Apple lacks mremap\n";
     abort();
     return false;
   }

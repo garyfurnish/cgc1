@@ -17,6 +17,11 @@ namespace cgc1
   **/
   extern void *cgc_malloc(size_t sz);
   /**
+  Allocate sz bytes.
+  Guaranteed to be 16 byte aligned.
+  **/
+  extern uintptr_t cgc_hidden_malloc(size_t sz);
+  /**
   Realloc sz bytes.
   Guaranteed to be 16 byte aligned.
   **/

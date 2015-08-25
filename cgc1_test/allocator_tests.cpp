@@ -14,7 +14,7 @@ void allocator_tests()
     it("test1", []() {
       {
         ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-        AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+        AssertThat(allocator->initialize(100000, 100000000), IsTrue());
         cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
         auto &allocator_set = ta.allocator_by_size(55);
         AssertThat(allocator_set.allocator_min_size(), Is().LessThan(static_cast<size_t>(55)));
@@ -32,7 +32,7 @@ void allocator_tests()
     });
     it("test2", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-      AssertThat(allocator->initialize(100000, 100000000), IsTrue());
+      AssertThat(allocator->initialize(200000, 100000000), IsTrue());
       // test worst free list.
       auto memory1 = allocator->get_memory(10000);
       auto memory2 = allocator->get_memory(20000);
@@ -63,7 +63,7 @@ void allocator_tests()
     });
     it("test3", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+      AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       allocator->initialize_thread();
       allocator->destroy_thread();
       auto &ta = allocator->initialize_thread();
@@ -91,13 +91,13 @@ void allocator_tests()
     });
     it("thread_allocator _do_maintenance", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+      AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
       ta._do_maintenance();
     });
     it("test global block recycling", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
-      AssertThat(allocator->initialize(20000, 100000000), IsTrue());
+      AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       auto &ta = allocator->initialize_thread();
       void *alloc1 = ta.allocate(100);
       AssertThat(alloc1 != nullptr, IsTrue());
