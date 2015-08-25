@@ -32,7 +32,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-	it->m_flag.unlock();
+        it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
         throw;
@@ -40,7 +40,7 @@ namespace cgc1
       if (pred_result) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-	  it->m_flag.unlock();
+          it->m_flag.unlock();
           m_queued.erase(it);
         }
         // return.
@@ -55,12 +55,12 @@ namespace cgc1
       /*      while (!it->m_flag) {
         // sleep using OS until we get notified.
         ::std::this_thread::yield();
-	}*/
+        }*/
       // we have been notified, try to get lock.
       /*      while (!lock.try_lock()) {
         // sleep using OS until we get the lock.
         ::std::this_thread::yield();
-	}*/
+        }*/
       lock.lock();
       // now we have the lock.
       // if the predicate is true
@@ -71,7 +71,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-	it->m_flag.unlock();
+        it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
         throw;
@@ -79,7 +79,7 @@ namespace cgc1
       if (pred()) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-	  it->m_flag.unlock();
+          it->m_flag.unlock();
           m_queued.erase(it);
         }
         // return.

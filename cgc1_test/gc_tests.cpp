@@ -289,11 +289,10 @@ static void linked_list_test()
   auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
-  for (size_t v : locations) {
-    bool found = ::std::binary_search(last_collect.begin(), last_collect.end(), v);
-    assert(found);
-    AssertThat(found, IsTrue());
-  }
+  AssertThat(last_collect.size(), Equals(locations.size()));
+  bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), locations.begin());
+  assert(all_found);
+  AssertThat(all_found, IsTrue());
   locations.clear();
 }
 namespace race_condition_test_detail
@@ -372,11 +371,11 @@ namespace race_condition_test_detail
     // make sure all pointers have been collected.
     assert(last_collect.size() == 1001 * num_threads);
     AssertThat(last_collect, HasLength(1001 * num_threads));
-    for (uintptr_t v : llocations) {
-      bool found = ::std::binary_search(last_collect.begin(), last_collect.end(), v);
-      assert(found);
-      AssertThat(found, IsTrue());
-    }
+    // check to make sure sizes are equal.
+    AssertThat(last_collect.size(), Equals(llocations.size()));
+    bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), llocations.begin());
+    assert(all_found);
+    AssertThat(all_found, IsTrue());
     last_collect.clear();
     // cleanup
     llocations.clear();

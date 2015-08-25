@@ -328,11 +328,11 @@ namespace cgc1
       m_num_paused_threads++;
       {
         lock.unlock();
-	m_allocators_unavailable_mutex.lock();
-	m_allocators_unavailable_mutex.unlock();
-	/*        while (!m_allocators_available) {
+        m_allocators_unavailable_mutex.lock();
+        m_allocators_unavailable_mutex.unlock();
+        /*        while (!m_allocators_available) {
           ::std::this_thread::yield();
-	  }*/
+          }*/
         lock.lock();
       }
       // this is deadlocking because we can't allocate the list for the condition variable yet.

@@ -56,11 +56,11 @@ namespace cgc1
       /**
        * \brief Hint to perform a garbage collection.
       **/
-      void collect() REQUIRES(!m_mutex, !m_thread_mutex);
+      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Force a garbage collection.
       **/
-      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex);
+      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Return the number of collections that have happened.
        * May wrap around.
@@ -79,7 +79,7 @@ namespace cgc1
        * \brief Master collect function for a given thread.
        * This calls into the thread kernel state's collect.
       **/
-      void _collect_current_thread() REQUIRES(!m_mutex, !m_thread_mutex);
+      void _collect_current_thread() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Return the GC allocator.
       **/

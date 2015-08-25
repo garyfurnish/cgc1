@@ -19,7 +19,7 @@ namespace cgc1
     internal_condition_variable_t &operator=(const internal_condition_variable_t &) = delete;
     internal_condition_variable_t &operator=(internal_condition_variable_t &&) = delete;
     // notify all waiting threads.
-    void notify_all() REQUIRES(!m_mutex);
+    void notify_all() REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
     template <typename Lock>
     void wait(Lock &&lock) REQUIRES(!m_mutex);
     template <typename Lock, typename Predicate>
@@ -27,7 +27,7 @@ namespace cgc1
 
   private:
     template <typename Lock, typename Predicate>
-    void wait(Lock &&lock, Predicate &&pred, bool _precheck_pred) REQUIRES(!m_mutex);
+    void wait(Lock &&lock, Predicate &&pred, bool _precheck_pred) REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
 
     struct queue_struct_t {
       //      ::std::atomic<bool> m_flag{false};
