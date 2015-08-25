@@ -418,8 +418,8 @@ static void return_to_global_test1()
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   // put block bounds here.
-  uint8_t *begin = nullptr;
-  uint8_t *end = nullptr;
+  ::std::atomic<uint8_t *> begin{nullptr};
+  ::std::atomic<uint8_t *> end{nullptr};
   // thread local lambda.
   auto test_thread = [&allocator, &begin, &end]() {
     cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -448,16 +448,17 @@ static void return_to_global_test1()
   auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
   AssertThat(freed_last, HasLength(0));
   // check that the memory was returned to global free list.
-  bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
+  auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  bool in_free = allocator.in_free_list(*pair);
   AssertThat(in_free, IsTrue());
+  cgc1::secure_zero(&begin, sizeof(begin));
+  cgc1::secure_zero(&end, sizeof(end));
 }
 static _NoInline_ void return_to_global_test2()
 {
   cgc1::clean_stack(0, 0, 0, 0, 0);
   // get the global allocator
   auto &allocator = cgc1::details::g_gks.gc_allocator();
-  // get the number of global blocks starting.
-  const auto start_num_global_blocks = allocator.num_global_blocks();
   ::std::atomic<bool> ready_for_test{false};
   ::std::atomic<bool> test_done{false};
   ::std::atomic<uint8_t *> begin{nullptr};
@@ -531,7 +532,6 @@ static _NoInline_ void return_to_global_test2()
   while (!ready_for_test)
     ::std::this_thread::yield();
   // Verify that we haven't created any global blocks.
-  AssertThat(allocator.num_global_blocks(), Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   // Verify that the block that contained the freed allocation is now in the global free list.
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   bool in_free = allocator.in_free_list(*pair);
@@ -561,8 +561,6 @@ static _NoInline_ void return_to_global_test2()
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
   // Verify that we haven't created any global blocks.
-  auto num_global_blocks = allocator.num_global_blocks();
-  AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 2, 0)));
   cgc1::secure_zero(&begin, sizeof(begin));
   cgc1::secure_zero(&end, sizeof(end));
   cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -598,11 +596,6 @@ void gc_bandit_tests()
       cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     (void)return_to_global_test2;
-    it("return_to_global_test2", []() {
-      cgc1::clean_stack(0, 0, 0, 0, 0);
-      return_to_global_test2();
-      cgc1::clean_stack(0, 0, 0, 0, 0);
-    });
     for (size_t i = 0; i < 10; ++i) {
       it("race condition", []() {
         cgc1::clean_stack(0, 0, 0, 0, 0);
@@ -643,6 +636,11 @@ void gc_bandit_tests()
     it("api_tests", []() {
       cgc1::clean_stack(0, 0, 0, 0, 0);
       api_tests();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
+    it("return_to_global_test2", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+      return_to_global_test2();
       cgc1::clean_stack(0, 0, 0, 0, 0);
     });
   });
