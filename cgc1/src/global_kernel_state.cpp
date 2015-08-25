@@ -295,8 +295,8 @@ namespace cgc1
       for (auto state : m_threads) {
         if (state->thread_id() == ::std::this_thread::get_id())
           continue;
-        if(cgc1::pthread_kill(state->thread_handle(), SIGUSR1))
-	  abort();
+        if (cgc1::pthread_kill(state->thread_handle(), SIGUSR1))
+          abort();
       }
       // wait for all threads to stop
       m_stop_world_condition.wait(lock, [this]() { // Thread data can not be modified during collection

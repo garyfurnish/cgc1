@@ -314,7 +314,7 @@ namespace race_condition_test_detail
     ++finished_part1;
     // syncronize with tests in main thread.
     while (keep_going) {
-    ::std::this_thread::yield();
+      ::std::this_thread::yield();
     }
     cgc1::secure_zero(&foo, sizeof(foo));
     {
