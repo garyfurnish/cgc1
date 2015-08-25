@@ -8,7 +8,8 @@ namespace cgc1
     CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
     // set all flags to true.
     for (auto &&queue_struct : m_queued) {
-      queue_struct.m_flag = true;
+      //      queue_struct.m_flag = true;
+      queue_struct.m_flag.unlock();
     }
   }
   template <typename Allocator>
@@ -23,6 +24,7 @@ namespace cgc1
       // throwing here would have no negative consequences, so don't do anything.
       m_queued.emplace_back();
       it = (--m_queued.end());
+      it->m_flag.lock();
     }
     bool pred_result;
     if (_precheck_pred) {
@@ -30,6 +32,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+	it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
         throw;
@@ -37,6 +40,7 @@ namespace cgc1
       if (pred_result) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+	  it->m_flag.unlock();
           m_queued.erase(it);
         }
         // return.
@@ -47,15 +51,17 @@ namespace cgc1
     while (1) {
       // we are going to unlock and sleep.
       lock.unlock();
-      while (!it->m_flag) {
+      it->m_flag.lock();
+      /*      while (!it->m_flag) {
         // sleep using OS until we get notified.
         ::std::this_thread::yield();
-      }
+	}*/
       // we have been notified, try to get lock.
-      while (!lock.try_lock()) {
+      /*      while (!lock.try_lock()) {
         // sleep using OS until we get the lock.
         ::std::this_thread::yield();
-      }
+	}*/
+      lock.lock();
       // now we have the lock.
       // if the predicate is true
       // this can throw while we have the lock.
@@ -65,6 +71,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+	it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
         throw;
@@ -72,12 +79,14 @@ namespace cgc1
       if (pred()) {
         {
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+	  it->m_flag.unlock();
           m_queued.erase(it);
         }
         // return.
         return;
       }
-      it->m_flag = false;
+      it->m_flag.lock();
+      //      it->m_flag = false;
     }
   }
   template <typename Allocator>

@@ -228,6 +228,10 @@ namespace cgc1
       **/
       mutable mutex_t m_thread_mutex;
       mutable mutex_t m_block_mutex;
+      /**
+       * \brief This mutex is locked when mutexes are unavailable.
+       **/
+      mutable mutex_t m_allocators_unavailable_mutex;
       rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
        * \brief Vector of all threads registered with the kernel.

@@ -152,7 +152,8 @@ namespace cgc1
       m_collect = true;
       m_freed_in_last_collection.clear();
       m_num_paused_threads = m_num_resumed_threads = 0;
-      m_allocators_available = false;
+      //      m_allocators_available = false;
+      m_allocators_unavailable_mutex.lock();
       _u_suspend_threads();
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
@@ -161,6 +162,7 @@ namespace cgc1
       m_cgc_allocator._mutex().unlock();
       m_slab_allocator._mutex().unlock();
       m_allocators_available = true;
+      m_allocators_unavailable_mutex.unlock();
       if (m_gc_allocator._u_blocks().empty()) {
         m_num_collections++;
         m_collect = false;
@@ -326,9 +328,11 @@ namespace cgc1
       m_num_paused_threads++;
       {
         lock.unlock();
-        while (!m_allocators_available) {
+	m_allocators_unavailable_mutex.lock();
+	m_allocators_unavailable_mutex.unlock();
+	/*        while (!m_allocators_available) {
           ::std::this_thread::yield();
-        }
+	  }*/
         lock.lock();
       }
       // this is deadlocking because we can't allocate the list for the condition variable yet.

@@ -290,8 +290,9 @@ static void linked_list_test()
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
   for (size_t v : locations) {
-    assert(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end());
-    AssertThat(::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end(), IsTrue());
+    bool found = ::std::binary_search(last_collect.begin(), last_collect.end(), v);
+    assert(found);
+    AssertThat(found, IsTrue());
   }
   locations.clear();
 }
@@ -314,7 +315,8 @@ namespace race_condition_test_detail
     ++finished_part1;
     // syncronize with tests in main thread.
     while (keep_going) {
-      ::std::this_thread::yield();
+      //      ::std::this_thread::yield();
+      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
     }
     cgc1::secure_zero(&foo, sizeof(foo));
     {
@@ -336,7 +338,7 @@ namespace race_condition_test_detail
     keep_going = true;
     finished_part1 = 0;
     // get number of hardware threads
-    const size_t num_threads = ::std::thread::hardware_concurrency() * 2;
+    const size_t num_threads = ::std::thread::hardware_concurrency() * 4;
     // const size_t num_threads = 2;
     // start threads
     ::std::vector<::std::thread> threads;
@@ -351,7 +353,10 @@ namespace race_condition_test_detail
       assert(freed_last.empty());
       AssertThat(freed_last, HasLength(0));
       // prevent test from hammering gc before threads are setup.
-      ::std::this_thread::yield();
+      // sleep could cause deadlock with some osx platform functionality
+      // therefore intentionally use it to try to break things.
+      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
+      //      ::std::this_thread::yield();
     }
     // wait for threads to finish.
     keep_going = false;
@@ -368,7 +373,7 @@ namespace race_condition_test_detail
     assert(last_collect.size() == 1001 * num_threads);
     AssertThat(last_collect, HasLength(1001 * num_threads));
     for (uintptr_t v : llocations) {
-      bool found = ::std::find(last_collect.begin(), last_collect.end(), v) != last_collect.end();
+      bool found = ::std::binary_search(last_collect.begin(), last_collect.end(), v);
       assert(found);
       AssertThat(found, IsTrue());
     }

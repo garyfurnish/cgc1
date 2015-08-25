@@ -30,12 +30,14 @@ namespace cgc1
     void wait(Lock &&lock, Predicate &&pred, bool _precheck_pred) REQUIRES(!m_mutex);
 
     struct queue_struct_t {
-      ::std::atomic<bool> m_flag{false};
+      //      ::std::atomic<bool> m_flag{false};
+      mutex_t m_flag;
     };
     using queue_type = ::std::list<queue_struct_t, typename allocator::template rebind<queue_struct_t>::other>;
     // queue to hold waiting threads.
     queue_type m_queued GUARDED_BY(m_mutex);
-    spinlock_t m_mutex;
+    mutex_t m_mutex;
+    //    spinlock_t m_mutex;
   };
 }
 #include "condition_variable_impl.hpp"

@@ -88,7 +88,7 @@ namespace cgc1
     pthread_mutex_t m_mutex;
   };
   using mutex_t = pthread_mutex_t;
-  using condition_variable_any_t = pthread_condition_variable_any_t;
+  //  using condition_variable_any_t = pthread_condition_variable_any_t;
 
   template <typename T>
   using unique_lock_t = ::std::unique_lock<T>;
