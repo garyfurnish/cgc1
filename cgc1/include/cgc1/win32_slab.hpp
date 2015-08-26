@@ -26,6 +26,7 @@ namespace cgc1
     slab_t &operator=(slab_t &&) = default;
     /**
      * \brief Constructor.
+     *
      * Constructor aborts on failure.
      * @param size Size of memory to allocate.
      * @param addr Address to allocate at.
@@ -33,6 +34,7 @@ namespace cgc1
     slab_t(size_t size, void *addr);
     /**
      * \brief Constructor aborts on failure.
+     *
      * Constructor aborts on failure.
      * @param size Size of memory to allocate.
     **/
@@ -52,6 +54,7 @@ namespace cgc1
     bool valid() const;
     /**
      * Perform slab allocation.
+     *
      * @param size Size of slab.
      * @param addr Optional address to try to allocate at.
      * @return True on success, false on failure.

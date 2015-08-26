@@ -15,6 +15,7 @@ namespace cgc1
   public:
     /**
      * \brief Constructor.
+     *
      * Aborts on error.
      **/
     pthread_mutex_t() noexcept
@@ -26,6 +27,7 @@ namespace cgc1
     pthread_mutex_t(pthread_mutex_t &&) = default;
     /**
      * \brief Destructor.
+     *
      * Aborts on error.
      **/
     ~pthread_mutex_t()
@@ -35,6 +37,7 @@ namespace cgc1
     }
     /**
      * \brief Locks lock.
+     *
      * Aborts on error.
      **/
     void lock() noexcept
@@ -44,6 +47,7 @@ namespace cgc1
     }
     /**
      * \brief Unlocks lock.
+     *
      * Aborts on error.
      **/
     void unlock() noexcept
@@ -53,6 +57,7 @@ namespace cgc1
     }
     /**
      * \brief Try to acquire locks.
+     *
      * Does not block.
      * @return True if acquired lock, false otherwise.
      **/
@@ -89,6 +94,7 @@ namespace cgc1
   public:
     /**
      * \brief Constructor.
+     *
      * Aborts on error.
      **/
     pthread_condition_variable_any_t() noexcept
@@ -100,6 +106,7 @@ namespace cgc1
     pthread_condition_variable_any_t(pthread_condition_variable_any_t &&) = default;
     /**
      * \brief Destructor.
+     *
      * Aborts on error.
      **/
     ~pthread_condition_variable_any_t()
@@ -109,6 +116,7 @@ namespace cgc1
     }
     /**
      * \brief Wait until signaled and pred is true.
+     *
      * Aborts on error.
      * @param lock Lock to unlock while waiting and reacquire afterwards.
      * @param pred Predicate to test.
@@ -121,6 +129,7 @@ namespace cgc1
     }
     /**
      * \brief Wait until signaled.
+     *
      * Aborts on error.
      * @param lock Lock to unlock while waiting and reacquire afterwards.
      **/
@@ -136,6 +145,7 @@ namespace cgc1
     }
     /**
      * \brief Notify all variables waiting.
+     *
      * Aborts on error.
      **/
     void notify_all() noexcept

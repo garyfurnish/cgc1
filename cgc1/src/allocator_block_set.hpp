@@ -8,6 +8,8 @@ namespace cgc1
     using memory_range_t = ::std::pair<void *, void *>;
     /**
      * \brief This is a set of allocator blocks with the same minimum and maximum allocation size.
+     *
+     * This stores lists of allocator blocks for various sizes of allocations.
     **/
     template <typename Allocator = ::std::allocator<void>, typename Allocator_Block_User_Data = user_data_base_t>
     class allocator_block_set_t
@@ -33,6 +35,7 @@ namespace cgc1
       allocator_block_set_t(size_t allocator_min_size, size_t allocator_max_size);
       /**
        * \brief Set minimum and maximum allocation size.
+       *
        * This should not be called after first use.
        * @param min Minimum allocation size.
        * @param max Maximum allocation size.

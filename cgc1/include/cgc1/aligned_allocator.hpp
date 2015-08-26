@@ -3,6 +3,7 @@ namespace cgc1
 {
   /**
    * \brief Allocator that returns memory that is aligned to Alignment.
+   *
    * @tparam T Type to allocate.
    * @tparam Alignment alignment to request.
    **/
@@ -20,6 +21,7 @@ namespace cgc1
     using propogate_on_container_move_assignment = ::std::true_type;
     /**
      * \brief Class whose member other is a typedef of allocator for type Type.
+     *
      * @tparam Type for allocator.
      **/
     template <class Type>
@@ -72,6 +74,7 @@ namespace cgc1
     aligned_allocator_t &operator=(aligned_allocator_t<T, Alignment> &&) noexcept = default;
     /**
      * \brief Operator==
+     *
      * All aligned allocators of same size are equal.
      **/
     bool operator==(aligned_allocator_t) noexcept
@@ -80,6 +83,7 @@ namespace cgc1
     }
     /**
      * \brief Operator!=
+     *
      * All aligned allocators of same size are equal.
      **/
     bool operator!=(aligned_allocator_t) noexcept
@@ -88,6 +92,7 @@ namespace cgc1
     }
     /**
      * \brief Class whose member other is a typedef of allocator for type Type.
+     *
      * @tparam Type for allocator.
      **/
     template <class Type>
@@ -158,6 +163,7 @@ namespace cgc1
   };
   /**
    * \brief Deleter for aligned allocator.
+   *
    * Use for unique/shared ptrs.
    * \tparam Alignment alignment of allocator that allocated memory.
   **/
@@ -173,6 +179,7 @@ namespace cgc1
   };
   /**
    * \brief Tag for dispatch of getting deleter.
+   *
    * \tparam Type type to delete.
    * \tparam Alignment Alignment of allocator for type.
   **/

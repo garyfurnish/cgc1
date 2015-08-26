@@ -12,13 +12,27 @@ namespace cgc1
 
   namespace details
   {
+    // type for representing infinite length.
     static constexpr const size_t c_infinite_length = static_cast<size_t>(-1);
+    /**
+     * \brief Allocator block.
+     *
+     * This is designed to be moved to where it is used for cache linearity.
+     * The fields in this should be organized to maximize cache hits.
+     * This class is incredibly cache layout sensitive.
+     *
+     * Internally this implements a linked list of object_state_t followed by data.
+     * The last valid object_state_t always points to an object_state_t at end().
+     * @tparam Allocator allocator to use for control data.
+     * @tparam User_Data user data control.
+     **/
     template <typename Allocator, typename User_Data = user_data_base_t>
     class allocator_block_t
     {
     public:
       using allocator = Allocator;
       using user_data_type = User_Data;
+      allocator_block_t() = default;
       /**
        * \brief Constructor
        * @param start Start of memory block that this allocator uses.
@@ -26,13 +40,14 @@ namespace cgc1
        * @param minimum_alloc_length Minimum length of object that can be allocated using this allocator.
        * @param maximum_alloc_length Maximum length of object that can be allocated using this allocator.
       **/
-      allocator_block_t() = default;
       allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length);
       allocator_block_t(const allocator_block_t &) = delete;
       allocator_block_t(allocator_block_t &&);
       allocator_block_t &operator=(const allocator_block_t &) = delete;
       allocator_block_t &operator=(allocator_block_t &&);
       /**
+       * \brief Return false if items are allocated.  Otherwise may return true or false.
+       *
        * Return true if no items allocated.
        * Return false if items are allocated or if no items are allocated and a collection is needed.
        * Note the semantics here!
@@ -87,9 +102,20 @@ namespace cgc1
        * \brief Return the maximum allocation size available.
       **/
       size_t max_alloc_available() const;
+      /**
+       * \brief Verify object state os.
+       *
+       * Code may optimize out in release mode.
+       * @param os Object state to verify.
+       **/
       void _verify(const object_state_t *os);
-
-      bool valid() const;
+      /**
+       * \brief Return true if valid, false otherwise.
+       **/
+      bool valid() const noexcept;
+      /**
+       * \brief Clear all control structures and invalidate.
+       **/
       void clear();
       /**
        * \brief Return minimum object allocation length.
@@ -103,6 +129,8 @@ namespace cgc1
     public:
       /**
        * \brief Free list for this block.
+       *
+       * Uses control allocator for control data.
        **/
       rebind_vector_t<object_state_t *, allocator> m_free_list;
       /**
@@ -117,8 +145,15 @@ namespace cgc1
        * \brief Minimum object allocation length.
       **/
       size_t m_minimum_alloc_length = 0;
-      /// start of memory block.
+      /**
+       * \brief start of memory block.
+      **/
       uint8_t *m_start = nullptr;
+      /**
+       * \brief Default user data option.
+       *
+       * The allocated memory is stored in control allocator.
+       **/
       unique_ptr_allocated<user_data_type, Allocator> m_default_user_data;
       /**
        * \brief Maximum object allocation length.
@@ -127,6 +162,9 @@ namespace cgc1
        **/
       size_t m_maximum_alloc_length = 0;
     };
+    /**
+     * \brief Base class for user data associated with a entry.
+     **/
     class user_data_base_t
     {
     public:
@@ -135,22 +173,48 @@ namespace cgc1
       user_data_base_t(allocator_block_t<Allocator, User_Data> *block);
       user_data_base_t(const user_data_base_t &) = default;
       user_data_base_t(user_data_base_t &&) = default;
+
+    private:
+      /**
+       * \brief Magic constant that is used to check if this is user data.
+       **/
       static constexpr size_t c_magic_constant = 0x8e6866a1;
+      /**
+       * \brief Store a magic constant.
+       *
+       * If this magic constant is present, this is probabilistically user data.
+       **/
       size_t m_magic_constant = c_magic_constant;
+
+    public:
+      /**
+       * \brief Return true if magic constant is valid.
+       **/
       bool is_magic_constant_valid() const
       {
         return m_magic_constant == c_magic_constant;
       }
+      /**
+       * \brief Return beginning of allocator block.
+       **/
       uint8_t *allocator_block_begin() const
       {
         return m_allocator_block_begin;
       }
+      /**
+       * \brief Return beginning of allocator block as object state.
+       **/
       object_state_t *allocator_block_state_begin() const
       {
         return reinterpret_cast<object_state_t *>(allocator_block_begin());
       }
 
     private:
+      /**
+       * \brief Beginning of allocator block data associated with this allocation.
+       *
+       * Note this is a pointer to the data, not the block itself, so it is move safe.
+       **/
       uint8_t *m_allocator_block_begin = nullptr;
 
     public:
@@ -159,9 +223,17 @@ namespace cgc1
       **/
       bool m_is_default = false;
     };
+    /**
+     * \brief User data that can be associated with an allocation.
+     **/
     class gc_user_data_t : public user_data_base_t
     {
     public:
+      /**
+       * \brief Constructor
+       *
+       * @param block Block that this allocation belongs to.
+       **/
       template <typename Allocator, typename User_Data>
       gc_user_data_t(allocator_block_t<Allocator, User_Data> *block);
       /**
@@ -172,9 +244,6 @@ namespace cgc1
        * \brief True if uncollectable, false otherwise.
       **/
       bool m_uncollectable = false;
-      ::std::string m_file;
-      unsigned long m_line = 0;
-      size_t test = 0x5000;
 
     private:
     };

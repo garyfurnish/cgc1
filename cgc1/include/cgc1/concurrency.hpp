@@ -132,6 +132,7 @@ namespace cgc1
     }
     /**
      * \brief Try to acquire lock.
+     *
      * Does not block.
      * @return True if acquired lock, false otherwise.
      **/
@@ -207,6 +208,7 @@ namespace cgc1
     }
     /**
      * \brief Try to acquire lock.
+     *
      * Does not block.
      * @return True if acquired lock, false otherwise.
      **/
@@ -229,6 +231,7 @@ namespace cgc1
   };
   /**
    * \brief The class double_lock_t is a general-purpose mutex ownership wrapper for two Lockables.
+   *
    * This is not compatible with clang thread safety analysis yet.
    * Uses a deadlock avoidance algorithm to avoid deadlock.
    **/
@@ -249,6 +252,7 @@ namespace cgc1
     }
     /**
      * \brief Lock locks.
+     *
      * Aborts if lock has been released.
      **/
     void lock()
@@ -260,6 +264,7 @@ namespace cgc1
     }
     /**
      * \brief Unlock locks.
+     *
      * Aborts if lock has been released.
      **/
     void unlock() NO_THREAD_SAFETY_ANALYSIS
@@ -281,6 +286,7 @@ namespace cgc1
     }
     /**
      * \brief Try to acquire locks.
+     *
      * Does not block.
      * @return True if acquired lock, false otherwise.
      **/

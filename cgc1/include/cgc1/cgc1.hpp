@@ -13,16 +13,19 @@ namespace cgc1
   class cgc_allocator_t;
   /**
    * \brief Allocate sz bytes.
+   *
    * Guaranteed to be 16 byte aligned.
   **/
   extern void *cgc_malloc(size_t sz);
   /**
    * \brief Allocate sz bytes.
+   *
    * Guaranteed to be 16 byte aligned.
   **/
   extern uintptr_t cgc_hidden_malloc(size_t sz);
   /**
    * \brief Realloc sz bytes.
+   *
    * Guaranteed to be 16 byte aligned.
   **/
   extern void *cgc_realloc(void *v, size_t sz);
@@ -36,11 +39,13 @@ namespace cgc1
   extern bool cgc_is_cgc(void *v);
   /**
    * \brief Return the size of a gc object.
+   *
    * May be larger than the amount requested.
   **/
   extern size_t cgc_size(void *v);
   /**
    * \brief Return the start of an allocated block of memory.
+   *
    * @return Return nullptr on error.
   **/
   extern void *cgc_start(void *v);
@@ -110,6 +115,7 @@ namespace cgc1
   ::std::vector<T *, cgc_allocator_t<T>> make_cgc_many(size_t num);
   /**
    * \brief Register a thread
+   *
    * @param top_of_stack Highest position to search in a gc.
   **/
   extern void cgc_register_thread(void *top_of_stack);

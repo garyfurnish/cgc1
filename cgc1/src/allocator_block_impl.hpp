@@ -29,13 +29,17 @@ namespace cgc1
                                      : object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length))
     {
       assert(m_minimum_alloc_length <= m_maximum_alloc_length);
+      // sanity check alignment of start.
       if (reinterpret_cast<size_t>(m_start) % c_alignment != 0)
         abort();
+      // sanity check alignment of end.
       if (reinterpret_cast<size_t>(m_end) % c_alignment != 0)
         abort();
+      // setup first object state
       m_next_alloc_ptr->set_next_valid(false);
       m_next_alloc_ptr->set_in_use(false);
       m_next_alloc_ptr->set_next(reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(start) + length));
+      // setup default user data.
       m_default_user_data = make_unique_allocator<user_data_type, Allocator>(this);
       m_default_user_data->m_is_default = true;
     }
@@ -45,6 +49,7 @@ namespace cgc1
           m_minimum_alloc_length(block.m_minimum_alloc_length), m_start(block.m_start),
           m_default_user_data(std::move(block.m_default_user_data)), m_maximum_alloc_length(block.m_maximum_alloc_length)
     {
+      // invalidate moved from block.
       block.clear();
     }
     template <typename Allocator, typename User_Data>
@@ -58,6 +63,7 @@ namespace cgc1
       m_minimum_alloc_length = block.m_minimum_alloc_length;
       m_start = block.m_start;
       m_maximum_alloc_length = block.m_maximum_alloc_length;
+      // invalidate moved from block.
       block.clear();
       return *this;
     }
@@ -70,7 +76,7 @@ namespace cgc1
       m_start = nullptr;
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator, User_Data>::valid() const
+    inline bool allocator_block_t<Allocator, User_Data>::valid() const noexcept
     {
       return m_start != nullptr;
     }
@@ -146,7 +152,7 @@ namespace cgc1
     {
       assert(minimum_allocation_length() <= maximum_allocation_length());
       _verify(nullptr);
-      // these help, especially when prefetch crosses cache boundry.
+      // these help, especially when prefetch crosses cache or page boundry.
       cgc1_builtin_prefetch(this);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
       cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
@@ -158,13 +164,22 @@ namespace cgc1
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + 8 == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_user_data));
       // if the free list isn't trivial, check it first.
       if (!m_free_list.empty()) {
+        // do a reverse search from back of free list for somewhere to put the data.
+        // we don't have time to do an exhaustive search.
+        // also deleting an item from the free list could involve lots of copying if at beginning of list.
+        // finally free list is a vector so this should be cache friendly.
         for (auto it = m_free_list.rbegin(); it != m_free_list.rend(); ++it) {
           object_state_t *state = *it;
+          // if it doesn't fit, move on to next one.
           if (state->object_size() < original_size)
             continue;
+          // erase found from free list.
           m_free_list.erase(it.base() - 1);
+          // figure out theoretical next pointer.
           object_state_t *next = reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(state) + size);
+          // see if we can split the memory.
           if (reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= reinterpret_cast<uint8_t *>(state->next())) {
+            // if we are here, the memory left over is bigger then minimum alloc size, so split.
             next->set_all(state->next(), false, state->next_valid());
             assert(next->object_size() >= m_minimum_alloc_length - align(sizeof(object_state_t)));
             state->set_next(next);
@@ -173,6 +188,7 @@ namespace cgc1
             _verify(state);
             m_free_list.push_back(next);
           }
+          // take all of the memory.
           state->set_in_use(true);
           state->set_user_data(m_default_user_data.get());
           assert(state->object_size() >= original_size);
@@ -192,8 +208,11 @@ namespace cgc1
       } else if (static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size)
         return nullptr;
       m_next_alloc_ptr->m_user_data = 0;
+      // see if we should split memory left over after this allocation.
       bool do_split = reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= end();
       if (do_split) {
+        // enough memory is left over after allocation to have a minimum allocation.
+        // so perform split.
         next->set_all(m_next_alloc_ptr->next(), false, m_next_alloc_ptr->next_valid());
         m_next_alloc_ptr->set_all(next, true, true);
         m_next_alloc_ptr->set_user_data(m_default_user_data.get());
@@ -204,6 +223,8 @@ namespace cgc1
         _verify(next);
         return ret;
       } else {
+        // memory left over would be smaller then minimum allocation.
+        // take all the memory.
         m_next_alloc_ptr->set_all(reinterpret_cast<object_state_t *>(end()), true, false);
         m_next_alloc_ptr->set_user_data(m_default_user_data.get());
         auto ret = m_next_alloc_ptr->object_start();
@@ -217,16 +238,21 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     inline bool allocator_block_t<Allocator, User_Data>::destroy(void *v)
     {
+      // trivially destroy null.
       if (!v)
         return true;
+      // sanity check that addr belongs to this block.
       if (v < begin() || v >= end())
         return false;
+      // get object state.
       object_state_t *state = object_state_t::from_object_start(v);
+      // if has user data, destroy it.
       if (state->user_data() && state->user_data() != m_default_user_data.get()) {
         typename allocator::template rebind<User_Data>::other a;
         a.destroy(static_cast<User_Data *>(state->user_data()));
         a.deallocate(static_cast<User_Data *>(state->user_data()), 1);
       }
+      // no longer in use.
       state->set_in_use(false);
       object_state_t *next = state->next();
       // collapse states.
@@ -238,10 +264,15 @@ namespace cgc1
         }
         next = next->next();
       }
-      if (state->next_valid())
+      if (state->next_valid()) {
+        // if the next state is valid, then there are states after
+        // so add it to free list.
         m_free_list.push_back(state);
-      else
+      } else {
+        // if here the next state is invalid, so this is at tail
+        // so just adjust pointer.
         m_next_alloc_ptr = state;
+      }
       _verify(state);
       return true;
     }
@@ -249,8 +280,10 @@ namespace cgc1
     inline size_t allocator_block_t<Allocator, User_Data>::max_alloc_available() const
     {
       size_t max_alloc = 0;
+      // if we can alloc at tail, first check that size.
       if (m_next_alloc_ptr)
         max_alloc = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
+      // then check size of all objects in free list.
       for (object_state_t *state : m_free_list) {
         max_alloc = ::std::max(max_alloc, state->object_size());
       }
@@ -259,36 +292,47 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     inline void allocator_block_t<Allocator, User_Data>::collect()
     {
+      // start at beginning of list
       object_state_t *state = reinterpret_cast<object_state_t *>(begin());
       _verify(state);
+      // while there are more elements in list.
       while (state->next_valid()) {
         cgc1_builtin_prefetch(state->next()->next());
+        // if it has been marked to be freed
         if (state->quasi_freed()) {
+          // we are in while loop, so not at end, so add it to free list.
           state->set_quasi_freed(false);
           m_free_list.emplace_back(state);
         }
         if (!state->not_available() && !state->next()->not_available()) {
+          // ok, both this state and next one available, so merge them.
           object_state_t *next = state->next();
+          // if next is in free list, remove it.
           auto it = ::std::find(m_free_list.begin(), m_free_list.end(), next);
           if (it != m_free_list.end()) {
             m_free_list.erase(it);
           }
+          // perform merge.
           state->set_next(next->next());
           state->set_next_valid(next->next_valid());
           if (state->next_valid())
             _verify(state);
         } else {
-
+          // move onto next state since can't merge.
           _verify(state);
           _verify(state->next());
           state = state->next();
         }
       }
       if (!state->not_available()) {
+        // ok at end of list, if its available.
+        // try to find it in free list.
         auto it = ::std::find(m_free_list.begin(), m_free_list.end(), state);
         if (it != m_free_list.end()) {
+          // if it is in free list, remove it.
           m_free_list.erase(it);
         }
+        // adjust pointer
         m_next_alloc_ptr = state;
         _verify(state);
       }
@@ -310,9 +354,11 @@ namespace cgc1
       if (!state->in_use())
         return false;
       auto user_data = state->user_data();
+      // check if in valid range.
       if (reinterpret_cast<const uint8_t *>(user_data) < user_data_range_begin ||
           reinterpret_cast<const uint8_t *>(user_data) >= user_data_range_end)
         return false;
+      // check for magic constant validity.
       return user_data->is_magic_constant_valid();
     }
   }

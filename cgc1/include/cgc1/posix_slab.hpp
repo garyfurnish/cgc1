@@ -5,6 +5,7 @@ namespace cgc1
 {
   /**
    * \brief Slab allocator backed around mmap.
+   *
    * This allocator will attempt to expand itself using mremap if supported.
    * mremap is not supported on OSX.
    **/
@@ -27,24 +28,27 @@ namespace cgc1
     slab_t &operator=(const slab_t &) = delete;
     slab_t &operator=(slab_t &&) = default;
     /**
-     * \brief Constructor aborts on failure.
+     * \brief Constructor
+     *
      * Constructor aborts on failure.
      * @param size Size of memory to allocate.
      * @param addr Address to allocate at.
     **/
     slab_t(size_t size, void *addr);
     /**
+     * \brief Constructor
+     *
      * Constructor aborts on failure.
      * @param size Size of memory to allocate.
     **/
     slab_t(size_t size);
     ~slab_t();
     /**
-     * Return start address of memory slab.
+     * \brief Return start address of memory slab.
     **/
     void *addr() const noexcept;
     /**
-     * Return the size of the slab.
+     * \brief Return the size of the slab.
     **/
     size_type size() const noexcept;
     /**
@@ -52,7 +56,8 @@ namespace cgc1
     **/
     bool valid() const noexcept;
     /**
-     * Perform slab allocation.
+     * \brief Perform slab allocation.
+     *
      * @param size Size of slab.
      * @param addr Optional address to try to allocate at.
      * @return True on success, false on failure.
@@ -74,6 +79,7 @@ namespace cgc1
     static size_t page_size() noexcept;
     /**
      * \brief Find a hole in the current memory layout of at least size.
+     *
      * This works by allocating a slab and freeing it.
      * On lazy systems this should be relatively cheap.
     **/

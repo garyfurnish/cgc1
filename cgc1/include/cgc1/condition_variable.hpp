@@ -5,6 +5,7 @@ namespace cgc1
 {
   /**
    * \brief Replacement for ::std::condition_variable_any that uses a given allocator.
+   *
    * This condition variable is guarenteed to be reenterant at the expense of possibly performance.
    * It can not use most kernel functions since on many oses conditional variables use mutexes internally.
    * Mutexes and yield are safe to use on osx/linux.
@@ -26,11 +27,13 @@ namespace cgc1
     internal_condition_variable_t &operator=(internal_condition_variable_t &&) = delete;
     /**
      * \brief Notify all variables waiting.
+     *
      * Aborts on error.
      **/
     void notify_all() REQUIRES(!m_mutex) NO_THREAD_SAFETY_ANALYSIS;
     /**
      * \brief Wait until signaled and pred is true.
+     *
      * Aborts on error.
      * @param lock Lock to unlock while waiting and reacquire afterwards.
      **/
@@ -38,6 +41,7 @@ namespace cgc1
     void wait(Lock &&lock) REQUIRES(!m_mutex);
     /**
      * \brief Wait until signaled and pred is true.
+     *
      * Aborts on error.
      * @param lock Lock to unlock while waiting and reacquire afterwards.
      * @param pred Predicate to test.
@@ -48,6 +52,7 @@ namespace cgc1
   private:
     /**
      * \brief Internal implementation of wait.
+     *
      * Wait until signaled and pred is true.
      * @param lock Lock to unlock while waiting and reacquire afterwards.
      * @param pred Predicate to test.
@@ -66,6 +71,7 @@ namespace cgc1
     };
     /**
      * \brief Type of queue.
+     *
      * Uses Allocator for memory.
      **/
     using queue_type = ::std::list<queue_struct_t, typename allocator::template rebind<queue_struct_t>::other>;

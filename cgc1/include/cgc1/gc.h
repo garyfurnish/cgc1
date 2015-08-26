@@ -3,6 +3,7 @@ extern "C"
 {
   /**
    * \brief Reallocate memory.
+   *
    * May copy if can not realloc at same location
    * Not required to shrink.
    * @param old_object Old object.
@@ -15,17 +16,20 @@ extern "C"
   extern void* GC_malloc(size_t size_in_bytes);
   /**
    * \brief Allocate atomic memory.
+   *
    * Atomic memory is memory that is not searched for pointers.
    * @param size_in_bytes Size of memory.
    **/
   extern void* GC_malloc_atomic(size_t size_in_bytes);
   /**
    * \brief Allocate uncollectable memory.
+   *
    * @param size_in_bytes Size of memory.
    **/
   extern void* GC_malloc_uncollectable(size_t size_in_bytes);
   /**
    * \brief Explicitly free garbage collected memory.
+   *
    * @param object_addr Adddress to free.
    **/
   extern void GC_free(void* object_addr);

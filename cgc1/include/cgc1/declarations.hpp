@@ -87,6 +87,7 @@ namespace cgc1
   }
   /**
    * \brief Forward iterator for type T that takes a functional that defines how to advance the iterator.
+   *
    * The rule is that Current = Advance(Current).
   **/
   template <typename T, typename Advance>
@@ -167,7 +168,7 @@ namespace cgc1
   template <typename T>
   using next_iterator = functional_iterator_t<T, iterator_next_advancer_t>;
   /**
-  Function to make next iterators that uses type deduction to avoid end user templates.
+   * \brief Function to make next iterators that uses type deduction to avoid end user templates.
   **/
   template <typename T>
   auto make_next_iterator(T *t) -> next_iterator<T>
@@ -175,11 +176,11 @@ namespace cgc1
     return make_functional_iterator(t, iterator_next_advancer_t{});
   }
   /**
-   * Alignment on this system in bytes.
+   * \brief Alignment on this system in bytes.
   **/
   static constexpr size_t c_alignment = 16;
   /**
-   * Power of two to align to on this system.
+   * \brief Power of two to align to on this system.
   **/
   static constexpr size_t c_align_pow2 = 4;
   static_assert((1 << c_align_pow2) == c_alignment, "Alignment not valid.");
@@ -192,6 +193,7 @@ namespace cgc1
   }
   /**
    * \brief Tag based dispatch for finding a deleter for a given allocator.
+   *
    * TODO: Needs more documentation.
   **/
   template <typename T, typename Allocator>
@@ -270,6 +272,7 @@ namespace cgc1
   }
   /**
    * \brief Unsafe cast of references.
+   *
    * Contain any undefined behavior here here.
    * @tparam Type New type.
    **/

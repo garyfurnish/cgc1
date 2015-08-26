@@ -183,7 +183,7 @@ namespace cgc1
         if (!abs.add_block_is_safe()) {
           m_allocator._mutex().lock();
           m_allocator._ud_verify();
-          size_t offset = abs.grow_blocks();
+          ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
