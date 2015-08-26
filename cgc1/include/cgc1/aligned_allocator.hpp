@@ -1,6 +1,11 @@
 #pragma once
 namespace cgc1
 {
+  /**
+   * \brief Allocator that returns memory that is aligned to Alignment.
+   * @tparam T Type to allocate.
+   * @tparam Alignment alignment to request.
+   **/
   template <class T, size_t Alignment>
   class aligned_allocator_t;
   template <size_t Alignment>
@@ -13,11 +18,16 @@ namespace cgc1
     using pointer = void *;
     using const_pointer = const void *;
     using propogate_on_container_move_assignment = ::std::true_type;
-    template <class U>
+    /**
+     * \brief Class whose member other is a typedef of allocator for type Type.
+     * @tparam Type for allocator.
+     **/
+    template <class Type>
     struct rebind {
-      typedef aligned_allocator_t<U, alignment> other;
+      typedef aligned_allocator_t<Type, alignment> other;
     };
     aligned_allocator_t() = default;
+    aligned_allocator_t(const aligned_allocator_t<void, Alignment> &) noexcept = default;
     template <class _Other>
     aligned_allocator_t(const aligned_allocator_t<_Other, alignment> &) noexcept
     {
@@ -52,38 +62,55 @@ namespace cgc1
     aligned_allocator_t(const aligned_allocator_t<_Other, Alignment> &) noexcept
     {
     }
+    aligned_allocator_t(aligned_allocator_t<T, Alignment> &&) noexcept = default;
     template <class _Other>
     aligned_allocator_t<T, alignment> &operator=(const aligned_allocator_t<_Other, Alignment> &) noexcept
     {
       return *this;
     }
-    aligned_allocator_t<T, alignment> &operator=(const aligned_allocator_t<T, Alignment> &) noexcept
-    {
-      return *this;
-    }
-    aligned_allocator_t(aligned_allocator_t<T, Alignment> &&) noexcept = default;
+    aligned_allocator_t<T, alignment> &operator=(const aligned_allocator_t<T, Alignment> &) noexcept = default;
     aligned_allocator_t &operator=(aligned_allocator_t<T, Alignment> &&) noexcept = default;
+    /**
+     * \brief Operator==
+     * All aligned allocators of same size are equal.
+     **/
     bool operator==(aligned_allocator_t) noexcept
     {
       return true;
     }
+    /**
+     * \brief Operator!=
+     * All aligned allocators of same size are equal.
+     **/
     bool operator!=(aligned_allocator_t) noexcept
     {
       return false;
     }
-    template <class U>
+    /**
+     * \brief Class whose member other is a typedef of allocator for type Type.
+     * @tparam Type for allocator.
+     **/
+    template <class Type>
     struct rebind {
-      typedef aligned_allocator_t<U, alignment> other;
+      typedef aligned_allocator_t<Type, alignment> other;
     };
-
+    /**
+     * \brief Return address of reference.
+     **/
     pointer address(reference x) const
     {
       return ::std::addressof(x);
     }
+    /**
+     * \brief Return address of reference.
+     **/
     const_pointer address(const_reference x) const
     {
       return ::std::addressof(x);
     }
+    /**
+     * \brief Allocate block of storage
+     **/
     pointer allocate(size_type n, typename aligned_allocator_t<void, alignment>::const_pointer = nullptr)
     {
 #ifdef _WIN32
@@ -95,6 +122,9 @@ namespace cgc1
       return reinterpret_cast<pointer>(::aligned_alloc(alignment, n * sizeof(T)));
 #endif
     }
+    /**
+     * \brief Release block of storage
+     **/
     void deallocate(pointer p, size_type)
     {
 #ifdef _WIN32
@@ -103,24 +133,33 @@ namespace cgc1
       free(p);
 #endif
     }
+    /**
+     * \brief Maximum size possible to allocate
+     **/
     size_type max_size() const noexcept
     {
       return ::std::numeric_limits<size_type>::max();
     }
-    template <class U, class... Args>
-    void construct(U *p, Args &&... args)
+    /**
+     * \brief Construct an object
+     **/
+    template <class... Args>
+    void construct(pointer p, Args &&... args)
     {
-      ::new (static_cast<void *>(p)) U(::std::forward<Args>(args)...);
+      ::new (static_cast<void *>(p)) value_type(::std::forward<Args>(args)...);
     }
-    template <class U>
-    void destroy(U *p)
+    /**
+     * \brief Destroy an object.
+     **/
+    void destroy(pointer p)
     {
-      p->~U();
+      p->~value_type();
     }
   };
   /**
-  Deleter for aligned allocator.
-  Use for unique/shared ptrs.
+   * \brief Deleter for aligned allocator.
+   * Use for unique/shared ptrs.
+   * \tparam Alignment alignment of allocator that allocated memory.
   **/
   template <size_t Alignment>
   struct aligned_deleter_t {
@@ -133,10 +172,12 @@ namespace cgc1
     }
   };
   /**
-  Tag for dispatch of getting deleter.
+   * \brief Tag for dispatch of getting deleter.
+   * \tparam Type type to delete.
+   * \tparam Alignment Alignment of allocator for type.
   **/
-  template <typename T, size_t Alignment>
-  struct cgc_allocator_deleter_t<T, aligned_allocator_t<void, Alignment>> {
+  template <typename Type, size_t Alignment>
+  struct cgc_allocator_deleter_t<Type, aligned_allocator_t<void, Alignment>> {
     using type = aligned_deleter_t<Alignment>;
   };
 }

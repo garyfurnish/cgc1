@@ -24,12 +24,12 @@ namespace cgc1
   }
   namespace debug
   {
-    size_t num_gc_collections()
+    size_t num_gc_collections() noexcept
     {
       return details::g_gks.num_collections();
     }
   }
-  bool in_signal_handler()
+  bool in_signal_handler() noexcept
   {
     auto tlks = details::get_tlks();
     if (tlks)

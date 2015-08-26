@@ -3,6 +3,11 @@
 #ifdef CGC1_POSIX
 namespace cgc1
 {
+  /**
+   * \brief Slab allocator backed around mmap.
+   * This allocator will attempt to expand itself using mremap if supported.
+   * mremap is not supported on OSX.
+   **/
   class slab_t
   {
   public:
@@ -22,65 +27,83 @@ namespace cgc1
     slab_t &operator=(const slab_t &) = delete;
     slab_t &operator=(slab_t &&) = default;
     /**
-    \brief Constructor aborts on failure.
-    @param size Size of memory to allocate.
-    @param addr Address to allocate at.
+     * \brief Constructor aborts on failure.
+     * Constructor aborts on failure.
+     * @param size Size of memory to allocate.
+     * @param addr Address to allocate at.
     **/
     slab_t(size_t size, void *addr);
     /**
-    Constructor aborts on failure.
-    @param size Size of memory to allocate.
+     * Constructor aborts on failure.
+     * @param size Size of memory to allocate.
     **/
     slab_t(size_t size);
     ~slab_t();
     /**
-    Return start address of memory slab.
+     * Return start address of memory slab.
     **/
-    void *addr() const;
+    void *addr() const noexcept;
     /**
-    Return the size of the slab.
+     * Return the size of the slab.
     **/
-    size_type size() const;
+    size_type size() const noexcept;
     /**
-    \brief Return true if the slab is valid, false otherwise.
+     * \brief Return true if the slab is valid, false otherwise.
     **/
-    bool valid() const;
+    bool valid() const noexcept;
     /**
-    Perform slab allocation.
-    @param size Size of slab.
-    @param addr Optional address to try to allocate at.
+     * Perform slab allocation.
+     * @param size Size of slab.
+     * @param addr Optional address to try to allocate at.
+     * @return True on success, false on failure.
     **/
     bool allocate(size_t size, void *addr = nullptr);
     /**
-    Attempt to expand the slab.
+     * \brief Attempt to expand the slab.
+     * @param size New size of slab.
+     * @return True on success, false on failure.
     **/
     bool expand(size_t size);
     /**
-    Destroy the memory slab.
+     * \brief Destroy the memory slab.
     **/
     void destroy();
     /**
-    Return the memory page size on the system.
+     * \brief Return the memory page size on the system.
     **/
-    static size_t page_size();
+    static size_t page_size() noexcept;
     /**
-    Find a hole in the current memory layout of at least size.
-    This works by allocating a slab and freeing it.
+     * \brief Find a hole in the current memory layout of at least size.
+     * This works by allocating a slab and freeing it.
+     * On lazy systems this should be relatively cheap.
     **/
     static void *find_hole(size_t size);
     /**
-    Return start address of memory slab.
+     * \brief Return start address of memory slab.
     **/
-    uint8_t *begin() const;
+    uint8_t *begin() const noexcept;
     /**
-    Return end address of memory slab.
+     * \brief Return end address of memory slab.
     **/
-    uint8_t *end() const;
+    uint8_t *end() const noexcept;
 
   private:
+    /**
+     * \brief Start address of slab.
+     * May be nullptr.
+     **/
     void *m_addr = nullptr;
+    /**
+     * \brief Actual size of slab.
+     **/
     size_type m_size = 0;
+    /**
+     * \brief True if slab valid, false otherwise.
+     **/
     bool m_valid = false;
+    /**
+     * \brief Page size on system.
+     **/
     static size_t s_page_size;
   };
 }

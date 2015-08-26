@@ -2,7 +2,7 @@
 #Copyright (c) 2014 Gary Furnish
 #Licensed under the MIT License (MIT)
 
-import platform, json, os
+import platform, json, os, sys
 from utilities import printing_chdir, printing_mkdir, do_cmake
 import multiprocessing
 num_cores=multiprocessing.cpu_count()
@@ -21,3 +21,4 @@ def build_linux():
             printing_chdir("..")
 
 build_linux()
+sys.exit(0)
