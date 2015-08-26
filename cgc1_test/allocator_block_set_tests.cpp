@@ -34,10 +34,10 @@ void allocator_block_set_tests()
       AssertThat(abs.m_blocks, HasLength(0));
       AssertThat(memory_ranges, HasLength(2));
       // test that moved blocks have correct data.
-      AssertThat(memory_ranges[0].begin(), Equals(memory1));
-      AssertThat(memory_ranges[1].begin(), Equals(memory2));
-      AssertThat(memory_ranges[0].end(), Equals(reinterpret_cast<uint8_t *>(memory1) + 992));
-      AssertThat(memory_ranges[1].end(), Equals(reinterpret_cast<uint8_t *>(memory2) + 992));
+      AssertThat(memory_ranges[1].begin(), Equals(memory1));
+      AssertThat(memory_ranges[0].begin(), Equals(memory2));
+      AssertThat(memory_ranges[1].end(), Equals(reinterpret_cast<uint8_t *>(memory1) + 992));
+      AssertThat(memory_ranges[0].end(), Equals(reinterpret_cast<uint8_t *>(memory2) + 992));
       // done
     });
     it("allocator_block_set allocation", [&]() {

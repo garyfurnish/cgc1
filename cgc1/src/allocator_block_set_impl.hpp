@@ -217,6 +217,7 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_do_maintenance()
     {
+      // collect all blocks.
       for (auto &block : m_blocks) {
         block.collect();
       }
@@ -245,21 +246,27 @@ namespace cgc1
         } else {
         }
       }
-      for (auto it = m_blocks.begin(); it != m_blocks.end(); ++it) {
+      for (auto it = m_blocks.rbegin(); it != m_blocks.rend(); ++it) {
         auto &block = *it;
         // now go through empty blocks
         if (block.empty()) {
-          if (m_blocks.size() - num_empty < min_to_leave)
+          // if num empty is now at minimum, we are done moving blocks out.
+          if (num_empty <= min_to_leave) {
             break;
+          }
+          // one less empty block
           num_empty--;
           // remove them until we hit our min to leave.
           l(::std::move(block));
-          remove_block(it);
+          // we have moved the block out, now remove it.
+          remove_block(it.base() - 1);
+          // adjust pointer (erase does not invalidate).
           it--;
         }
       }
       // Regenerate available blocks since we have altered m_blocks.
       regenerate_available_blocks();
+      // reset destroyed counter.
       m_num_destroyed_since_free = 0;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>

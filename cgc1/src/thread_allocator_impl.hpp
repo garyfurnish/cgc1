@@ -33,6 +33,7 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::~thread_allocator_t()
     {
+      set_minimum_local_blocks(0);
       for (auto &abs : m_allocators)
         abs._verify();
       m_allocator._d_verify();
@@ -148,7 +149,6 @@ namespace cgc1
         allocator = &m_allocators[block_id - 1];
         ret = allocator->destroy(v);
       }
-
       // do book keeping for returning memory to global.
       if (allocator->num_destroyed_since_last_free()) {
         // ok, this needs to be tweaked.

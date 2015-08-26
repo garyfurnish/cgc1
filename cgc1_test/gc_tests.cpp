@@ -486,17 +486,7 @@ static _NoInline_ void return_to_global_test2()
     auto &lb1 = abs.last_block();
     begin = lb1.begin();
     end = lb1.end();
-    // Verify the memory is not already considered free.
-    //    bool in_free = allocator.in_free_list(::std::make_pair(begin, end));
-    // take care of unused variable warning in release mode.
-    //    (void)in_free;
-    // this is an assert because there is no good way to report a test failure from another thread
-    // a failure in these asserts will be picked up later anyway.
-    //    assert(!in_free);
     tls.destroy(ptrs.back());
-    // Verify the memory for the first deallocation is now considered free.
-    //    in_free = allocator.in_free_list(::std::make_pair(begin, end));
-    //    assert(in_free);
     ptrs.pop_back();
     ready_for_test = true;
     // wait for test to finish.
@@ -535,8 +525,8 @@ static _NoInline_ void return_to_global_test2()
   // Verify that the block that contained the freed allocation is now in the global free list.
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   bool in_free = allocator.in_free_list(*pair);
-  assert(in_free);
-  AssertThat(in_free, IsTrue());
+  assert(!in_free);
+  AssertThat(!in_free, IsTrue());
   // reset readyness.
   ready_for_test = false;
   // signal to the thread that it can go ahead and finish.
@@ -545,18 +535,21 @@ static _NoInline_ void return_to_global_test2()
   while (!ready_for_test)
     ::std::this_thread::yield();
   // the last block should not be in global free here.
-  pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  auto pair2 = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  auto in_free2 = allocator.in_free_list(*pair2);
   in_free = allocator.in_free_list(*pair);
-  assert(!in_free);
-  AssertThat(in_free, IsFalse());
+  assert(in_free);
+  AssertThat(in_free, IsTrue());
+  AssertThat(in_free2, IsFalse());
   // done testing, resume thread.
   test_done = true;
   // wait for thread to terminate.
   t1.join();
   // now everything should be freed, so now the last block should be in global free.
-  pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
+  //  pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   in_free = allocator.in_free_list(*pair);
   AssertThat(in_free, IsTrue());
+  AssertThat(in_free2, IsFalse());
   // force a collection to cleanup.
   cgc1::cgc_force_collect();
   cgc1::details::g_gks.wait_for_finalization();
