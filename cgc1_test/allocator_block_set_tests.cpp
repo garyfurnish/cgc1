@@ -5,7 +5,8 @@
 #include "../cgc1/src/slab_allocator.hpp"
 #include "../cgc1/src/allocator_block.hpp"
 #include "../cgc1/src/allocator.hpp"
-using namespace bandit;
+using namespace ::bandit;
+using namespace ::cgc1::literals;
 
 void allocator_block_set_tests()
 {
@@ -13,6 +14,7 @@ void allocator_block_set_tests()
     void *memory1 = malloc(1000);
     void *memory2 = malloc(1000);
     void *memory3 = malloc(1000);
+    void *memory4 = malloc(1000);
     it("free_empty_blocks", [&]() {
       // setup an allocator with two blocks to test free_empty_blocks.
       using abs_type = cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t>;
@@ -114,8 +116,46 @@ void allocator_block_set_tests()
       AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
     });
 
+    it("allocator_block_set_destroy_rotate", [&]() {
+      // we want to test rotate functionality in destroy.
+      // setup an allocator with three blocks for testing.
+      cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t> abs(16, 10000);
+      abs.grow_blocks(4);
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory3, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory3, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+
+      void *alloc1 = abs.allocate(900);
+      void *alloc2 = abs.allocate(800);
+      void *alloc3 = abs.allocate(700);
+
+      AssertThat(abs.m_available_blocks, HasLength(3_sz));
+      AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[0]));
+      AssertThat(abs.m_available_blocks[1].second, Equals(&abs.m_blocks[1]));
+      AssertThat(abs.m_available_blocks[2].second, Equals(&abs.m_blocks[2]));
+
+      abs.destroy(alloc2);
+      AssertThat(abs.m_available_blocks, HasLength(3_sz));
+      AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[0]));
+      AssertThat(abs.m_available_blocks[1].second, Equals(&abs.m_blocks[2]));
+      // catch writing pair to wrong place (ACTUAL BUG).
+      AssertThat(abs.m_available_blocks[2].first, Equals(976_sz));
+      AssertThat(abs.m_available_blocks[2].second, Equals(&abs.m_blocks[1]));
+
+      abs.destroy(alloc1);
+      abs.destroy(alloc2);
+      abs.destroy(alloc3);
+
+    });
+
     free(memory1);
     free(memory2);
     free(memory3);
+    free(memory4);
   });
 }

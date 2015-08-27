@@ -29,6 +29,7 @@ namespace cgc1
       allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
       /**
        * \brief Constructor
+       *
        * @param allocator_min_size Minimum allocation size.
        * @param allocator_max_size Maximum allocation size.
       **/
@@ -55,6 +56,7 @@ namespace cgc1
       size_t size() const;
       /**
        * \brief Regenerate available blocks in case it is stale.
+       *
        * Also should be called if m_blocks may have changed locations because of allocation.
       **/
       void regenerate_available_blocks();
@@ -64,6 +66,7 @@ namespace cgc1
       void collect();
       /**
        * \brief Allocate memory of given size, return nullptr if not possible in existing blocks.
+       *
        * @param sz Size to allocate.
        * @return A pointer to allocated memory, nullptr on failure.
       **/
@@ -101,6 +104,7 @@ namespace cgc1
       bool add_block_is_safe() const;
       /**
        * \brief Grow the capacity of m_blocks.  Return the offset by which it moved.
+       *
        * Thus subtract offset from m_blocks[i] to get the old position.
        * @param sz If provided, the number of blocks to reserve.
       **/
@@ -140,6 +144,8 @@ namespace cgc1
       allocator_block_vector_t m_blocks;
       /**
        * \brief Blocks that are available for placement.
+       *
+       * This is sorted by allocation size available.
       **/
       allocator_block_reference_vector_t m_available_blocks;
       /**
@@ -148,7 +154,8 @@ namespace cgc1
       void _verify() const;
       /**
        * \brief Do maintance on thread associated blocks.
-       * (coalescing, etc)
+       *
+       * Coalescing, etc happens here.
       **/
       void _do_maintenance();
 
