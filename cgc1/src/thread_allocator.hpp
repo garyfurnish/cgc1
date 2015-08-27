@@ -54,6 +54,7 @@ namespace cgc1
           allocator_block_set_t<allocator, typename allocator_traits::allocator_block_user_data_type>;
       /**
        * \brief Type for destroy threshold.
+       *
        * This is here because maybe in the future someone wants to support uint32_t.
        * However, uint16_t is better for cache locality.
       **/
@@ -93,7 +94,7 @@ namespace cgc1
       **/
       size_t get_allocator_block_size(size_t id) const noexcept;
       /**
-       * \brief Return a reference to the allocator for a given size.
+       * \brief Return a reference to the allocator block set for a given size.
       **/
       this_allocator_block_set_t &allocator_by_size(size_t sz) noexcept;
       /**
@@ -102,25 +103,28 @@ namespace cgc1
       ::std::array<size_t, c_bins> allocator_block_sizes() const noexcept;
       /**
       * \brief Allocate memory of size.
+      *
       * @return nullptr on error.
       **/
       void *allocate(size_t size) NO_THREAD_SAFETY_ANALYSIS;
       /**
       * \brief Destroy a pointer allocated by this allocator.
+      *
       * The common reason for failure is if this allocator did not make the pointer.
       * @return True on success, false on failure.
       **/
       bool destroy(void *v);
       /**
-       * Return the array of multiples for debugging purposes.
+       * \brief  Return the array of multiples for debugging purposes.
       **/
       auto allocator_multiples() const -> const ::std::array<size_t, c_bins> &;
       /**
-       * Return the array of allocators for debugging purposes.
+       * \brief Return the array of allocators for debugging purposes.
       **/
       auto allocators() const -> const ::std::array<this_allocator_block_set_t, c_bins> &;
       /**
-       * Free all empty blocks back to allocator.
+       * \brief Free all empty blocks back to allocator.
+       *
        * @param min_to_leave Minimum number of free blocks to leave in this set.
        * @param force True if should force freeing even if suboptimal timing.
       **/
@@ -144,21 +148,22 @@ namespace cgc1
 
       /**
        * \brief Do maintance on thread associated blocks.
+       *
        * This incldues coalescing, etc.
       **/
       void _do_maintenance();
 
     private:
       /**
-      Global allocator used for getting slabs.
+       * \brief Global allocator used for getting slabs.
       **/
       global_allocator &m_allocator;
       /**
-      Allocator multiple for requesting new blocks.
+       * \brief Allocator multiple for requesting new blocks.
       **/
       ::std::array<thread_allocator_abs_data_t, c_bins> m_allocator_multiples;
       /**
-      Allocators used to allocate various sizes of memory.
+       * \brief Allocators used to allocate various sizes of memory.
       **/
       ::std::array<this_allocator_block_set_t, c_bins> m_allocators;
       /**
@@ -167,12 +172,13 @@ namespace cgc1
       destroy_threshold_type m_destroy_threshold = 100;
       /**
        * \brief Minimum local blocks.
+
        * This sets the minimum number of blocks left after returning memory to global.
       **/
       uint16_t m_minimum_local_blocks = 2;
     };
     /**
-    Stream output for debugging.
+     * \brief Stream output for debugging.
     **/
     template <typename charT, typename Traits, typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,

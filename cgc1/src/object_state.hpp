@@ -107,10 +107,17 @@ namespace cgc1
       void set_user_flags(size_t flags) noexcept;
       /**
        * \brief Using pointer hiding, store next pointer, next_valid, in_use.
+       *
+       * Description is in little endian.
+       * 0th bit is in_use
+       * 1st bit is next_valid
+       * 2nd bit is quasi-freed (allocator intends for free to happen during collect).
       **/
       size_t m_next;
       /**
        * \brief Using pointer hiding, store user data pointer and 3 user flags.
+       *
+       * Description is in little endian.  Bottom 3 bits are user flags.
       **/
       size_t m_user_data;
     };

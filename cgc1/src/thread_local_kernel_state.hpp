@@ -10,51 +10,68 @@ namespace cgc1
 {
   namespace details
   {
+    /**
+     * \brief Store thread local gc kernel state.
+     **/
     class thread_local_kernel_state_t
     {
     public:
+      /**
+       * \brief Constructor.
+       **/
       thread_local_kernel_state_t();
       thread_local_kernel_state_t(const thread_local_kernel_state_t &) = delete;
       thread_local_kernel_state_t(thread_local_kernel_state_t &&) = default;
       thread_local_kernel_state_t &operator=(const thread_local_kernel_state_t &) = delete;
       thread_local_kernel_state_t &operator=(thread_local_kernel_state_t &&) = default;
+      /**
+       * \brief Destructor.
+       **/
       ~thread_local_kernel_state_t();
       /**
-      Return top of stack for this thread.
+       * \brief Return top of stack for this thread.
       **/
       uint8_t *top_of_stack() const;
       /**
-      Set top of stack for this thread.
+       * \brief Set top of stack for this thread.
       **/
       void set_top_of_stack(void *top);
       /**
-      Set current stack pointer for this thread.
-      Only has meaning inside of garbage collection.
+       * \brief Set current stack pointer for this thread.
+       *
+       * Only has meaning inside of garbage collection.
       **/
       void set_stack_ptr(void *stack_ptr);
       /**
-      Return the current stack pointer for this thread.
-      Only has meaning inside of garbage collection.
+       * \brief Return the current stack pointer for this thread.
+       *
+       * Only has meaning inside of garbage collection.
       **/
       uint8_t *current_stack_ptr() const;
       /**
-      Set if this thread is in its signal handler.
+       * \brief Set if this thread is in its signal handler.
       **/
       void set_in_signal_handler(bool in_handler);
       /**
-      Return true if this thread is in its signal handler, false otherwise.
+       * \brief Return true if this thread is in its signal handler, false otherwise.
+       *
+       * The exact meaning is defined by gks.
+       * It may be true while technically in signal handler if currently exiting.
       **/
       bool in_signal_handler() const;
       /**
-      Return the native thread handle for this thread.
+       * \brief Return the native thread handle for this thread.
       **/
       ::std::thread::native_handle_type thread_handle() const;
       /**
-      Return the thread id for this thread.
+       * \brief Return the thread id for this thread.
       **/
       ::std::thread::id thread_id() const;
       /**
       * \brief Scan stack for addresses between begin and end.
+      * @param container Destination for addresses found.
+      * @param begin Start of potential addresses.
+      * @param end End of potential addresses.
       **/
       template <typename CONTAINER>
       void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end);
@@ -69,6 +86,9 @@ namespace cgc1
       * \brief Clear all potential roots.
       **/
       void clear_potential_roots();
+      /**
+       * \brief Return list of potential roots.
+       **/
       const cgc_internal_vector_t<void *> &_potential_roots() const;
 
     private:

@@ -5,6 +5,7 @@ namespace cgc1
   {
     /**
      * \brief This class stores per allocator block set data for a thread allocator.
+     *
      * We do not store this information inside of the abs because it is only useful
      * inside the context of a thread allocator and therefore separation of concerns
      * says it should not be stored in the abs.

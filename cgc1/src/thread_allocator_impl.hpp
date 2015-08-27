@@ -3,11 +3,11 @@ namespace cgc1
 {
   namespace details
   {
-    ::std::ptrdiff_t size(const ::std::pair<uint8_t *, uint8_t *> &pair)
+    inline ::std::ptrdiff_t size(const ::std::pair<uint8_t *, uint8_t *> &pair)
     {
       return pair.second - pair.first;
     }
-    size_t size_pos(const ::std::pair<uint8_t *, uint8_t *> &pair)
+    inline size_t size_pos(const ::std::pair<uint8_t *, uint8_t *> &pair)
     {
       auto ret = pair.second - pair.first;
       assert(ret >= 0);
@@ -18,7 +18,7 @@ namespace cgc1
     {
       os << "(" << static_cast<void *>(pair.first) << " " << static_cast<void *>(pair.second) << ")";
     }
-    ::std::string to_string(const ::std::pair<uint8_t *, uint8_t *> &pair)
+    inline ::std::string to_string(const ::std::pair<uint8_t *, uint8_t *> &pair)
     {
       ::std::stringstream ss;
       print_memory_pair(ss, pair);
@@ -33,7 +33,9 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::~thread_allocator_t()
     {
+      // set minimum local blocks to 0 so all free blooks go to global.
       set_minimum_local_blocks(0);
+      // debug mode verify.
       for (auto &abs : m_allocators)
         abs._verify();
       m_allocator._d_verify();
@@ -54,6 +56,7 @@ namespace cgc1
     {
       m_allocator._d_verify();
       for (auto &abs : m_allocators) {
+        // if num destroyed > threshold, try to free blocks.
         if (force || abs.num_destroyed_since_last_free() > destroy_threshold()) {
           abs.free_empty_blocks(
               [this](typename this_allocator_block_set_t::allocator_block_type &&block) {
@@ -81,13 +84,14 @@ namespace cgc1
       sz = sz >> 4;
       // This is guarenteed to be positive.
       size_t id = static_cast<size_t>(64 - cgc1_builtin_clz1(sz));
-      if (id > c_bins - 1)
-        id = c_bins - 1;
+      // cap num bins.
+      id = ::std::min(id, c_bins - 1);
       return id;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::fill_multiples_with_default_values()
     {
+      // we want minimums to be page size compatible.
       size_t min_size = slab_t::page_size();
       if (min_size <= 4096 * 4)
         min_size *= 4;
@@ -95,11 +99,16 @@ namespace cgc1
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
         auto &abs_data = m_allocator_multiples[i];
+        // guarentee multiple is positive integer.
         size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 3)));
-        if (allocator_multiple > ::std::numeric_limits<uint32_t>().max())
-          throw ::std::runtime_error("Allocator multiple too large");
+        if (allocator_multiple > ::std::numeric_limits<uint32_t>().max()) {
+          ::std::cerr << "Allocator multiple too large\n";
+          abort();
+        }
         abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
+        // use a nice default number of blocks before recycling.
         abs_data.set_max_blocks_before_recycle(5);
+        // based on the numbers we use for multiple, generate min and max allocation sizes.
         size_t min = static_cast<size_t>(1) << (i + 3);
         size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
         m_allocators[i]._set_allocator_sizes(min, max);
@@ -184,16 +193,22 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void *thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocate(size_t sz)
     {
+      // find allocation set for allocation size.
       size_t id = find_block_set_id(sz);
+      // try allocation.
       void *ret = m_allocators[id].allocate(sz);
+      // if successful returned.
       if (ret)
         return ret;
+      // if not succesful, that allocator needs more memory.
+      // figre out how much memory to request.
       size_t memory_request = get_allocator_block_size(id);
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
         // see if safe to add a block
         if (!abs.add_block_is_safe()) {
+          // if not safe to move a block, expand that allocator block set.
           m_allocator._mutex().lock();
           m_allocator._ud_verify();
           ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
