@@ -6,6 +6,10 @@ namespace cgc1
 {
   namespace details
   {
+
+    // size comparison for available blocks.
+    static const auto abrvr_compare = [](auto &&r, auto &&it) { return r.first < it.first; };
+
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocator_block_set_t(size_t allocator_min_size,
                                                                                               size_t allocator_max_size)
@@ -36,11 +40,12 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::regenerate_available_blocks()
     {
-      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
-        return r.first < it.first;
-      };
+      // clear available blocks.
       m_available_blocks.clear();
       for (auto &block : m_blocks) {
+        // the back one doesn't go in available blocks,
+        // we handle it explicitly.b
+
         if (&block == &m_blocks.back())
           continue;
         if (!block.full()) {
@@ -80,12 +85,11 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
     {
-      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
-        return r.first < it.first;
-      };
       _verify();
+      // lb is >= sz.
       auto lower_bound =
           ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), sized_block_ref_t(sz, nullptr), abrvr_compare);
+      // no place to put it in available blocks, put it in last block.
       if (lower_bound == m_available_blocks.end()) {
         if (!m_blocks.empty()) {
           void *ret = m_blocks.back().allocate(sz);
@@ -95,22 +99,30 @@ namespace cgc1
         }
         return nullptr;
       }
+      // if here, there is a block in available blocks to use.
+      // so try to allocate in there.
       auto ret = lower_bound->second->allocate(sz);
       if (!ret) {
-        ret = lower_bound->second->allocate(sz);
+        // this shouldn't happen
         assert(0);
         return nullptr;
       }
+      // ok, so we have allocated the memory.
       auto it = lower_bound;
       it->first = it->second->max_alloc_available();
+      // see if there is allocation left in block.
       if (it->first == 0) {
         m_available_blocks.erase(it);
         _verify();
         return ret;
       }
+      // find new insertion point.
+      // want UB because we need > size.
       auto new_ub = ::std::upper_bound(m_available_blocks.begin(), it, *it, abrvr_compare);
+      // if its in same place, we are done.
       if (new_ub == it)
         return ret;
+      // otherwise rotate the list to move it to the new_ub position.
       ::std::rotate(new_ub, it, it + 1);
       _verify();
       return ret;
@@ -119,8 +131,6 @@ namespace cgc1
     inline bool allocator_block_set_t<Allocator, Allocator_Block_User_Data>::destroy(void *v)
     {
       _verify();
-      auto abrvr_compare = [](const allocator_block_set_t<Allocator, Allocator_Block_User_Data>::sized_block_ref_t &r,
-                              typename allocator_block_reference_vector_t::const_reference it) { return r.first < it.first; };
       for (typename allocator_block_vector_t::iterator it = m_blocks.begin(); it != m_blocks.end(); ++it) {
         size_t prev_available = it->max_alloc_available();
         if (it->destroy(v)) {
@@ -167,17 +177,25 @@ namespace cgc1
         // if moved on emplacement.
         if (&m_blocks.front() != bbegin) {
           // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
+          ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();
         }
         size_t avail = back.max_alloc_available();
-        if (avail)
-          m_available_blocks.emplace_back(::std::make_pair(avail, &back + 1));
+        if (avail) {
+          auto pair = ::std::make_pair(avail, &back);
+          // make sure not already in available blocks.
+          // if this happens, the previous back was in the available blocks.
+          // but back of m_blocks is guarented never to be in available blocks by constraint.
+          // so this should not happen.
+          assert(::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
+                                [&pair](auto a) { return a.second == pair.second; }) == m_available_blocks.end());
+          // remember, available blocks is sorted, so must emplace in appropriate spot.
+          auto insertion_point = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+          m_available_blocks.emplace(insertion_point, ::std::move(pair));
+        }
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
-        auto &back = m_blocks.back();
-        size_t avail = back.max_alloc_available();
-        m_available_blocks.emplace_back(::std::make_pair(avail, &back));
       }
       _verify();
     }
