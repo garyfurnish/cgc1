@@ -146,6 +146,10 @@ namespace cgc1
        * \brief Blocks that are available for placement.
        *
        * This is sorted by allocation size available.
+       * It does not contain a pointer to the last block.
+       * So if last block keeps getting hit, it is not necessary to recalculate memory free.
+       * First part of an element is memory available in that block.
+       * Second part is a pointer to the block.
       **/
       allocator_block_reference_vector_t m_available_blocks;
       /**

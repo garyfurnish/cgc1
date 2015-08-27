@@ -12,22 +12,31 @@ namespace cgc1
   {
     gc_thread_t::gc_thread_t()
     {
+      // tell thread to run.
       m_run = true;
+      // reset all data stuctures.
       reset();
+      // this thread is trivially done not doing anything.
       m_finalization_done = true;
+      // start thread.
       m_thread = ::std::thread([this]() {
         _run();
+        // make sure to destroy internal allocator if used.
         g_gks._internal_allocator().destroy_thread();
       });
     }
     gc_thread_t::~gc_thread_t()
     {
+      // tell the thread it is done running.
       m_run = false;
+      // wake up thread if it is waiting.
       wake_up();
+      // wait for thread to terminate.
       m_thread.join();
     }
     void gc_thread_t::reset()
     {
+      // grab lock and initialize everything.
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_clear_done = false;
       m_mark_done = false;
@@ -164,6 +173,8 @@ namespace cgc1
     void gc_thread_t::_clear_marks()
     {
       assert(m_block_begin && m_block_end);
+      // clear marks for all objects in blocks.
+      // hopefully this takes advantage of cache locality.
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
@@ -179,18 +190,23 @@ namespace cgc1
     }
     void gc_thread_t::_mark()
     {
+      // First do thread specific work.
       for (const auto &thread : m_watched_threads) {
         handle_thread(thread);
       }
+      // mark everything from stack.
       for (auto root : m_stack_roots)
         _mark_addrs(*unsafe_reference_cast<void **>(root), 0);
+      // mark all roots.
       for (auto it = m_root_begin; it != m_root_end; ++it)
         _mark_addrs(*it, 0);
+      // mark additional stuff.
       _mark_mark_vector();
     }
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
       if (depth > 1000) {
+        // if recursion depth too big, put it on addresses to mark.
         m_addresses_to_mark.push_back(addr);
         return;
       }
@@ -200,6 +216,7 @@ namespace cgc1
       void *heap_begin = g_gks.gc_allocator()._u_begin();
       void *heap_end = g_gks.gc_allocator()._u_current_end();
       object_state_t *os = object_state_t::from_object_start(addr);
+      // if outside heap, definitely not valid object state.
       if (os < heap_begin || os >= heap_end)
         return;
       if (!g_gks.is_valid_object_state(os)) {
@@ -215,10 +232,12 @@ namespace cgc1
         return;
       if (!ignore_skip_marked && is_marked(os))
         return;
+      // set it as marked.
       set_mark(os);
       // if it is atomic we are done here.
       if (is_atomic(os))
         return;
+      // recurse to pointers.
       for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
         if (*it > heap_begin && *it < heap_end) {
           _mark_addrs(*it, depth + 1, true);
@@ -227,6 +246,7 @@ namespace cgc1
     }
     void gc_thread_t::_mark_mark_vector()
     {
+      // note we go from back to front because elements may be added during marking.
       while (!m_addresses_to_mark.empty()) {
         void *addr = m_addresses_to_mark.back();
         m_addresses_to_mark.pop_back();
@@ -236,13 +256,16 @@ namespace cgc1
     void gc_thread_t::_sweep()
     {
       assert(m_block_begin && m_block_end);
+      // iterate through all blocks
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
         auto begin = make_next_iterator(reinterpret_cast<object_state_t *>(block->begin()));
         auto end = make_next_iterator(block->current_end());
+        // iterate through all objects.
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() == end || os_it->next_valid());
+          // if in use and not marked, get ready to free it.
           if (os_it->in_use() && !is_marked(os_it))
             m_to_be_freed.push_back(os_it);
         }
@@ -250,14 +273,18 @@ namespace cgc1
     }
     void gc_thread_t::_finalize()
     {
+      // debug info.
+      // to be freed gets hidden pointers.
       cgc_internal_vector_t<uintptr_t> to_be_freed;
       for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
+          // if uncollectable don't do anything.
           if (ud->m_uncollectable) {
             os = nullptr;
             continue;
           }
+          // if it has a finalizer, finalize.
           if (ud->m_finalizer)
             ud->m_finalizer(os->object_start());
           // delete user data if not owned by block.
@@ -271,9 +298,12 @@ namespace cgc1
 #else
         ::memset(os->object_start(), 0, os->object_size());
 #endif
+        // add to list of objects to be freed.
         to_be_freed.push_back(hide_pointer(os->object_start()));
       }
+      // notify kernel that the memory was freed.
       g_gks._add_freed_in_last_collection(to_be_freed);
+      // destroy the memory in allocator.
       g_gks.gc_allocator().bulk_destroy_memory(m_to_be_freed);
     }
   }

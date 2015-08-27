@@ -10,6 +10,9 @@ namespace cgc1
      * \brief All object_state_t must be at least c_align_pow2 aligned, so test that.
     **/
     bool is_aligned_properly(const object_state_t *os) noexcept;
+    /**
+     * \brief Object state for an object in allocator block.
+     **/
     class object_state_t
     {
     public:

@@ -70,16 +70,20 @@ namespace cgc1
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_verify() const
     {
 #if _CGC1_DEBUG_LEVEL > 1
-      auto abrvr_compare = [](const sized_block_ref_t &r, typename allocator_block_reference_vector_t::const_reference it) {
-        return r.first < it.first;
-      };
-
+      // make sure that available blocks first is equal tomax available.
       for (const auto &ab : m_available_blocks) {
         assert(ab.first == ab.second->max_alloc_available());
       }
+      // make sure available blocks is sorted.
       assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
+      // make sure there are no duplicates in available blocks (since sorted, not a problem).
       if (::std::adjacent_find(m_available_blocks.begin(), m_available_blocks.end()) != m_available_blocks.end())
         assert(0);
+      // make sure back is not in adjacent blocks.
+      auto ait = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
+                                [&block](auto &&abp) { return abp.second == &m_blocks.back(); });
+      assert(ait == m_available_blocks.end());
+
 #endif
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -104,7 +108,9 @@ namespace cgc1
       auto ret = lower_bound->second->allocate(sz);
       if (!ret) {
         // this shouldn't happen
-        assert(0);
+        // so memory corruption, abort.
+        ::std::cerr << __FILE__ << " " << __LINE__ << "ABS failed to allocate, logic error/memory corruption." << ::std::endl;
+        abort();
         return nullptr;
       }
       // ok, so we have allocated the memory.
