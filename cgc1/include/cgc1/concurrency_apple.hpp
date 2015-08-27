@@ -163,7 +163,7 @@ namespace cgc1
     /**
      * \brief Internal mutex needed for protection since pthread requires a pthread mutex.
      **/
-    ::pthread_mutex_t m_mutex;
+    pthread_mutex_t m_mutex;
   };
   /**
    * \brief Lockable that is an operating system mutex.
