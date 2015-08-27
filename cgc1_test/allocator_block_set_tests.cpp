@@ -12,6 +12,7 @@ void allocator_block_set_tests()
   describe("allocator_block_set", []() {
     void *memory1 = malloc(1000);
     void *memory2 = malloc(1000);
+    void *memory3 = malloc(1000);
     it("free_empty_blocks", [&]() {
       // setup an allocator with two blocks to test free_empty_blocks.
       using abs_type = cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t>;
@@ -70,7 +71,27 @@ void allocator_block_set_tests()
       AssertThat(alloc2, Equals(old_alloc2));
       // done
     });
+    it("allocator_block_set_remove_block", [&]() {
+      // setup an allocator with three blocks for testing.
+      cgc1::details::allocator_block_set_t<cgc1::default_aligned_allocator_t> abs(16, 10000);
+      abs.grow_blocks(3);
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory1, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory2, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      abs.add_block(cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>(memory3, 992, 16,
+                                                                                        cgc1::details::c_infinite_length));
+      AssertThat(abs.m_available_blocks, HasLength(3));
+      AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
+      AssertThat(abs.m_available_blocks[1].second, Equals(&*(abs.m_blocks.begin() + 1)));
+      AssertThat(abs.m_available_blocks[2].second, Equals(&abs.m_blocks.back()));
+      abs.remove_block(abs.m_blocks.begin() + 1);
+      AssertThat(abs.m_available_blocks, HasLength(2));
+      AssertThat(abs.m_available_blocks[1].second, Equals(&*(abs.m_blocks.begin() + 1)));
+    });
+
     free(memory1);
     free(memory2);
+    free(memory3);
   });
 }

@@ -171,10 +171,14 @@ namespace cgc1
         }
         size_t avail = back.max_alloc_available();
         if (avail)
-          m_available_blocks.emplace_back(::std::make_pair(avail, &back));
+          m_available_blocks.emplace_back(::std::make_pair(avail, &back + 1));
         _verify();
-      } else
+      } else {
         m_blocks.emplace_back(::std::move(block));
+        auto &back = m_blocks.back();
+        size_t avail = back.max_alloc_available();
+        m_available_blocks.emplace_back(::std::make_pair(avail, &back));
+      }
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -187,6 +191,14 @@ namespace cgc1
     inline void
     allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
     {
+      // TODO THIS IS A BUG
+      // THIS SHIFTS BLOCKS!!
+      // WE NEED A TEST CASE.
+      for (auto &&ab : m_available_blocks) {
+        if (ab.second > &*it)
+          ab.second--;
+      }
+
       m_blocks.erase(it);
       auto ait =
           ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(), [&it](auto &&abp) { return abp.second == &*it; });
@@ -203,12 +215,15 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline size_t allocator_block_set_t<Allocator, Allocator_Block_User_Data>::grow_blocks(size_t sz)
     {
+      // save old location of blocks.
       typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
       if (sz == 0 || sz < m_blocks.size())
         m_blocks.reserve(m_blocks.size() * 2);
       else
         m_blocks.reserve(sz);
+      // get offset from old location
       auto offset = reinterpret_cast<uint8_t *>(&m_blocks.front()) - reinterpret_cast<uint8_t *>(bbegin);
+      // adjust location of available blocks by adding offset to each.
       for (auto &pair : m_available_blocks) {
         unsafe_reference_cast<uint8_t *>(pair.second) += offset;
       }
