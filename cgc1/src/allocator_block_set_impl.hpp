@@ -206,22 +206,32 @@ namespace cgc1
       return m_blocks.back();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
+    template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
     inline void
-    allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it)
+    allocator_block_set_t<Allocator, Allocator_Block_User_Data>::remove_block(typename allocator_block_vector_t::iterator it,
+                                                                              Lock_Functional &&lock_func,
+                                                                              Unlock_Functional &&unlock_func,
+                                                                              Move_Functional &&move_func)
     {
-      // TODO THIS IS A BUG
-      // THIS SHIFTS BLOCKS!!
-      // WE NEED A TEST CASE.
-      for (auto &&ab : m_available_blocks) {
-        if (ab.second > &*it)
-          ab.second--;
-      }
 
-      m_blocks.erase(it);
+      // adjust available blocks.
       auto ait =
           ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(), [&it](auto &&abp) { return abp.second == &*it; });
       if (ait != m_available_blocks.end())
         m_available_blocks.erase(ait);
+      for (auto &&ab : m_available_blocks) {
+        if (ab.second > &*it)
+          ab.second--;
+      }
+      // use lock functional.
+      lock_func();
+      // move blocks (potentially)
+      auto moved_begin = m_blocks.erase(it);
+      // notification of moving blocks.
+      move_func(moved_begin, m_blocks.end(), -static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
+      // unlock functional
+      unlock_func();
+
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -266,8 +276,9 @@ namespace cgc1
       return m_blocks.back();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    template <typename Lambda>
-    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(Lambda &&l, size_t min_to_leave)
+    template <typename L, typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+    inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(
+        L &&l, Lock_Functional &&lock_func, Unlock_Functional &&unlock_func, Move_Functional &&move_func, size_t min_to_leave)
     {
       // this looks really complicated but it is actually quite light weight since blocks are tiny and everything is contiguous.
       size_t num_empty = 0;
@@ -292,7 +303,8 @@ namespace cgc1
           // remove them until we hit our min to leave.
           l(::std::move(block));
           // we have moved the block out, now remove it.
-          remove_block(it.base() - 1);
+          remove_block(it.base() - 1, ::std::forward<Lock_Functional>(lock_func), ::std::forward<Unlock_Functional>(unlock_func),
+                       ::std::forward<Move_Functional>(move_func));
           // adjust pointer (erase does not invalidate).
           it--;
         }

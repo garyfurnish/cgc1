@@ -254,6 +254,26 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
+    template <typename Iterator>
+    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset)
+    {
+      // for each block in container, move blocks.
+      for (auto it = begin; it != end; ++it) {
+        block_type &block = *it;
+        // find old block location.
+        block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(&block) - offset);
+        // move block.
+        _u_move_registered_block(old_block, &block);
+      }
+      _ud_verify();
+    }
+    template <typename Allocator, typename Traits>
+    template <typename Container>
+    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(Container &blocks, ptrdiff_t offset)
+    {
+      _u_move_registered_blocks(blocks.begin(), blocks.end(), offset);
+    }
+    template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_move_registered_block(block_type *old_block, block_type *new_block)
     {
       // create fake handle to search for.
@@ -291,19 +311,6 @@ namespace cgc1
         // This should never happen, so memory corruption issue if it has, so kill the program.
         abort();
       }
-    }
-    template <typename Allocator, typename Traits>
-    template <typename Container>
-    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Container &blocks, ptrdiff_t offset)
-    {
-      // for each block in container, move blocks.
-      for (block_type &block : const_cast<Container &>(blocks)) {
-        // find old block location.
-        block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(&block) - offset);
-        // move block.
-        _u_move_registered_block(old_block, &block);
-      }
-      _ud_verify();
     }
     template <typename Allocator, typename Traits>
     inline auto allocator_t<Allocator, Traits>::_u_find_block(void *in_addr) -> const this_allocator_block_handle_t *

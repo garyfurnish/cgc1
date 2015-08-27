@@ -37,7 +37,9 @@ namespace cgc1
       for (auto &abs : m_allocators)
         abs._verify();
       m_allocator._d_verify();
+      // free empty blocks.
       free_empty_blocks(0, true);
+      // blocks left need to be moved to global.
       for (auto &abs : m_allocators) {
         for (auto &&block : abs.m_blocks) {
           if (block.valid()) {
@@ -53,9 +55,20 @@ namespace cgc1
       m_allocator._d_verify();
       for (auto &abs : m_allocators) {
         if (force || abs.num_destroyed_since_last_free() > destroy_threshold()) {
-          abs.free_empty_blocks([this](typename this_allocator_block_set_t::allocator_block_type &&block) {
-            m_allocator.destroy_allocator_block(*this, ::std::move(block));
-          }, min_to_leave);
+          abs.free_empty_blocks(
+              [this](typename this_allocator_block_set_t::allocator_block_type &&block) {
+                m_allocator.destroy_allocator_block(*this, ::std::move(block));
+              },
+              [this]() { m_allocator._mutex().lock(); },
+              [this]() {
+                CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                m_allocator._mutex().unlock();
+              },
+              [this](auto begin, auto end, auto offset) {
+                CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                m_allocator._u_move_registered_blocks(begin, end, offset);
+              },
+              min_to_leave);
         }
       }
     }

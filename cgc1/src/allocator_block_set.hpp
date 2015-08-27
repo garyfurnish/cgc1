@@ -83,8 +83,18 @@ namespace cgc1
       auto add_block() -> allocator_block_type &;
       /**
        * \brief Remove a block from the set.
-      **/
-      void remove_block(typename allocator_block_vector_t::iterator it);
+       *
+       * The functional on_move is a functional of the form (begin,end,offset) that is called on blocks that are moved.
+       * param it Position to remove.
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
+       **/
+      template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      void remove_block(typename allocator_block_vector_t::iterator it,
+                        Lock_Functional &&lock_func,
+                        Unlock_Functional &&unlock_func,
+                        Move_Functional &&move_func);
       /**
        * \brief Return true if add_block would cause the container of blocks to move in memory, false otherwise.
       **/
@@ -104,12 +114,21 @@ namespace cgc1
       **/
       auto last_block() const -> const allocator_block_type &;
       /**
-       * \brief Push all empty block memory ranges onto container t and then remove them.
+       * \brief Push all empty block memory ranges onto container t and then remove th
+       *
+       * The on_move is a functional of the form (begin,end,offset) that is called on blocks that are moved.
        * @param l Function to call on removed blocks (called multiple times with r val block ref).
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
        * @param min_to_leave Minimum number of free blocks to leave in this set.
       **/
-      template <typename L>
-      void free_empty_blocks(L &&l, size_t min_to_leave = 0);
+      template <typename L, typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      void free_empty_blocks(L &&l,
+                             Lock_Functional &&lock_func,
+                             Unlock_Functional &&unlock_func,
+                             Move_Functional &&move_func,
+                             size_t min_to_leave = 0);
 
       /**
        * \brief Return the number of memory addresses destroyed since last free empty blocks operation.

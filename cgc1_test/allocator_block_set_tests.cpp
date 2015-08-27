@@ -26,12 +26,14 @@ void allocator_block_set_tests()
       ::std::vector<cgc1::details::allocator_block_t<cgc1::default_aligned_allocator_t>> memory_ranges;
       // this should be a noop.
       abs.free_empty_blocks(
-          [&memory_ranges](typename abs_type::allocator_block_type &&block) { memory_ranges.push_back(::std::move(block)); }, 2);
+          [&memory_ranges](typename abs_type::allocator_block_type &&block) { memory_ranges.push_back(::std::move(block)); },
+          []() {}, []() {}, [](auto, auto, auto) {}, 2);
       AssertThat(abs.m_blocks, HasLength(2));
       AssertThat(memory_ranges, HasLength(0));
       // this should actually remove the empty blocks.
       abs.free_empty_blocks(
-          [&memory_ranges](typename abs_type::allocator_block_type &&block) { memory_ranges.push_back(::std::move(block)); }, 0);
+          [&memory_ranges](typename abs_type::allocator_block_type &&block) { memory_ranges.push_back(::std::move(block)); },
+          []() {}, []() {}, [](auto, auto, auto) {}, 0);
       AssertThat(abs.m_blocks, HasLength(0));
       AssertThat(memory_ranges, HasLength(2));
       // test that moved blocks have correct data.
@@ -107,7 +109,7 @@ void allocator_block_set_tests()
       AssertThat(abs.m_available_blocks, HasLength(2));
       AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
       AssertThat(abs.m_available_blocks[1].second, Equals(&*(abs.m_blocks.begin() + 1)));
-      abs.remove_block(abs.m_blocks.begin() + 1);
+      abs.remove_block(abs.m_blocks.begin() + 1, []() {}, []() {}, [](auto, auto, auto) {});
       AssertThat(abs.m_available_blocks, HasLength(1));
       AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
     });

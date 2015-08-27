@@ -211,6 +211,18 @@ namespace cgc1
        * @param block Block to request unregistration of.
       **/
       void unregister_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(!m_mutex);
+
+      /**
+       * \brief Move registered allocator blocks by iteration.
+       *
+       * The right way to think about this as moving a container to a new memory address.
+       * Requires holding lock.
+       * @param begin Start iterator.
+       * @param end End iterator.
+       * @param offset New container is offset from old container (so positive for old is at a smaller memory address).
+      **/
+      template <typename Iterator>
+      void _u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset) REQUIRES(m_mutex);
       /**
        * \brief Move registered allocator blocks in container by offset.
        *
@@ -219,7 +231,8 @@ namespace cgc1
        * @param offset New container is offset from old container (so positive for old is at a smaller memory address).
       **/
       template <typename Container>
-      void _u_move_registered_blocks(const Container &blocks, ptrdiff_t offset) REQUIRES(m_mutex);
+      void _u_move_registered_blocks(Container &blocks, ptrdiff_t offset) REQUIRES(m_mutex);
+
       /**
        * \brief Move registered allocator block.
        *

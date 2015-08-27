@@ -31,6 +31,13 @@
 #endif
 namespace cgc1
 {
+  namespace literals
+  {
+    inline ::std::size_t operator"" _sz(unsigned long long x)
+    {
+      return static_cast<::std::size_t>(x);
+    }
+  }
   /**
    * \brief Insert val into a sorted container if val would be unique.
   **/
