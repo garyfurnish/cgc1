@@ -303,8 +303,10 @@ namespace cgc1
           // we are in while loop, so not at end, so add it to free list.
           state->set_quasi_freed(false);
           m_free_list.emplace_back(state);
+          assert(!state->quasi_freed());
         }
-        if (!state->not_available() && !state->next()->not_available()) {
+        // note only check in use for next, it may be quasifree.
+        if (!state->not_available() && !state->next()->in_use()) {
           // ok, both this state and next one available, so merge them.
           object_state_t *next = state->next();
           // if next is in free list, remove it.

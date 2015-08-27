@@ -175,6 +175,14 @@ namespace cgc1
       **/
       void release_memory(const memory_pair_t &pair) REQUIRES(!m_mutex);
       /**
+       * \brief Release an interval of memory.
+       *
+       * Requires holding lock.
+       * @param pair Memory interval to release.
+      **/
+      void _u_release_memory(const memory_pair_t &pair) REQUIRES(m_mutex);
+
+      /**
        * \brief Return true if the interval of memory is in the free list.
        *
        * @param pair Memory interval to test.
@@ -198,6 +206,14 @@ namespace cgc1
       **/
       void destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block) REQUIRES(!m_mutex);
       /**
+       * \brief Destroy an allocator block not owned by a thread.
+       *
+       * Requires holding lock.
+       * @param block Block to destroy.
+      **/
+      void _u_destroy_global_allocator_block(block_type &&block) REQUIRES(m_mutex);
+
+      /**
        * \brief Register a allocator block before moving/destruction.
        *
        * @param ta Requesting thread allocator.
@@ -207,10 +223,17 @@ namespace cgc1
       /**
        * \brief Unregister a registered allocator block before moving/destruction.
        *
-       * @param ta Requesting thread allocator.
        * @param block Block to request unregistration of.
       **/
-      void unregister_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(!m_mutex);
+      void unregister_allocator_block(block_type &block) REQUIRES(!m_mutex);
+
+      /**
+       * \brief Unregister a registered allocator block before moving/destruction.
+       *
+       * Requires holding lock
+       * @param block Block to request unregistration of.
+      **/
+      void _u_unregister_allocator_block(block_type &block) REQUIRES(m_mutex);
 
       /**
        * \brief Move registered allocator blocks by iteration.
@@ -331,6 +354,17 @@ namespace cgc1
       **/
       size_t _u_num_global_blocks() REQUIRES(m_mutex);
 
+      /**
+       * \brief Collect/Coalesce global blocks.
+       **/
+      void collect() REQUIRES(!m_mutex);
+      /**
+       * \brief Collect/Coalesce global blocks.
+       *
+       * Requires holding lock.
+       **/
+      void _u_collect() REQUIRES(m_mutex);
+
     private:
       /**
        * \brief Vector type for storing blocks held by the global allocator.
@@ -450,6 +484,10 @@ namespace cgc1
        * Requires holding lock.
       **/
       auto _u_blocks() -> decltype(m_blocks) &;
+      /**
+       * \brief Internal debug function to return blocks owned by allocator.
+       **/
+      auto _ud_global_blocks() -> global_block_vector_type &;
     };
   }
 }

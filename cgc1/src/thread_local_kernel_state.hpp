@@ -69,6 +69,7 @@ namespace cgc1
       ::std::thread::id thread_id() const;
       /**
       * \brief Scan stack for addresses between begin and end.
+      *
       * @param container Destination for addresses found.
       * @param begin Start of potential addresses.
       * @param end End of potential addresses.

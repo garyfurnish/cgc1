@@ -157,6 +157,8 @@ namespace cgc1
     {
       // wait until safe to collect.
       wait_for_finalization();
+      // we need to maintain global allocator at some point so do it here.
+      m_gc_allocator.collect();
       // note that the order of allocator locks and unlocks are all important here to prevent deadlocks!
       // grab allocator locks so that they are in a consistent state for garbage collection.
       lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_thread_mutex);
@@ -319,14 +321,17 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(pow2(29), pow2(36));
+      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
-      if (!::std::thread::hardware_concurrency()) {
+      if (!num_gc_threads) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
         abort();
       }
       // add one gc thread.
       // TODO: Multiple gc threads.
-      m_gc_threads.emplace_back(new gc_thread_t());
+      for (size_t i = 0; i < num_gc_threads; ++i)
+        m_gc_threads.emplace_back(::std::make_unique<gc_thread_t>());
       m_initialized = true;
     }
 #ifndef _WIN32

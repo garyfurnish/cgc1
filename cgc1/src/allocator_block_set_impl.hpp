@@ -309,10 +309,9 @@ namespace cgc1
           // remove them until we hit our min to leave.
           l(::std::move(block));
           // we have moved the block out, now remove it.
-          remove_block(it.base() - 1, ::std::forward<Lock_Functional>(lock_func), ::std::forward<Unlock_Functional>(unlock_func),
-                       ::std::forward<Move_Functional>(move_func));
+          remove_block((it + 1).base(), ::std::forward<Lock_Functional>(lock_func),
+                       ::std::forward<Unlock_Functional>(unlock_func), ::std::forward<Move_Functional>(move_func));
           // adjust pointer (erase does not invalidate).
-          it--;
         }
       }
       // Regenerate available blocks since we have altered m_blocks.

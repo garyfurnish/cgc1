@@ -171,17 +171,24 @@ namespace cgc1
       return block;
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&in_block)
+    inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
     {
       // notify traits that a memory block is being destroyed.
-      m_traits.on_destroy_allocator_block(ta, in_block);
-      // move block descriptor onto stack.
-      auto block = std::move(in_block);
+      m_traits.on_destroy_allocator_block(ta, block);
       // unregister block.
-      unregister_allocator_block(ta, block);
+      unregister_allocator_block(block);
       // release memory now that block is unregistered.
       release_memory(std::make_pair(block.begin(), block.end()));
     }
+    template <typename Allocator, typename Traits>
+    inline void allocator_t<Allocator, Traits>::_u_destroy_global_allocator_block(block_type &&block)
+    {
+      // unregister block.
+      _u_unregister_allocator_block(block);
+      // release memory now that block is unregistered.
+      _u_release_memory(std::make_pair(block.begin(), block.end()));
+    }
+
     /**
      * \brief Functor to compare block handles by beginning locations.
      **/
@@ -214,19 +221,19 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::unregister_allocator_block(this_thread_allocator_t &ta, block_type &block)
+    inline void allocator_t<Allocator, Traits>::unregister_allocator_block(block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // forward unregistration.
-      _u_unregister_allocator_block(ta, block);
+      _u_unregister_allocator_block(block);
     }
 
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::_u_unregister_allocator_block(this_thread_allocator_t &ta, block_type &block)
+    inline void allocator_t<Allocator, Traits>::_u_unregister_allocator_block(block_type &block)
     {
       _ud_verify();
       // create a fake handle to search for.
-      this_allocator_block_handle_t handle(&ta, &block, block.begin());
+      this_allocator_block_handle_t handle(nullptr, &block, block.begin());
       // uniqueness guarentees lb is handle if found.
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       if (lb != m_blocks.end() && lb->m_begin == block.begin()) {
@@ -234,6 +241,7 @@ namespace cgc1
         m_blocks.erase(lb);
       } else {
         // This should never happen, so memory corruption issue if it has, so kill the program.
+        ::std::cerr << __FILE__ << " " << __LINE__ << "Unable to find allocator block to unregister\n" << ::std::endl;
         abort();
       }
       _ud_verify();
@@ -356,6 +364,12 @@ namespace cgc1
     inline void allocator_t<Allocator, Traits>::release_memory(const memory_pair_t &pair)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      _u_release_memory(pair);
+    }
+
+    template <typename Allocator, typename Traits>
+    inline void allocator_t<Allocator, Traits>::_u_release_memory(const memory_pair_t &pair)
+    {
       _ud_verify();
       // if the interval is at the end of the currently used part of slab, just move slab pointer.
       if (pair.second == m_current_end) {
@@ -514,6 +528,11 @@ namespace cgc1
       return m_blocks;
     }
     template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::_ud_global_blocks() -> global_block_vector_type &
+    {
+      return m_global_blocks;
+    }
+    template <typename Allocator, typename Traits>
     template <typename Container>
     void allocator_t<Allocator, Traits>::bulk_destroy_memory(Container &container)
     {
@@ -538,6 +557,37 @@ namespace cgc1
     {
       return m_global_blocks.size();
     }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::collect()
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      _u_collect();
+    }
+
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::_u_collect()
+    {
+      // go through each block globally owned
+      for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
+        auto &&block = *block_it;
+        // collect it
+        block.collect();
+        // if after collection it is empty, destroy it.
+        if (block.empty()) {
+          _u_destroy_global_allocator_block(::std::move(block));
+          auto forward_it = (block_it + 1).base();
+          assert(&*forward_it == &*block_it);
+          auto moved_begin = m_global_blocks.erase(forward_it);
+          _u_move_registered_blocks(moved_begin, m_global_blocks.end(),
+                                    -static_cast<::std::ptrdiff_t>(sizeof(typename global_block_vector_type::value_type)));
+        }
+      }
+      for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
+        auto &&block = *block_it;
+        assert(!block.empty());
+      }
+    }
+
     template <typename Allocator, typename Traits>
     auto allocator_t<Allocator, Traits>::_u_find_global_allocator_block(size_t sz,
                                                                         size_t minimum_alloc_length,

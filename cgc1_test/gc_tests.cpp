@@ -332,6 +332,7 @@ namespace race_condition_test_detail
  **/
   static _NoInline_ void race_condition_test()
   {
+    const auto start_global_blocks = cgc1::details::g_gks.gc_allocator().num_global_blocks();
     // these must be cleared each time to prevent race conditions.
     llocations.clear();
     keep_going = true;
@@ -379,6 +380,9 @@ namespace race_condition_test_detail
     last_collect.clear();
     // cleanup
     llocations.clear();
+    // check to make sure empty blocks aren't being put in global blocks (ACTUAL BUG).
+    cgc1::details::g_gks.gc_allocator().collect();
+    AssertThat(cgc1::details::g_gks.gc_allocator().num_global_blocks(), Equals(start_global_blocks));
   }
 }
 static size_t expected_global_blocks(const size_t start, size_t taken, const size_t put_back)
@@ -588,8 +592,7 @@ void gc_bandit_tests()
       return_to_global_test1();
       cgc1::clean_stack(0, 0, 0, 0, 0);
     });
-    (void)return_to_global_test2;
-    for (size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 1; ++i) {
       it("race condition", []() {
         cgc1::clean_stack(0, 0, 0, 0, 0);
         race_condition_test_detail::race_condition_test();
