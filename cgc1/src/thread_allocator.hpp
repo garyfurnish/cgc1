@@ -169,7 +169,7 @@ namespace cgc1
       /**
        * \brief Threshold destroy count for checking if should return memory to global.
       **/
-      destroy_threshold_type m_destroy_threshold = 100;
+      destroy_threshold_type m_destroy_threshold = ::std::numeric_limits<uint16_t>::max();
       /**
        * \brief Minimum local blocks.
 

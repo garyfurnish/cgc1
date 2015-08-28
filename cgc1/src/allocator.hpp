@@ -109,6 +109,7 @@ namespace cgc1
        * \brief Type of handles to blocks in this allocator.
       **/
       using this_allocator_block_handle_t = allocator_block_handle_t<this_allocator_t>;
+      static_assert(::std::is_pod<this_allocator_block_handle_t>::value,"");
       /**
        * \brief Constructor.
        **/

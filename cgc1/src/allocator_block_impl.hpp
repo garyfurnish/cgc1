@@ -2,6 +2,7 @@
 #include "allocator_block.hpp"
 #include "internal_allocator.hpp"
 #include <assert.h>
+#include <iostream>
 namespace cgc1
 {
   namespace details
@@ -301,11 +302,17 @@ namespace cgc1
       // start at beginning of list
       object_state_t *state = reinterpret_cast<object_state_t *>(begin());
       _verify(state);
+      m_free_list.clear();
       // while there are more elements in list.
+      bool did_merge = false;
       while (state->next_valid()) {
         cgc1_builtin_prefetch(state->next()->next());
+	if(!did_merge && !state->in_use())
+	  {
+	    m_free_list.emplace_back(state);
+	  }
         // if it has been marked to be freed
-        if (state->quasi_freed()) {
+        if (!did_merge && state->quasi_freed()) {
           // we are in while loop, so not at end, so add it to free list.
           state->set_quasi_freed(false);
           m_free_list.emplace_back(state);
@@ -315,31 +322,28 @@ namespace cgc1
         if (!state->not_available() && !state->next()->in_use()) {
           // ok, both this state and next one available, so merge them.
           object_state_t *next = state->next();
-          // if next is in free list, remove it.
-          auto it = ::std::find(m_free_list.begin(), m_free_list.end(), next);
-          if (it != m_free_list.end()) {
-            m_free_list.erase(it);
-          }
           // perform merge.
           state->set_next(next->next());
           state->set_next_valid(next->next_valid());
           if (state->next_valid())
             _verify(state);
+	  did_merge = true;
         } else {
           // move onto next state since can't merge.
           _verify(state);
           _verify(state->next());
           state = state->next();
+	  did_merge = false;
         }
       }
       if (!state->not_available()) {
         // ok at end of list, if its available.
         // try to find it in free list.
-        auto it = ::std::find(m_free_list.begin(), m_free_list.end(), state);
-        if (it != m_free_list.end()) {
-          // if it is in free list, remove it.
-          m_free_list.erase(it);
-        }
+	if(!m_free_list.empty())
+	  {
+	    if(*m_free_list.rbegin()==state)
+	      m_free_list.pop_back();
+	  }
         // adjust pointer
         m_next_alloc_ptr = state;
         _verify(state);

@@ -230,6 +230,9 @@ namespace cgc1
     ::std::rotate(replace, replace + 1, new_location + 1);
     *new_location = ::std::forward<Val>(val);
   }
+#ifndef NDEBUG
+#define _DEBUG
+#endif
 #ifdef _DEBUG
 #ifndef _CGC1_DEBUG_LEVEL
 #define _CGC1_DEBUG_LEVEL 1

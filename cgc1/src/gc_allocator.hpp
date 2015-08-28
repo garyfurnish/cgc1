@@ -49,7 +49,7 @@ namespace cgc1
     /**
      * \brief Clear the gc mark for a given object state.
     **/
-    inline void clear_mark(object_state_t *os)
+    ALWAYS_INLINE inline void clear_mark(object_state_t *os)
     {
       os->set_user_flags(os->user_flags() & 6);
     }

@@ -226,11 +226,12 @@ namespace cgc1
       }
 #endif
       // create a fake handle to search for.
-      this_allocator_block_handle_t handle(&ta, &block, block.begin());
+      this_allocator_block_handle_t handle; handle.initialize(&ta, &block, block.begin());
       // find the place to insert the block.
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       // emplace a block handle.
-      m_blocks.emplace(ub, &ta, &block, block.begin());
+      auto it = m_blocks.emplace(ub);
+      it->initialize(&ta, &block, block.begin());
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
@@ -246,7 +247,7 @@ namespace cgc1
     {
       _ud_verify();
       // create a fake handle to search for.
-      this_allocator_block_handle_t handle(nullptr, &block, block.begin());
+      this_allocator_block_handle_t handle; handle.initialize(nullptr, &block, block.begin());
       // uniqueness guarentees lb is handle if found.
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       if (lb != m_blocks.end() && lb->m_begin == block.begin()) {
@@ -298,14 +299,14 @@ namespace cgc1
     void allocator_t<Allocator, Traits>::_u_move_registered_block(block_type *old_block, block_type *new_block)
     {
       // create fake handle to search for.
-      this_allocator_block_handle_t handle(nullptr, old_block, new_block->begin());
+      this_allocator_block_handle_t handle; handle.initialize(nullptr, old_block, new_block->begin());
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       // uniqueness guarentees lb is old block if it exists.
       if (lb != m_blocks.end()) {
         // sanity check uniqueness.
         if (lb->m_block == old_block) {
           // create fake handle to find insertion place.
-          this_allocator_block_handle_t new_handle(lb->m_thread_allocator, new_block, new_block->begin());
+          this_allocator_block_handle_t new_handle; new_handle.initialize(lb->m_thread_allocator, new_block, new_block->begin());
           // uniqueness guarentees this is correct insertion point.
           auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), new_handle, block_handle_begin_compare_t{});
           // while block handle is not default constructable, we can move away from it.
@@ -339,7 +340,7 @@ namespace cgc1
       uint8_t *addr = reinterpret_cast<uint8_t *>(in_addr);
       _ud_verify();
       // create fake block handle to search for.
-      this_allocator_block_handle_t handle(nullptr, nullptr, addr);
+      this_allocator_block_handle_t handle; handle.initialize(nullptr, nullptr, addr);
       // note we find the ub, then move backwards one.
       // guarenteed that moving backwards one works because uniqueness.
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});

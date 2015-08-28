@@ -219,9 +219,15 @@ namespace cgc1
 
     public:
       /**
-      True if is default, false otherwise.
+       * True if is default, false otherwise.
       **/
       bool m_is_default = false;
+      /**
+       * \brief True if uncollectable, false otherwise.
+       * 
+       * Only used for gc_type.
+      **/
+      bool m_uncollectable = false;
     };
     /**
      * \brief User data that can be associated with an allocation.
@@ -239,10 +245,6 @@ namespace cgc1
        * \brief Optional finalizer function to run.
       **/
       ::std::function<void(void *)> m_finalizer = nullptr;
-      /**
-       * \brief True if uncollectable, false otherwise.
-      **/
-      bool m_uncollectable = false;
 
     private:
     };

@@ -21,7 +21,7 @@
 #endif
 
 //static const size_t num_alloc = 10000000;
-static const size_t num_alloc = 6000000;
+static const size_t num_alloc = 3000000;
 static const size_t num_thread = 20;
 static const size_t num_thread_alloc = num_alloc/num_thread;
 static const size_t alloc_sz = 64;
@@ -30,6 +30,7 @@ static ::std::atomic<int> done{0};
 
 void thread_main()
 {
+  ::std::vector<void*> ptrs;
   #ifdef BOEHM
   GC_stack_base sb;
   GC_get_stack_base(&sb);
@@ -40,7 +41,10 @@ void thread_main()
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
       abort();
+    ptrs.push_back(ret);
   }
+  for(auto&& ptr : ptrs)
+    GC_free(ptr);
   ++done;
   GC_unregister_my_thread();
   #else
@@ -49,9 +53,13 @@ void thread_main()
   while(!go)
     ;
   for (size_t i = 0; i < num_thread_alloc; ++i) {
-    if(!ts.allocate(alloc_sz))
+    auto ret = ts.allocate(alloc_sz);
+    if(!ret)
       abort();
+    ptrs.push_back(ret);
   }
+  for(auto&& ptr : ptrs)
+    ts.destroy(ptr);
   ++done;
   #endif
 }

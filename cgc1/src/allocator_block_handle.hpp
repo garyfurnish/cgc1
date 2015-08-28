@@ -17,14 +17,12 @@ namespace cgc1
        * @param block Block address.
        * @param begin Beginning of block data.
        **/
-      allocator_block_handle_t(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)
-          : m_thread_allocator(ta), m_block(block), m_begin(begin)
+      void initialize(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)
       {
+	m_thread_allocator = ta;
+	m_block = block;
+	m_begin = begin;
       }
-      allocator_block_handle_t(const allocator_block_handle_t &) = default;
-      allocator_block_handle_t(allocator_block_handle_t &&) = default;
-      allocator_block_handle_t &operator=(const allocator_block_handle_t &) = default;
-      allocator_block_handle_t &operator=(allocator_block_handle_t &&) = default;
       bool operator==(const allocator_block_handle_t &b) const
       {
         return m_thread_allocator == b.m_thread_allocator && m_block == b.m_block;
