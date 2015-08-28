@@ -69,7 +69,7 @@ namespace cgc1
       using const_iterator = const uint8_t *;
       using difference_type = ::std::ptrdiff_t;
       using size_type = size_t;
-      using mutex_type = spinlock_t;
+      using mutex_type = mutex_t;
       /**
        * \brief Allocator used internally by this allocator for control structures.
       **/
@@ -153,6 +153,15 @@ namespace cgc1
        * @return (nullptr,nullptr) on error.
       **/
       memory_pair_t get_memory(size_t sz) REQUIRES(!m_mutex);
+
+      /**
+       * \brief Get an interval of memory.
+       *
+       * Requires holding lock.
+       * This does not throw an exception on error but instead returns a special value.
+       * @return (nullptr,nullptr) on error.
+      **/
+      memory_pair_t _u_get_memory(size_t sz) REQUIRES(m_mutex);
       /**
        * \brief Create or reuse an allocator block in destination by reference.
        *
@@ -220,7 +229,15 @@ namespace cgc1
        * @param ta Requesting thread allocator.
        * @param block Block to request registartion of.
       **/
-      void register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(!m_mutex);
+      //      void register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(!m_mutex);
+      /**
+       * \brief Register a allocator block before moving/destruction.
+       *
+       * Requires holding lock.
+       * @param ta Requesting thread allocator.
+       * @param block Block to request registartion of.
+      **/
+      //      void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
       /**
        * \brief Unregister a registered allocator block before moving/destruction.
        *
@@ -383,12 +400,13 @@ namespace cgc1
        * \brief Return an allocator block.
        *
        * This function does actual creation of block without any sort of registartion.
+       * Requires holding lock.
        * @param sz Size of block requested.
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param block Return block by reference.
       **/
-      REQUIRES(!m_mutex) void _create_allocator_block(this_thread_allocator_t &ta,
+      REQUIRES(m_mutex) void _u_create_allocator_block(this_thread_allocator_t &ta,
                                                       size_t sz,
                                                       size_t minimum_alloc_length,
                                                       size_t maximum_alloc_length,

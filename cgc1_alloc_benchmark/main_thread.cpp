@@ -20,7 +20,8 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-static const size_t num_alloc = 100000000;
+//static const size_t num_alloc = 10000000;
+static const size_t num_alloc = 6000000;
 static const size_t num_thread = 20;
 static const size_t num_thread_alloc = num_alloc/num_thread;
 static const size_t alloc_sz = 64;
@@ -76,11 +77,20 @@ int main()
   while(done!=num_thread)
     ;
   ::std::chrono::high_resolution_clock::time_point t2 = ::std::chrono::high_resolution_clock::now();
-  
-  for(auto&& thread : threads)
-    thread.join();
-
   ::std::chrono::duration<double> time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
+  for(auto&& thread : threads)
+    thread.join();
+  t1 = ::std::chrono::high_resolution_clock::now();
+  #ifdef BOEHM
+  GC_enable();
+  GC_gcollect();
+  #else
+  cgc1::cgc_force_collect();
+  #endif
+  t2 = ::std::chrono::high_resolution_clock::now();
+  time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+  ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
+
   return 0;
 }

@@ -94,7 +94,7 @@ namespace cgc1
       // we want minimums to be page size compatible.
       size_t min_size = slab_t::page_size();
       if (min_size <= 4096 * 4)
-        min_size *= 4;
+	  min_size = 4096 * 4;
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {

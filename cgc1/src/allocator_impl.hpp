@@ -40,7 +40,7 @@ namespace cgc1
       return m_shutdown;
     }
     template <typename Allocator, typename Traits>
-    inline bool allocator_t<Allocator, Traits>::initialize(size_t initial_gc_heap_size, size_t suggested_max_heap_size)
+    bool allocator_t<Allocator, Traits>::initialize(size_t initial_gc_heap_size, size_t suggested_max_heap_size)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // sanity check heap size.
@@ -57,9 +57,15 @@ namespace cgc1
       return true;
     }
     template <typename Allocator, typename Traits>
-    inline auto allocator_t<Allocator, Traits>::get_memory(size_t sz) -> memory_pair_t
+    auto allocator_t<Allocator, Traits>::get_memory(size_t sz) -> memory_pair_t
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_get_memory(sz);
+    }
+
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz) -> memory_pair_t
+    {
       _ud_verify();
       // do worst fit memory vector lookup
       typename memory_pair_vector_t::iterator worst = m_free_list.end();
@@ -146,21 +152,21 @@ namespace cgc1
           }
           return;
         }
+	// otherwise just create a new block
+	_u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
+	// and register it.
+	_u_register_allocator_block(ta, block);
       }
-      // otherwise just create a new block
-      _create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
-      // and register it.
-      register_allocator_block(ta, block);
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::_create_allocator_block(this_thread_allocator_t &ta,
+    void allocator_t<Allocator, Traits>::_u_create_allocator_block(this_thread_allocator_t &ta,
                                                                         size_t sz,
                                                                         size_t minimum_alloc_length,
                                                                         size_t maximum_alloc_length,
 									block_type& block)
     {
       // try to allocate memory.
-      auto memory = get_memory(sz);
+      auto memory = _u_get_memory(sz);
       if (!memory.first)
 	{
 	  ::std::cerr << "out of memory\n";
@@ -170,12 +176,14 @@ namespace cgc1
       auto memory_size = size(memory);
       assert(memory_size > 0);
       // create block.
-      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+      //      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+      block.~block_type();
+      new(&block) block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       // call traits function that gets called when block is created.
       m_traits.on_create_allocator_block(ta, block);
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
+    void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
     {
       // notify traits that a memory block is being destroyed.
       m_traits.on_destroy_allocator_block(ta, block);
@@ -185,7 +193,7 @@ namespace cgc1
       release_memory(std::make_pair(block.begin(), block.end()));
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::_u_destroy_global_allocator_block(block_type &&block)
+    void allocator_t<Allocator, Traits>::_u_destroy_global_allocator_block(block_type &&block)
     {
       // unregister block.
       _u_unregister_allocator_block(block);
@@ -204,9 +212,8 @@ namespace cgc1
       }
     };
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::register_allocator_block(this_thread_allocator_t &ta, block_type &block)
+    void allocator_t<Allocator, Traits>::_u_register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
 #if _CGC1_DEBUG_LEVEL>0
       _ud_verify();
       for (auto &&it : m_blocks) {
@@ -227,7 +234,7 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::unregister_allocator_block(block_type &block)
+    void allocator_t<Allocator, Traits>::unregister_allocator_block(block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // forward unregistration.
@@ -235,7 +242,7 @@ namespace cgc1
     }
 
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::_u_unregister_allocator_block(block_type &block)
+    void allocator_t<Allocator, Traits>::_u_unregister_allocator_block(block_type &block)
     {
       _ud_verify();
       // create a fake handle to search for.
@@ -327,7 +334,7 @@ namespace cgc1
       }
     }
     template <typename Allocator, typename Traits>
-    inline auto allocator_t<Allocator, Traits>::_u_find_block(void *in_addr) -> const this_allocator_block_handle_t *
+    auto allocator_t<Allocator, Traits>::_u_find_block(void *in_addr) -> const this_allocator_block_handle_t *
     {
       uint8_t *addr = reinterpret_cast<uint8_t *>(in_addr);
       _ud_verify();
@@ -350,7 +357,7 @@ namespace cgc1
       return &*ub;
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::to_global_allocator_block(block_type &&block)
+    void allocator_t<Allocator, Traits>::to_global_allocator_block(block_type &&block)
     {
       assert(block.valid());
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
@@ -367,14 +374,14 @@ namespace cgc1
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::release_memory(const memory_pair_t &pair)
+    void allocator_t<Allocator, Traits>::release_memory(const memory_pair_t &pair)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _u_release_memory(pair);
     }
 
     template <typename Allocator, typename Traits>
-    inline void allocator_t<Allocator, Traits>::_u_release_memory(const memory_pair_t &pair)
+    void allocator_t<Allocator, Traits>::_u_release_memory(const memory_pair_t &pair)
     {
       _ud_verify();
       // if the interval is at the end of the currently used part of slab, just move slab pointer.

@@ -5,6 +5,7 @@
 #include <cgc1/posix.hpp>
 #include <cgc1/cgc1.hpp>
 #include <cgc1/concurrency.hpp>
+#include <cgc1/aligned_allocator.hpp>
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
 #include "allocator.hpp"
@@ -14,6 +15,12 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
+
+
+template<> cgc1::details::gc_user_data_t cgc1::details::allocator_block_t<cgc1::cgc_internal_allocator_t<void>, cgc1::details::gc_user_data_t>::s_default_user_data{};
+template<> cgc1::details::user_data_base_t cgc1::details::allocator_block_t<cgc1::cgc_internal_slab_allocator_t<void>, cgc1::details::user_data_base_t>::s_default_user_data{};
+template<> cgc1::details::user_data_base_t cgc1::details::allocator_block_t<std::allocator<void>, cgc1::details::user_data_base_t>::s_default_user_data{};
+template<> cgc1::details::user_data_base_t cgc1::details::allocator_block_t<cgc1::aligned_allocator_t<void, 8ul>, cgc1::details::user_data_base_t>::s_default_user_data{};
 
 namespace cgc1
 {

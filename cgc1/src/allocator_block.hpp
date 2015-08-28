@@ -32,6 +32,7 @@ namespace cgc1
     public:
       using allocator = Allocator;
       using user_data_type = User_Data;
+      static user_data_type s_default_user_data;
       allocator_block_t() = default;
       /**
        * \brief Constructor
@@ -42,9 +43,10 @@ namespace cgc1
       **/
       allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length);
       allocator_block_t(const allocator_block_t &) = delete;
-      allocator_block_t(allocator_block_t &&);
+      allocator_block_t(allocator_block_t &&) noexcept;
       allocator_block_t &operator=(const allocator_block_t &) = delete;
-      allocator_block_t &operator=(allocator_block_t &&);
+      allocator_block_t &operator=(allocator_block_t &&) noexcept;
+      ~allocator_block_t();
       /**
        * \brief Return false if items are allocated.  Otherwise may return true or false.
        *
@@ -136,19 +138,19 @@ namespace cgc1
       /**
        * \brief Next allocator pointer if whole block has not yet been used.
       **/
-      object_state_t *m_next_alloc_ptr = nullptr;
+      object_state_t *m_next_alloc_ptr;
       /**
        * \brief End of memory block.
       **/
-      uint8_t *m_end = nullptr;
+      uint8_t *m_end;
       /**
        * \brief Minimum object allocation length.
       **/
-      size_t m_minimum_alloc_length = 0;
+      size_t m_minimum_alloc_length;
       /**
        * \brief start of memory block.
       **/
-      uint8_t *m_start = nullptr;
+      uint8_t *m_start;
       /**
        * \brief Default user data option.
        *
@@ -168,9 +170,7 @@ namespace cgc1
     class user_data_base_t
     {
     public:
-      user_data_base_t() = delete;
-      template <typename Allocator, typename User_Data>
-      user_data_base_t(allocator_block_t<Allocator, User_Data> *block);
+      user_data_base_t() = default;
       user_data_base_t(const user_data_base_t &) = default;
       user_data_base_t(user_data_base_t &&) = default;
 
@@ -197,17 +197,17 @@ namespace cgc1
       /**
        * \brief Return beginning of allocator block.
        **/
-      uint8_t *allocator_block_begin() const
+      /*      uint8_t *allocator_block_begin() const
       {
         return m_allocator_block_begin;
-      }
+	}*/
       /**
        * \brief Return beginning of allocator block as object state.
        **/
-      object_state_t *allocator_block_state_begin() const
+      /*      object_state_t *allocator_block_state_begin() const
       {
         return reinterpret_cast<object_state_t *>(allocator_block_begin());
-      }
+	}*/
 
     private:
       /**
@@ -215,7 +215,7 @@ namespace cgc1
        *
        * Note this is a pointer to the data, not the block itself, so it is move safe.
        **/
-      uint8_t *m_allocator_block_begin = nullptr;
+      //      uint8_t *m_allocator_block_begin = nullptr;
 
     public:
       /**
@@ -234,8 +234,7 @@ namespace cgc1
        *
        * @param block Block that this allocation belongs to.
        **/
-      template <typename Allocator, typename User_Data>
-      gc_user_data_t(allocator_block_t<Allocator, User_Data> *block);
+      gc_user_data_t() = default;
       /**
        * \brief Optional finalizer function to run.
       **/
