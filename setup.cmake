@@ -1,3 +1,4 @@
+#SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #OSX CLANG
 add_compile_options(-Weverything -Wno-deprecated-declarations -Wno-padded -Wno-c++98-compat-pedantic -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof -Wno-weak-vtables -Wno-weak-template-vtables -Wno-missing-prototypes)
@@ -21,7 +22,7 @@ add_compile_options(/W4 /sdl /WX /MP)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 #LINUX OR OSX
-add_compile_options(-std=c++1y -Wall -Wextra -pedantic-errors -fexceptions -Wno-unused-value -Wno-invalid-offsetof -Wnonnull -Wformat=2 -Wformat-security  -Wformat-nonliteral -Winit-self -Werror -Wswitch-default -Wstrict-overflow=5 -Wcast-align  -Wcast-qual -Wdisabled-optimization -Winit-self )
+add_compile_options(-std=c++1y -Wall -Wextra -pedantic-errors -fexceptions -Wno-unused-value -Wno-invalid-offsetof -Wnonnull -Wformat=2 -Wformat-security  -Wformat-nonliteral -Winit-self -Werror -Wswitch-default -Wstrict-overflow=5 -Wcast-align  -Wcast-qual -Wdisabled-optimization -Winit-self -march=native )
 add_compile_options(--param ssp-buffer-size=4 )
 add_compile_options(-fvisibility=hidden)
 add_compile_options(-fvisibility-inlines-hidden)

@@ -192,7 +192,7 @@ namespace cgc1
     /**
      * \brief Lock lock.
      **/
-    void lock()
+    void lock() ACQUIRE()
     {
       while (!try_lock())
         __asm__ volatile("pause");

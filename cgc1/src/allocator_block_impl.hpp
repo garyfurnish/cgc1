@@ -29,16 +29,21 @@ namespace cgc1
                                      : object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length))
     {
       assert(m_minimum_alloc_length <= m_maximum_alloc_length);
+#if _CGC1_DEBUG_LEVEL>0
       // sanity check alignment of start.
-      if (reinterpret_cast<size_t>(m_start) % c_alignment != 0)
+      if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
         abort();
       // sanity check alignment of end.
-      if (reinterpret_cast<size_t>(m_end) % c_alignment != 0)
+      if (unlikely(reinterpret_cast<size_t>(m_end) % c_alignment != 0))
         abort();
+#endif
       // setup first object state
-      m_next_alloc_ptr->set_next_valid(false);
+      /*      m_next_alloc_ptr->set_next_valid(false);
       m_next_alloc_ptr->set_in_use(false);
       m_next_alloc_ptr->set_next(reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(start) + length));
+      */
+      m_next_alloc_ptr->set_all(reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(start) + length),false,false,false);
+      
       // setup default user data.
       m_default_user_data = make_unique_allocator<user_data_type, Allocator>(this);
       m_default_user_data->m_is_default = true;
@@ -162,6 +167,8 @@ namespace cgc1
       assert(size <= maximum_allocation_length());
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_next));
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + 8 == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_user_data));
+      //compute this now.
+      object_state_t *later_next = reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + size);
       // if the free list isn't trivial, check it first.
       if (!m_free_list.empty()) {
         // do a reverse search from back of free list for somewhere to put the data.
@@ -196,8 +203,7 @@ namespace cgc1
           return state->object_start();
         }
       }
-      object_state_t *next = reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + size);
-      cgc1_builtin_prefetch(next);
+      object_state_t *next = later_next;
       // check to see if we have memory left over at tail.
       if (!m_next_alloc_ptr)
         return nullptr;

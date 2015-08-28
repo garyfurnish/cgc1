@@ -15,12 +15,16 @@
 #define CGC1_OPT_INLINE
 #endif
 #ifndef _WIN32
+#define ALWAYS_INLINE __attribute__((always_inline)) 
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
 #define _NoInline_ __attribute__((noinline))
+#define likely(x)      __builtin_expect(static_cast<bool>(x), 1)
+#define unlikely(x)    __builtin_expect(static_cast<bool>(x), 0)
 #else
+#define ALWAYS_INLINE 
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
 #define cgc1_builtin_current_stack() _AddressOfReturnAddress()
@@ -241,7 +245,7 @@ namespace cgc1
   /**
    * \brief Return inverse for size.
    **/
-  constexpr size_t size_inverse(size_t t)
+  __attribute__((always_inline)) inline constexpr size_t size_inverse(size_t t)
   {
     return ~t;
   }

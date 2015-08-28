@@ -62,7 +62,7 @@ namespace cgc1
               [this](typename this_allocator_block_set_t::allocator_block_type &&block) {
                 m_allocator.destroy_allocator_block(*this, ::std::move(block));
               },
-              [this]() { m_allocator._mutex().lock(); },
+              [this]() { m_allocator._mutex().lock(); assume_unlock(m_allocator._mutex()); },
               [this]() {
                 CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
                 m_allocator._mutex().unlock();
@@ -111,6 +111,8 @@ namespace cgc1
         // based on the numbers we use for multiple, generate min and max allocation sizes.
         size_t min = static_cast<size_t>(1) << (i + 3);
         size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
+	if(i==c_bins-1)
+	  max=c_infinite_length;
         m_allocators[i]._set_allocator_sizes(min, max);
       }
     }
@@ -203,6 +205,8 @@ namespace cgc1
       // if not succesful, that allocator needs more memory.
       // figre out how much memory to request.
       size_t memory_request = get_allocator_block_size(id);
+      if(memory_request < sz*3)
+	memory_request = sz*3;
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
@@ -225,7 +229,7 @@ namespace cgc1
         // we aren't going to try to handle out of memory at this point.
       }
       ret = m_allocators[id].allocate(sz);
-      if (!ret) // should be impossible.
+      if (unlikely(!ret)) // should be impossible.
         abort();
       return ret;
     }

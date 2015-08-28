@@ -90,6 +90,14 @@ namespace cgc1
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
     {
       _verify();
+      if(m_available_blocks.empty())
+	{
+	  if(!m_blocks.empty())
+	    {
+	      void *ret = m_blocks.back().allocate(sz);
+	      return ret;
+	    }
+	}
       // lb is >= sz.
       auto lower_bound =
           ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), sized_block_ref_t(sz, nullptr), abrvr_compare);
@@ -97,16 +105,14 @@ namespace cgc1
       if (lower_bound == m_available_blocks.end()) {
         if (!m_blocks.empty()) {
           void *ret = m_blocks.back().allocate(sz);
-          if (ret) {
-            return ret;
-          }
+	  return ret;
         }
         return nullptr;
       }
       // if here, there is a block in available blocks to use.
       // so try to allocate in there.
       auto ret = lower_bound->second->allocate(sz);
-      if (!ret) {
+      if (unlikely(!ret)) {
         // this shouldn't happen
         // so memory corruption, abort.
         ::std::cerr << __FILE__ << " " << __LINE__ << "ABS failed to allocate, logic error/memory corruption." << ::std::endl;
@@ -181,7 +187,7 @@ namespace cgc1
         auto &back = m_blocks.back();
         m_blocks.emplace_back(::std::move(block));
         // if moved on emplacement.
-        if (&m_blocks.front() != bbegin) {
+        if (unlikely(&m_blocks.front() != bbegin)) {
           // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
           ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();

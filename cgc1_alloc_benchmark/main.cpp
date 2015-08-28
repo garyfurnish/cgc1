@@ -1,5 +1,7 @@
 #include <iostream>
+#include <chrono>
 #ifdef BOEHM
+#define GC_THREADS
 #include <gc.h>
 #else
 #include <cgc1/gc.h>
@@ -12,14 +14,15 @@
 #include <signal.h>
 #include "../cgc1/src/allocator_block.hpp"
 #include "../cgc1/src/allocator.hpp"
+#include "../cgc1/src/global_kernel_state.hpp"
 
 #endif
 
 int main()
 {
-  const size_t num_alloc = 5000000;
+  const size_t num_alloc = 100000000;
   const size_t alloc_sz = 64;
-
+  ::std::chrono::high_resolution_clock::time_point t1 = ::std::chrono::high_resolution_clock::now();
 #ifdef BOEHM
   ::std::cout << "Using bohem\n";
   GC_disable();
@@ -32,23 +35,15 @@ int main()
 #else
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
-  cgc1::details::allocator_t<> allocator;
-  allocator.initialize(cgc1::details::pow2(32), cgc1::details::pow2(32));
+  auto& allocator = cgc1::details::g_gks.gc_allocator();
+
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
     ts.allocate(alloc_sz);
   }
 #endif
-  /*size_t iter = 10000000;
-  size_t sz = iter * 200;
-  void *memory = malloc(sz);
-  for (int i = 0; i < 1; ++i) {
-    cgc1::details::allocator_block_t<std::allocator<void>> block(memory, sz, 16);
-    cgc1::details::allocator_block_set_t<std::allocator<void>> allocator(16,1000);
-    allocator.add_block(::std::move(block));
-    for (size_t i = 0; i < iter; ++i)
-      allocator.allocate(100);
-  }
-  free(memory);*/
+  ::std::chrono::high_resolution_clock::time_point t2 = ::std::chrono::high_resolution_clock::now();
+  ::std::chrono::duration<double> time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+  ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
   return 0;
 }

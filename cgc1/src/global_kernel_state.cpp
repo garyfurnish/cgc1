@@ -320,7 +320,7 @@ namespace cgc1
 #ifndef _WIN32
       details::initialize_thread_suspension();
 #endif
-      m_gc_allocator.initialize(pow2(29), pow2(36));
+      m_gc_allocator.initialize(pow2(33), pow2(36));
       //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
       const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.

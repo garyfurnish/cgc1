@@ -69,6 +69,7 @@ namespace cgc1
       using const_iterator = const uint8_t *;
       using difference_type = ::std::ptrdiff_t;
       using size_type = size_t;
+      using mutex_type = spinlock_t;
       /**
        * \brief Allocator used internally by this allocator for control structures.
       **/
@@ -297,7 +298,7 @@ namespace cgc1
       /**
        * \brief Return a reference to the spinlock.
        **/
-      spinlock_t &_mutex() RETURN_CAPABILITY(m_mutex)
+      mutex_type&  _mutex() RETURN_CAPABILITY(m_mutex)
       {
         return m_mutex;
       }
@@ -385,11 +386,13 @@ namespace cgc1
        * @param sz Size of block requested.
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
+       * @param block Return block by reference.
       **/
-      REQUIRES(!m_mutex) auto _create_allocator_block(this_thread_allocator_t &ta,
+      REQUIRES(!m_mutex) void _create_allocator_block(this_thread_allocator_t &ta,
                                                       size_t sz,
                                                       size_t minimum_alloc_length,
-                                                      size_t maximum_alloc_length) -> block_type;
+                                                      size_t maximum_alloc_length,
+						      block_type& block);
       /**
        * \brief Find a global allocator block that has sz free for allocation.
        *
@@ -410,7 +413,7 @@ namespace cgc1
       /**
        * \brief Mutex for this allocator.
        **/
-      mutable spinlock_t m_mutex;
+      mutable mutex_type m_mutex;
       /**
        * \brief This is set during destruction.
        *

@@ -87,7 +87,7 @@ namespace cgc1
         return ret;
       }
       // no space available in free list.
-      auto sz_available = m_slab.end() - m_current_end - 1;
+      auto sz_available = m_slab.end() - m_current_end ;
       // heap out of memory.
       if (sz_available < 0) // shouldn't happen
         abort();
@@ -104,6 +104,7 @@ namespace cgc1
       assert(m_current_end <= m_slab.end());
       size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
       if (!m_slab.expand(expansion_size)) {
+	::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
         // unable to expand heap so return error condition.
         return ::std::make_pair(nullptr, nullptr);
       }
@@ -147,28 +148,31 @@ namespace cgc1
         }
       }
       // otherwise just create a new block
-      block = _create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length);
+      _create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
       // and register it.
       register_allocator_block(ta, block);
     }
     template <typename Allocator, typename Traits>
-    inline auto allocator_t<Allocator, Traits>::_create_allocator_block(this_thread_allocator_t &ta,
+    inline void allocator_t<Allocator, Traits>::_create_allocator_block(this_thread_allocator_t &ta,
                                                                         size_t sz,
                                                                         size_t minimum_alloc_length,
-                                                                        size_t maximum_alloc_length) -> block_type
+                                                                        size_t maximum_alloc_length,
+									block_type& block)
     {
       // try to allocate memory.
       auto memory = get_memory(sz);
       if (!memory.first)
+	{
+	  ::std::cerr << "out of memory\n";
         throw out_of_memory_exception_t();
+	}
       // get actual size of memory.
       auto memory_size = size(memory);
       assert(memory_size > 0);
       // create block.
-      auto block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       // call traits function that gets called when block is created.
       m_traits.on_create_allocator_block(ta, block);
-      return block;
     }
     template <typename Allocator, typename Traits>
     inline void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
@@ -203,6 +207,7 @@ namespace cgc1
     inline void allocator_t<Allocator, Traits>::register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+#if _CGC1_DEBUG_LEVEL>0
       _ud_verify();
       for (auto &&it : m_blocks) {
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
@@ -212,6 +217,7 @@ namespace cgc1
         if (it.m_begin == block.begin())
           abort();
       }
+#endif
       // create a fake handle to search for.
       this_allocator_block_handle_t handle(&ta, &block, block.begin());
       // find the place to insert the block.
@@ -585,6 +591,7 @@ namespace cgc1
       for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
         auto &&block = *block_it;
         assert(!block.empty());
+	(void)block;
       }
     }
 
