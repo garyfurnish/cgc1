@@ -245,14 +245,11 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     bool allocator_block_t<Allocator, User_Data>::destroy(void *v)
     {
-      // trivially destroy null.
-      if (!v)
-        return true;
+      // get object state.
+      object_state_t *state = object_state_t::from_object_start(v);
       // sanity check that addr belongs to this block.
       if (v < begin() || v >= end())
         return false;
-      // get object state.
-      object_state_t *state = object_state_t::from_object_start(v);
       // if has user data, destroy it.
       if (state->user_data() && state->user_data() != m_default_user_data.get()) {
         typename allocator::template rebind<User_Data>::other a;

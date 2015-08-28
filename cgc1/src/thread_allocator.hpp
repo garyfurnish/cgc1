@@ -58,7 +58,7 @@ namespace cgc1
        * This is here because maybe in the future someone wants to support uint32_t.
        * However, uint16_t is better for cache locality.
       **/
-      using destroy_threshold_type = uint16_t;
+      using destroy_threshold_type = uint32_t;
       /**
        * \brief Number of allocator size bins.
       **/
@@ -145,7 +145,10 @@ namespace cgc1
        * \brief Set minimum number of local blocks.
        **/
       void set_minimum_local_blocks(uint16_t minimum);
-
+      /**
+       * \brief Force a destruction of empty blocks.
+      **/
+      void set_force_free_empty_blocks() noexcept;
       /**
        * \brief Do maintance on thread associated blocks.
        *
@@ -155,21 +158,28 @@ namespace cgc1
 
     private:
       /**
-       * \brief Global allocator used for getting slabs.
-      **/
-      global_allocator &m_allocator;
-      /**
-       * \brief Allocator multiple for requesting new blocks.
-      **/
-      ::std::array<thread_allocator_abs_data_t, c_bins> m_allocator_multiples;
-      /**
        * \brief Allocators used to allocate various sizes of memory.
       **/
       ::std::array<this_allocator_block_set_t, c_bins> m_allocators;
       /**
+       * \brief Global allocator used for getting slabs.
+      **/
+      global_allocator &m_allocator;
+      /**
        * \brief Threshold destroy count for checking if should return memory to global.
       **/
-      destroy_threshold_type m_destroy_threshold = ::std::numeric_limits<uint16_t>::max();
+      uint16_t m_destroy_threshold = ::std::numeric_limits<uint16_t>::max();
+      /**
+       * \brief Set this to true to force destruction of empty blocks.
+       * 
+       * For instance a garbage collector may want to use this.
+       * This lets you turn the destroy threshold very high.
+       **/
+      ::std::atomic<bool> m_force_free_empty_blocks{false};
+      /**
+       * \brief Allocator multiple for requesting new blocks.
+      **/
+      ::std::array<thread_allocator_abs_data_t, c_bins> m_allocator_multiples;
       /**
        * \brief Minimum local blocks.
 

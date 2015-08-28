@@ -169,12 +169,14 @@ namespace cgc1
       auto allocator = &m_allocators[block_id];
       // destroy object.
       auto ret = allocator->destroy(v);
+      //handle allocator rounded size up.
       if (!ret && block_id > 0) {
         allocator = &m_allocators[block_id - 1];
         ret = allocator->destroy(v);
       }
       // do book keeping for returning memory to global.
-      if (allocator->num_destroyed_since_last_free()) {
+      // do this if we exceed the destroy threshold or externally forced.
+      if (m_force_free_empty_blocks.load(::std::memory_order_relaxed) || allocator->num_destroyed_since_last_free() > destroy_threshold()) {
         // ok, this needs to be tweaked.
         free_empty_blocks(m_minimum_local_blocks, false);
       }
@@ -237,7 +239,7 @@ namespace cgc1
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy_threshold() const noexcept
         -> destroy_threshold_type
     {
-      return m_destroy_threshold;
+      return static_cast<destroy_threshold_type>(m_destroy_threshold << 3);
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::minimum_local_blocks() const noexcept -> uint16_t
@@ -248,14 +250,18 @@ namespace cgc1
     void
     thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_destroy_threshold(destroy_threshold_type threshold)
     {
-      m_destroy_threshold = threshold;
+      m_destroy_threshold = static_cast<uint16_t>(threshold>>3);
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_minimum_local_blocks(uint16_t minimum)
     {
       m_minimum_local_blocks = minimum;
     }
-
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_force_free_empty_blocks() noexcept
+    {
+      m_force_free_empty_blocks = true;
+    }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
     {
