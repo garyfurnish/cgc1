@@ -19,10 +19,14 @@ def generate_linux():
         build_location = os.path.abspath(build_location)
         install_path = settings_json["install_path"]
         install_path = os.path.abspath(install_path)
+        boehm_path = settings_json["boehm_path"]
+        boehm_path = os.path.abspath(boehm_path)
 
     printing_mkdir(build_location+'/cgc1/')
     printing_chdir(build_location+'/cgc1/')
     ddict = {}
+    ddict["BOEHM_LIB"]=boehm_path+'/lib'
+    ddict["BOEHM_INCLUDE"]=boehm_path+'/include'
     ddict["CMAKE_C_COMPILER"] = gcc_install_location+'/gcc'
     ddict["CMAKE_CXX_COMPILER"] = gcc_install_location+'/g++'
     ddict["CMAKE_CXX_FLAGS"] = "-DCGC1_THREAD_SAFETY "

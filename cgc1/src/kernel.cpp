@@ -182,3 +182,33 @@ namespace cgc1
     set_atomic(os, is_atomic);
   }
 }
+extern "C" {
+void *GC_realloc(void *old_object, ::std::size_t new_size)
+{
+  return cgc1::cgc_realloc(old_object, new_size);
+}
+void *GC_malloc(::std::size_t size_in_bytes)
+{
+  return cgc1::cgc_malloc(size_in_bytes);
+}
+void *GC_malloc_atomic(::std::size_t size_in_bytes)
+{
+  auto ret = cgc1::cgc_malloc(size_in_bytes);
+  cgc1::cgc_set_atomic(ret, true);
+  return ret;
+}
+void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
+{
+  auto ret = cgc1::cgc_malloc(size_in_bytes);
+  cgc1::cgc_set_uncollectable(ret, true);
+  return ret;
+}
+void GC_free(void *object_addr)
+{
+  cgc1::cgc_free(object_addr);
+}
+void GC_init(void *stack_addr)
+{
+  cgc1::cgc_register_thread(stack_addr);
+}
+}
