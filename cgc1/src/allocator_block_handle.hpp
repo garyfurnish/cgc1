@@ -46,5 +46,13 @@ namespace cgc1
       **/
       uint8_t *m_begin;
     };
+    template <typename charT, typename Traits, typename Global_Allocator>
+    ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
+                                                    const allocator_block_handle_t<Global_Allocator> &abh)
+    {
+      os << "(" << abh.m_thread_allocator << "," << abh.m_block << "," << static_cast<void*>(abh.m_begin) << ")";
+      return os;
+    }
+
   }
 }

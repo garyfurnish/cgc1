@@ -279,47 +279,105 @@ namespace cgc1
     template <typename Iterator>
     void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset)
     {
-      // for each block in container, move blocks.
-      for (auto it = begin; it != end; ++it) {
-        block_type &block = *it;
-        // find old block location.
-        block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(&block) - offset);
-        // move block.
-        _u_move_registered_block(old_block, &block);
-      }
+      if(begin!=end)
+	{
+	  block_type*  new_block = &*begin;
+	  block_type * old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+	  // create fake handle to search for.
+	  this_allocator_block_handle_t handle;
+	  handle.initialize(nullptr, old_block, new_block->begin());
+	  auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
+	  assert(lb!=m_blocks.end());
+	  assert(lb->m_begin==new_block->begin());
+	  size_t i = 0;
+	  size_t sz = static_cast<size_t>(end-begin);
+	  size_t contig_start = 0;
+	  size_t contiguous = 0;
+	  //first we must locate a section of contiuous blocks.
+	    do
+	    {
+	      auto& block_handle =* (lb+static_cast<difference_type>(i));
+	      auto next_old_block = reinterpret_cast<block_type*>(reinterpret_cast<uint8_t*>(old_block)+i*sizeof(block_type));
+	      if(block_handle.m_block==next_old_block)
+		{
+		  //another contiguous block found.
+		  contiguous++;
+		}
+	      else
+		{
+		  //if here, next block is not contiguous so move first.
+		  //move first
+		  _u_move_registered_blocks_contiguous(contiguous, begin+static_cast<ptrdiff_t>(contig_start), lb);
+		  //then update search.
+		  new_block = &*(begin+static_cast<ptrdiff_t>(i));
+		  old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+		  handle.initialize(nullptr, old_block, new_block->begin());
+		  lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
+		  contiguous = 1;
+		  contig_start = i;
+		}
+	      ++i;
+	    } while(i < sz);
+	    //move last set of contiguous blocks.
+	    _u_move_registered_blocks_contiguous(contiguous, begin+static_cast<ptrdiff_t>(contig_start), lb);
+	}
       _ud_verify();
     }
+
+
+    template <typename Allocator, typename Traits>
+    template <typename Iterator, typename LB>
+    void allocator_t<Allocator, Traits>::_u_move_registered_blocks_contiguous(size_t  contiguous, const Iterator& new_location, const LB& lb)
+    {
+
+
+      
+      this_allocator_block_handle_t new_handle;
+      auto adj_location = new_location+static_cast<ptrdiff_t>(contiguous-1);
+      new_handle.initialize(lb->m_thread_allocator, &*adj_location, adj_location->begin());
+
+
+      
+      // uniqueness guarentees this is correct insertion point.
+      auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), new_handle, block_handle_begin_compare_t{});
+      // while block handle is not default constructable, we can move away from it.
+      // thus we can use rotate to create an empty location to modify.
+      // this is the optimal solution for moving in this fashion.
+      if (likely(ub > lb)) {
+	::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
+	for(size_t i = contiguous; i >0; --i)
+	{
+	  auto ub_offset = static_cast<ptrdiff_t>(i);
+	  auto new_location_offset = static_cast<ptrdiff_t>(contiguous-i);
+	  (ub -  ub_offset)->m_block = &*(new_location+new_location_offset);
+	}
+      } else {
+	::std::cerr << "During move, UB <=lb";
+	abort();
+      }
+      _ud_verify();
+
+    }
+
+    
     template <typename Allocator, typename Traits>
     template <typename Container>
     void allocator_t<Allocator, Traits>::_u_move_registered_blocks(Container &blocks, ptrdiff_t offset)
-    {
+    {      
       _u_move_registered_blocks(blocks.begin(), blocks.end(), offset);
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_move_registered_block(block_type *old_block, block_type *new_block)
     {
       // create fake handle to search for.
-      this_allocator_block_handle_t handle; handle.initialize(nullptr, old_block, new_block->begin());
+      this_allocator_block_handle_t handle;
+      handle.initialize(nullptr, old_block, new_block->begin());
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       // uniqueness guarentees lb is old block if it exists.
       if (lb != m_blocks.end()) {
         // sanity check uniqueness.
         if (lb->m_block == old_block) {
-          // create fake handle to find insertion place.
-          this_allocator_block_handle_t new_handle; new_handle.initialize(lb->m_thread_allocator, new_block, new_block->begin());
-          // uniqueness guarentees this is correct insertion point.
-          auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), new_handle, block_handle_begin_compare_t{});
-          // while block handle is not default constructable, we can move away from it.
-          // thus we can use rotate to create an empty location to modify.
-          // this is the optimal solution for moving in this fashion.
-          if (ub > lb) {
-            ::std::rotate(lb, lb + 1, ub);
-            (ub - 1)->m_block = new_block;
-          } else {
-            ::std::rotate(ub, ub + 1, lb);
-            ub->m_block = new_block;
-          }
-          _ud_verify();
+	  _u_move_registered_blocks_contiguous(1,new_block,lb);
         } else {
           // Uniqueness of block failed.
           ::std::cerr << "CGC1: Unable to find block to move\n";

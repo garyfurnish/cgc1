@@ -265,6 +265,7 @@ namespace cgc1
       **/
       template <typename Iterator>
       void _u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset) REQUIRES(m_mutex);
+      
       /**
        * \brief Move registered allocator blocks in container by offset.
        *
@@ -422,6 +423,19 @@ namespace cgc1
        **/
       REQUIRES(m_mutex) auto _u_find_global_allocator_block(size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length)
           -> typename global_block_vector_type::iterator;
+
+      /**
+       * \brief Internal helper function for moving registered blocks.
+       * 
+       * This function moves existing blocks in m_blocks to a new appropriate location.
+       * This saves the number of searches required from O(num blocks) to O(sets of contiguous blocks).
+       * @param num Number of contiguous blocks.
+       * @param new_location Beginning of new location of blocks on outside.
+       * @param lb Lower bound where the blocks are currently in m_blocks.
+       **/
+      template <typename Iterator, typename LB>
+      void _u_move_registered_blocks_contiguous(size_t num, const Iterator& new_location, const LB& lb) REQUIRES(m_mutex);
+      
       /**
        * \brief Unregister a registered allocator block before moving/destruction without locking.
        *
