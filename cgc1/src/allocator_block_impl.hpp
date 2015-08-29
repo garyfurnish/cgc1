@@ -314,6 +314,8 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     void allocator_block_t<Allocator, User_Data>::collect()
     {
+      // reset max alloc available.
+      m_last_max_alloc_available = 0;
       // start at beginning of list
       object_state_t *state = reinterpret_cast<object_state_t *>(begin());
       _verify(state);
@@ -323,12 +325,18 @@ namespace cgc1
       while (state->next_valid()) {
         cgc1_builtin_prefetch(state->next()->next());
         if (!did_merge && !state->in_use()) {
+          // update max alloca available.
+          m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
+          // put in free list.
           m_free_list.emplace_back(state);
         }
         // if it has been marked to be freed
         if (!did_merge && state->quasi_freed()) {
           // we are in while loop, so not at end, so add it to free list.
           state->set_quasi_freed(false);
+          // update max alloca available.
+          m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
+          // put in free list.
           m_free_list.emplace_back(state);
           assert(!state->quasi_freed());
         }
@@ -341,6 +349,7 @@ namespace cgc1
           state->set_next_valid(next->next_valid());
           if (state->next_valid())
             _verify(state);
+          m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
           did_merge = true;
         } else {
           // move onto next state since can't merge.
@@ -361,6 +370,13 @@ namespace cgc1
         m_next_alloc_ptr = state;
         _verify(state);
       }
+      // if we can alloc at tail, first check that size.
+      if (m_next_alloc_ptr) {
+        size_t max_alloc =
+            static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
+        m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, max_alloc);
+      }
+      assert(m_last_max_alloc_available == max_alloc_available());
     }
     template <typename Allocator, typename User_Data>
     size_t allocator_block_t<Allocator, User_Data>::minimum_allocation_length() const

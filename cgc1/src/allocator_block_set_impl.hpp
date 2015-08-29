@@ -76,10 +76,6 @@ namespace cgc1
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_verify() const
     {
 #if _CGC1_DEBUG_LEVEL > 1
-      // make sure that available blocks first is equal tomax available.
-      for (const auto &ab : m_available_blocks) {
-        assert(ab.first == ab.second->max_alloc_available());
-      }
       // make sure available blocks is sorted.
       assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
       // make sure there are no duplicates in available blocks (since sorted, not a problem).
@@ -87,18 +83,18 @@ namespace cgc1
         assert(0);
       // make sure back is not in adjacent blocks.
       auto ait = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-                                [this](auto &&abp) { return abp.second == &last_block(); });
+                                [this](auto &&abp) { return abp.second == &this->last_block(); });
       assert(ait == m_available_blocks.end());
-
-#endif
 
       for (auto &&pair : m_available_blocks) {
         (void)pair;
         assert(pair.second != &last_block());
         assert(!pair.second->full());
         assert(pair.second->last_max_alloc_available() == pair.first);
-        //	  assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
+        assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
       }
+
+#endif
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
@@ -202,8 +198,6 @@ namespace cgc1
         // increment destroyed count.
         m_num_destroyed_since_free += 1;
         _verify();
-
-        regenerate_available_blocks();
         return true;
       }
       _verify();
@@ -255,7 +249,6 @@ namespace cgc1
         }
         assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
         m_last_block = &*moved_begin;
-        regenerate_available_blocks();
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
@@ -279,6 +272,7 @@ namespace cgc1
                                                                               Unlock_Functional &&unlock_func,
                                                                               Move_Functional &&move_func)
     {
+      _verify();
       // adjust available blocks.
       auto ait =
           ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(), [&it](auto &&abp) { return abp.second == &*it; });
@@ -301,11 +295,11 @@ namespace cgc1
         if (!m_available_blocks.empty()) {
           m_last_block = m_available_blocks.back().second;
           m_available_blocks.pop_back();
-        }
-      } else if (&last_block() >= &*it) {
+        } else
+          m_last_block = nullptr;
+      } else if (&last_block() > &*it) {
         m_last_block--;
       }
-      regenerate_available_blocks();
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -368,6 +362,12 @@ namespace cgc1
         } else {
         }
       }
+      // update available blocks after update.
+      for (auto &&ab : m_available_blocks) {
+        ab.first = ab.second->last_max_alloc_available();
+      }
+      ::std::sort(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare);
+      _verify();
       for (auto it = m_blocks.rbegin(); it != m_blocks.rend(); ++it) {
         auto &block = *it;
         // now go through empty blocks
@@ -386,8 +386,6 @@ namespace cgc1
           // adjust pointer (erase does not invalidate).
         }
       }
-      // Regenerate available blocks since we have altered m_blocks.
-      regenerate_available_blocks();
       // reset destroyed counter.
       m_num_destroyed_since_free = 0;
     }
