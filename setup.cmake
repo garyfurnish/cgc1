@@ -13,7 +13,8 @@ add_compile_options(-Wno-attributes -Wno-unused-local-typedefs -Wno-unused-varia
 
 ENDIF(${CMAKE_CXX_COMPILER} MATCHES ".*clang\\+\\+")
 #LINUX CLANG OR GCC
-add_compile_options(-fstack-protector-strong -Wdate-time)
+#add_compile_options(-fstack-protector-strong -Wdate-time)
+add_compile_options(-Wdate-time)
 #SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -z relro -z now -pie")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

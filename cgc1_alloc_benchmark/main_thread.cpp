@@ -24,13 +24,15 @@
 
 // static const size_t num_alloc = 10000000;
 static const size_t num_alloc = 3000000;
-static const size_t num_thread = 20;
+static const size_t num_thread = 4;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
 static ::std::atomic<int> done{0};
 
 static ::std::condition_variable done_cv;
+static ::std::condition_variable start_cv;
+static ::std::mutex go_mutex;
 static ::std::mutex cv_mutex;
 
 void thread_main()
@@ -40,32 +42,55 @@ void thread_main()
   GC_stack_base sb;
   GC_get_stack_base(&sb);
   GC_register_my_thread(&sb);
-  while (!go)
-    ::std::this_thread::yield();
+  ::std::unique_lock<::std::mutex> go_lk(go_mutex);
+  start_cv.wait(go_lk, []() { return go.load(); });
+  go_lk.unlock();
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
       abort();
     ptrs.push_back(ret);
   }
-  /*  for (auto &&ptr : ptrs)
-      GC_free(ptr);*/
+  for(size_t i = 0; i < ptrs.size(); ++i)
+    {
+      if(i%2)
+	GC_free(ptrs[i]);
+    }
+  ptrs.clear();
+  for (size_t i = 0; i < num_thread_alloc/2; ++i) {
+    auto ret = GC_malloc(alloc_sz);
+    if (!ret)
+      abort();
+    ptrs.push_back(ret);
+  }
   ++done;
   done_cv.notify_all();
   GC_unregister_my_thread();
 #else
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   auto &ts = allocator.initialize_thread();
-  while (!go)
-    ::std::this_thread::yield();
+  ::std::unique_lock<::std::mutex> go_lk(go_mutex);
+  start_cv.wait(go_lk, []() { return go.load(); });
+  go_lk.unlock();
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz);
     if (!ret)
       abort();
     ptrs.push_back(ret);
   }
-  /*  for (auto &&ptr : ptrs)
-      ts.destroy(ptr);*/
+  for(size_t i = 0; i < ptrs.size(); ++i)
+    {
+      if(i%2)
+	ts.destroy(ptrs[i]);
+    }
+  ptrs.clear();
+  for (size_t i = 0; i < num_thread_alloc/2; ++i) {
+    auto ret = ts.allocate(alloc_sz);
+    if (!ret)
+      abort();
+    ptrs.push_back(ret);
+  }
+
   ++done;
   done_cv.notify_all();
 #endif
@@ -86,8 +111,10 @@ int main()
   for (size_t i = 0; i < num_thread; ++i) {
     threads.emplace_back(thread_main);
   }
+  
   ::std::chrono::high_resolution_clock::time_point t1 = ::std::chrono::high_resolution_clock::now();
   go = true;
+  start_cv.notify_all();
   ::std::unique_lock<::std::mutex> cv_lk(cv_mutex);
   done_cv.wait(cv_lk, []() { return done == num_thread; });
   ::std::chrono::high_resolution_clock::time_point t2 = ::std::chrono::high_resolution_clock::now();
