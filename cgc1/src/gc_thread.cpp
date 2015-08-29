@@ -183,7 +183,7 @@ namespace cgc1
         auto end = make_next_iterator(block->current_end());
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() != nullptr);
-	  clear_mark(&*os_it);
+          clear_mark(&*os_it);
         }
       }
     }
@@ -265,41 +265,32 @@ namespace cgc1
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() == end || os_it->next_valid());
           // if in use and not marked, get ready to free it.
-          if (os_it->in_use() && !is_marked(os_it))
-	    {
-	      gc_user_data_t *ud = static_cast<gc_user_data_t*>(os_it->user_data());
-	      if (ud) {
-		if(ud->m_is_default)
-		  {
-		    os_it->set_quasi_freed();
-#if _CGC1_DEBUG_LEVEL>0
-		    m_to_be_freed.push_back(os_it);
+          if (os_it->in_use() && !is_marked(os_it)) {
+            gc_user_data_t *ud = static_cast<gc_user_data_t *>(os_it->user_data());
+            if (ud) {
+              if (ud->m_is_default) {
+                os_it->set_quasi_freed();
+#if _CGC1_DEBUG_LEVEL > 0
+                m_to_be_freed.push_back(os_it);
 #endif
 
-		  }
-		else
-		  {
-		    if (ud->m_uncollectable) {
-		      // if uncollectable don't do anything.
-		      continue;
-		    }
-		    else if (ud->m_finalizer)
-		      {
-			// if it has a finalizer, finalize.
-			m_to_be_freed.push_back(os_it);
-		      }
-		    else {
-			// delete user data if not owned by block.
-			m_to_be_freed.push_back(os_it);
-		    }
-		  }
-	      }
-	      else
-		{
-		  //no user data, so delete.
-		  os_it->set_quasi_freed();
-		}
-	    }
+              } else {
+                if (ud->m_uncollectable) {
+                  // if uncollectable don't do anything.
+                  continue;
+                } else if (ud->m_finalizer) {
+                  // if it has a finalizer, finalize.
+                  m_to_be_freed.push_back(os_it);
+                } else {
+                  // delete user data if not owned by block.
+                  m_to_be_freed.push_back(os_it);
+                }
+              }
+            } else {
+              // no user data, so delete.
+              os_it->set_quasi_freed();
+            }
+          }
         }
       }
     }
@@ -311,19 +302,15 @@ namespace cgc1
       for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
-	  if(ud->m_is_default)
-	    {
-	    }
-	  else
-	    {
-	      if (ud->m_finalizer)
-		{
-		  ud->m_finalizer(os->object_start());
-		  // if it has a finalizer, finalize.
-		}
-		unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
-		// delete user data if not owned by block.
-	    }
+          if (ud->m_is_default) {
+          } else {
+            if (ud->m_finalizer) {
+              ud->m_finalizer(os->object_start());
+              // if it has a finalizer, finalize.
+            }
+            unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
+            // delete user data if not owned by block.
+          }
         }
         assert(os->object_end() < g_gks.gc_allocator().end());
 #ifdef _WIN32

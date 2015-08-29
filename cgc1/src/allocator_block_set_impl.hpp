@@ -9,7 +9,7 @@ namespace cgc1
 
     // size comparison for available blocks.
     static const auto abrvr_compare = [](auto &&r, auto &&it) { return r.first < it.first; };
-    //begin compare for block ordering.
+    // begin compare for block ordering.
     static const auto begin_compare = [](auto &&r, auto &&it) { return r.begin() < it.begin(); };
     static const auto begin_val_compare = [](auto &&r, auto &&val) { return r.begin() < val; };
     static const auto end_val_compare = [](auto &&r, auto &&val) { return r.end() < val; };
@@ -95,24 +95,22 @@ namespace cgc1
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
     {
       _verify();
-      if(m_available_blocks.empty())
-	{
-	  if(!m_blocks.empty())
-	    {
-	      assert(&last_block());
-	      void *ret = last_block().allocate(sz);
-	      return ret;
-	    }
-	}
+      if (m_available_blocks.empty()) {
+        if (!m_blocks.empty()) {
+          assert(&last_block());
+          void *ret = last_block().allocate(sz);
+          return ret;
+        }
+      }
       // lb is >= sz.
       auto lower_bound =
           ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), sized_block_ref_t(sz, nullptr), abrvr_compare);
       // no place to put it in available blocks, put it in last block.
       if (lower_bound == m_available_blocks.end()) {
         if (!m_blocks.empty()) {
-	  assert(&last_block());
+          assert(&last_block());
           void *ret = last_block().allocate(sz);
-	  return ret;
+          return ret;
         }
         return nullptr;
       }
@@ -129,7 +127,7 @@ namespace cgc1
       // ok, so we have allocated the memory.
       auto it = lower_bound;
       it->first = it->second->max_alloc_available();
-      assert(it->first==it->second->last_max_alloc_available());
+      assert(it->first == it->second->last_max_alloc_available());
       // see if there is allocation left in block.
       if (it->first == 0) {
         m_available_blocks.erase(it);
@@ -151,51 +149,47 @@ namespace cgc1
     inline bool allocator_block_set_t<Allocator, Allocator_Block_User_Data>::destroy(void *v)
     {
       _verify();
-      auto it = ::std::lower_bound(m_blocks.begin(),m_blocks.end(), v, end_val_compare);
+      auto it = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), v, end_val_compare);
       size_t last_collapsed_size = 0;
       size_t prev_last_max_alloc_available = 0;
-      if (it!=m_blocks.end() && it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
-	if (&*it != &last_block() && !it->full()) {
-	  typename allocator_block_reference_vector_t::iterator ab_it2;
-	  //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-	  //	    [&it](auto &ab) { return ab.second == &*it; });
-	  sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);		  
-	  ab_it2 = ::std::lower_bound(m_available_blocks.begin(),m_available_blocks.end(), pair2, abrvr_compare);	 
-	  if(ab_it2 !=m_available_blocks.end())
-	    {
-	      while(ab_it2->first==pair2.first)
-		{
-		  if(ab_it2->second==&*it)
-		    break;
-		}
-	      if(ab_it2->second!=&*it)
-		goto NOT_FOUND;
-	      
-	      auto new_sz = ::std::max(ab_it2->first,last_collapsed_size);
-	      sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);		  
-	      auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-	      assert(ab_it2 < ub);
-	      if (ub - 1 == ab_it2) {
-		// don't move at all, life made easy.
-	      } else {
-		// ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
-		// rotate is optimal over erase/insert.
-		::std::rotate(ab_it2, ab_it2 + 1, ub);
-	      }
-	      *(ub-1)=pair;
-	    }
-	  else
-	    {
-	    NOT_FOUND:
-	      sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
-	      auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-	      m_available_blocks.emplace(ub, ::std::move(pair));
-	    }
-	}
-	// increment destroyed count.
-	m_num_destroyed_since_free += 1;
-	_verify();
-	return true;
+      if (it != m_blocks.end() && it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
+        if (&*it != &last_block() && !it->full()) {
+          typename allocator_block_reference_vector_t::iterator ab_it2;
+          //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
+          //	    [&it](auto &ab) { return ab.second == &*it; });
+          sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
+          ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
+          if (ab_it2 != m_available_blocks.end()) {
+            while (ab_it2->first == pair2.first) {
+              if (ab_it2->second == &*it)
+                break;
+            }
+            if (ab_it2->second != &*it)
+              goto NOT_FOUND;
+
+            auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
+            sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
+            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+            assert(ab_it2 < ub);
+            if (ub - 1 == ab_it2) {
+              // don't move at all, life made easy.
+            } else {
+              // ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
+              // rotate is optimal over erase/insert.
+              ::std::rotate(ab_it2, ab_it2 + 1, ub);
+            }
+            *(ub - 1) = pair;
+          } else {
+          NOT_FOUND:
+            sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
+            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+            m_available_blocks.emplace(ub, ::std::move(pair));
+          }
+        }
+        // increment destroyed count.
+        m_num_destroyed_since_free += 1;
+        _verify();
+        return true;
       }
       _verify();
       return false;
@@ -203,41 +197,42 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block(
-										       allocator_block_t<Allocator, Allocator_Block_User_Data> &&block,
-										       Lock_Functional &&lock_func,
-										       Unlock_Functional &&unlock_func,
-										       Move_Functional &&move_func) -> allocator_block_type&
+        allocator_block_t<Allocator, Allocator_Block_User_Data> &&block,
+        Lock_Functional &&lock_func,
+        Unlock_Functional &&unlock_func,
+        Move_Functional &&move_func) -> allocator_block_type &
     {
       _verify();
       if (!m_blocks.empty()) {
         typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
-	auto blocks_insertion_point = ::std::upper_bound(m_blocks.begin(), m_blocks.end(),block , begin_compare);
-	lock_func();
-	auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
-	move_func(moved_begin+1, m_blocks.end(), static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
-	unlock_func();
+        auto blocks_insertion_point = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), block, begin_compare);
+        lock_func();
+        auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
+        move_func(moved_begin + 1, m_blocks.end(), static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
+        unlock_func();
         // if moved on emplacement.
         if (unlikely(&m_blocks.front() != bbegin)) {
           // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
           ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();
         }
-	m_last_block = &*moved_begin;
-	regenerate_available_blocks();
+        m_last_block = &*moved_begin;
+        regenerate_available_blocks();
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
-	m_last_block = &m_blocks.back();
+        m_last_block = &m_blocks.back();
       }
       _verify();
       assert(!m_blocks.empty());
       return *m_last_block;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block(allocator_block_type && block) -> allocator_block_type&
-			       {
-				 return add_block(::std::move(block),[](){},[](){}, [](auto&&,auto&&,auto&&){});
-			       }
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::add_block(allocator_block_type &&block)
+        -> allocator_block_type &
+    {
+      return add_block(::std::move(block), []() {}, []() {}, [](auto &&, auto &&, auto &&) {});
+    }
     template <typename Allocator, typename Allocator_Block_User_Data>
     template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
     inline void
@@ -263,10 +258,10 @@ namespace cgc1
       move_func(moved_begin, m_blocks.end(), -static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
       // unlock functional
       unlock_func();
-      if(m_blocks.empty())
-	m_last_block = nullptr;
+      if (m_blocks.empty())
+        m_last_block = nullptr;
       else
-	m_last_block = &m_blocks.back();
+        m_last_block = &m_blocks.back();
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>

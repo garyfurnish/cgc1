@@ -77,12 +77,12 @@ go_bandit([]() {
       cgc1::insert_replace(in_array.begin(), in_array.begin(), 2);
       AssertThat(in_array == out_array, IsTrue());
     });
-    it("rotate1",[](){
-	::std::array<int,5> in_array{{0,1,2,3,4}};
-	::std::rotate(in_array.begin(), in_array.begin()+2, in_array.end());
-	::std::array<int,5> out_array{{2,3,4,0,1}};
-	AssertThat(in_array==out_array,IsTrue());
-      });
+    it("rotate1", []() {
+      ::std::array<int, 5> in_array{{0, 1, 2, 3, 4}};
+      ::std::rotate(in_array.begin(), in_array.begin() + 2, in_array.end());
+      ::std::array<int, 5> out_array{{2, 3, 4, 0, 1}};
+      AssertThat(in_array == out_array, IsTrue());
+    });
   });
   gc_bandit_tests();
 });

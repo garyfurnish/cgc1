@@ -8,15 +8,16 @@ namespace cgc1
   namespace details
   {
     template <typename Allocator, typename User_Data>
-     allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
-                                                                      size_t length,
-                                                                      size_t minimum_alloc_length,
-                                                                      size_t maximum_alloc_length) noexcept
-        : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
+    allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
+                                                               size_t length,
+                                                               size_t minimum_alloc_length,
+                                                               size_t maximum_alloc_length) noexcept
+        : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)),
+          m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
     {
-#if _CGC1_DEBUG_LEVEL>0
+#if _CGC1_DEBUG_LEVEL > 0
       // sanity check alignment of start.
       if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
         abort();
@@ -24,37 +25,39 @@ namespace cgc1
       if (unlikely(reinterpret_cast<size_t>(m_end) % c_alignment != 0))
         abort();
 #endif
-      if(maximum_alloc_length == cgc1::details::c_infinite_length)
-	{
-	  m_maximum_alloc_length = maximum_alloc_length;
-	}
-      else
-	{
-	  m_maximum_alloc_length = object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length);
-	}
+      if (maximum_alloc_length == cgc1::details::c_infinite_length) {
+        m_maximum_alloc_length = maximum_alloc_length;
+      } else {
+        m_maximum_alloc_length = object_state_t::needed_size(sizeof(object_state_t), maximum_alloc_length);
+      }
       assert(m_minimum_alloc_length <= m_maximum_alloc_length);
       // setup first object state
-      m_next_alloc_ptr->set_all(reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(start) + length),false,false,false);
-      
+      m_next_alloc_ptr->set_all(reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(start) + length), false, false,
+                                false);
+
       // setup default user data.
       m_default_user_data = unique_ptr_allocated<user_data_type, Allocator>(&s_default_user_data);
       m_default_user_data->m_is_default = true;
     }
     template <typename Allocator, typename User_Data>
-     allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block) noexcept
-        : m_free_list(std::move(block.m_free_list)), m_next_alloc_ptr(block.m_next_alloc_ptr), m_end(block.m_end),
-          m_minimum_alloc_length(block.m_minimum_alloc_length), m_start(block.m_start),
-          m_default_user_data(std::move(block.m_default_user_data)), m_maximum_alloc_length(block.m_maximum_alloc_length)
+    allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block) noexcept
+        : m_free_list(std::move(block.m_free_list)),
+          m_next_alloc_ptr(block.m_next_alloc_ptr),
+          m_end(block.m_end),
+          m_minimum_alloc_length(block.m_minimum_alloc_length),
+          m_start(block.m_start),
+          m_default_user_data(std::move(block.m_default_user_data)),
+          m_maximum_alloc_length(block.m_maximum_alloc_length)
     {
       // invalidate moved from block.
       block.clear();
     }
     template <typename Allocator, typename User_Data>
-     allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
+    allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
     operator=(allocator_block_t<Allocator, User_Data> &&block) noexcept
     {
-      if(m_default_user_data.get()==&s_default_user_data)
-	m_default_user_data.release();
+      if (m_default_user_data.get() == &s_default_user_data)
+        m_default_user_data.release();
       m_default_user_data = ::std::move(block.m_default_user_data);
       m_free_list = std::move(block.m_free_list);
       m_next_alloc_ptr = block.m_next_alloc_ptr;
@@ -67,14 +70,14 @@ namespace cgc1
       return *this;
     }
     template <typename Allocator, typename User_Data>
-     allocator_block_t<Allocator, User_Data>::~allocator_block_t()
+    allocator_block_t<Allocator, User_Data>::~allocator_block_t()
     {
-      if(m_default_user_data.get()==&s_default_user_data)
-	m_default_user_data.release();
+      if (m_default_user_data.get() == &s_default_user_data)
+        m_default_user_data.release();
     }
 
     template <typename Allocator, typename User_Data>
-     void allocator_block_t<Allocator, User_Data>::clear()
+    void allocator_block_t<Allocator, User_Data>::clear()
     {
       m_free_list.clear();
       m_next_alloc_ptr = nullptr;
@@ -168,7 +171,7 @@ namespace cgc1
       assert(size <= maximum_allocation_length());
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_next));
       assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + 8 == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_user_data));
-      //compute this now.
+      // compute this now.
       object_state_t *later_next = reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + size);
       // if the free list isn't trivial, check it first.
       if (!m_free_list.empty()) {
@@ -244,14 +247,14 @@ namespace cgc1
     }
     template <typename Allocator, typename User_Data>
     bool allocator_block_t<Allocator, User_Data>::destroy(void *v)
-							  {
-							    size_t tmp=0;
-							    size_t last_max_alloc_available=0;
-							    return destroy(v,tmp, last_max_alloc_available);
-							  }
+    {
+      size_t tmp = 0;
+      size_t last_max_alloc_available = 0;
+      return destroy(v, tmp, last_max_alloc_available);
+    }
 
     template <typename Allocator, typename User_Data>
-    bool allocator_block_t<Allocator, User_Data>::destroy(void *v, size_t& last_collapsed_size, size_t& last_max_alloc_available)
+    bool allocator_block_t<Allocator, User_Data>::destroy(void *v, size_t &last_collapsed_size, size_t &last_max_alloc_available)
     {
       // get object state.
       object_state_t *state = object_state_t::from_object_start(v);
@@ -280,15 +283,16 @@ namespace cgc1
         // if the next state is valid, then there are states after
         // so add it to free list.
         m_free_list.push_back(state);
-	last_collapsed_size = state->object_size();
+        last_collapsed_size = state->object_size();
       } else {
         // if here the next state is invalid, so this is at tail
         // so just adjust pointer.
         m_next_alloc_ptr = state;
-	last_collapsed_size = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
+        last_collapsed_size =
+            static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
       }
       last_max_alloc_available = m_last_max_alloc_available;
-      m_last_max_alloc_available = ::std::max(m_last_max_alloc_available,last_collapsed_size);
+      m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, last_collapsed_size);
       _verify(state);
       return true;
     }
@@ -317,10 +321,9 @@ namespace cgc1
       bool did_merge = false;
       while (state->next_valid()) {
         cgc1_builtin_prefetch(state->next()->next());
-	if(!did_merge && !state->in_use())
-	  {
-	    m_free_list.emplace_back(state);
-	  }
+        if (!did_merge && !state->in_use()) {
+          m_free_list.emplace_back(state);
+        }
         // if it has been marked to be freed
         if (!did_merge && state->quasi_freed()) {
           // we are in while loop, so not at end, so add it to free list.
@@ -337,23 +340,22 @@ namespace cgc1
           state->set_next_valid(next->next_valid());
           if (state->next_valid())
             _verify(state);
-	  did_merge = true;
+          did_merge = true;
         } else {
           // move onto next state since can't merge.
           _verify(state);
           _verify(state->next());
           state = state->next();
-	  did_merge = false;
+          did_merge = false;
         }
       }
       if (!state->not_available()) {
         // ok at end of list, if its available.
         // try to find it in free list.
-	if(!m_free_list.empty())
-	  {
-	    if(*m_free_list.rbegin()==state)
-	      m_free_list.pop_back();
-	  }
+        if (!m_free_list.empty()) {
+          if (*m_free_list.rbegin() == state)
+            m_free_list.pop_back();
+        }
         // adjust pointer
         m_next_alloc_ptr = state;
         _verify(state);

@@ -109,7 +109,7 @@ namespace cgc1
        * \brief Type of handles to blocks in this allocator.
       **/
       using this_allocator_block_handle_t = allocator_block_handle_t<this_allocator_t>;
-      static_assert(::std::is_pod<this_allocator_block_handle_t>::value,"");
+      static_assert(::std::is_pod<this_allocator_block_handle_t>::value, "");
       /**
        * \brief Constructor.
        **/
@@ -174,11 +174,11 @@ namespace cgc1
        * @param destination Returned allocator block.
       **/
       void _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
-                               size_t create_sz,
-                               size_t minimum_alloc_length,
-                               size_t maximum_alloc_length,
-                               size_t allocate_size,
-                               block_type &destination) REQUIRES(m_mutex);
+                                               size_t create_sz,
+                                               size_t minimum_alloc_length,
+                                               size_t maximum_alloc_length,
+                                               size_t allocate_size,
+                                               block_type &destination) REQUIRES(m_mutex);
 
       /**
        * \brief Release an interval of memory.
@@ -266,7 +266,7 @@ namespace cgc1
       **/
       template <typename Iterator>
       void _u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset) REQUIRES(m_mutex);
-      
+
       /**
        * \brief Move registered allocator blocks in container by offset.
        *
@@ -318,7 +318,7 @@ namespace cgc1
       /**
        * \brief Return a reference to the spinlock.
        **/
-      mutex_type&  _mutex() RETURN_CAPABILITY(m_mutex)
+      mutex_type &_mutex() RETURN_CAPABILITY(m_mutex)
       {
         return m_mutex;
       }
@@ -394,7 +394,7 @@ namespace cgc1
        * @param block Block to register.
       **/
       void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
-      
+
     private:
       /**
        * \brief Vector type for storing blocks held by the global allocator.
@@ -410,11 +410,9 @@ namespace cgc1
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param block Return block by reference.
       **/
-      REQUIRES(m_mutex) void _u_create_allocator_block(this_thread_allocator_t &ta,
-                                                      size_t sz,
-                                                      size_t minimum_alloc_length,
-                                                      size_t maximum_alloc_length,
-						      block_type& block);
+      REQUIRES(m_mutex)
+      void _u_create_allocator_block(
+          this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block);
       /**
        * \brief Find a global allocator block that has sz free for allocation.
        *
@@ -423,12 +421,13 @@ namespace cgc1
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        **/
-      REQUIRES(m_mutex) auto _u_find_global_allocator_block(size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length)
-          -> typename global_block_vector_type::iterator;
+      REQUIRES(m_mutex)
+      auto _u_find_global_allocator_block(size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length) ->
+          typename global_block_vector_type::iterator;
 
       /**
        * \brief Internal helper function for moving registered blocks.
-       * 
+       *
        * This function moves existing blocks in m_blocks to a new appropriate location.
        * This saves the number of searches required from O(num blocks) to O(sets of contiguous blocks).
        * @param num Number of contiguous blocks.
@@ -436,8 +435,8 @@ namespace cgc1
        * @param lb Lower bound where the blocks are currently in m_blocks.
        **/
       template <typename Iterator, typename LB>
-      void _u_move_registered_blocks_contiguous(size_t num, const Iterator& new_location, const LB& lb) REQUIRES(m_mutex);
-      
+      void _u_move_registered_blocks_contiguous(size_t num, const Iterator &new_location, const LB &lb) REQUIRES(m_mutex);
+
       /**
        * \brief Unregister a registered allocator block before moving/destruction without locking.
        *

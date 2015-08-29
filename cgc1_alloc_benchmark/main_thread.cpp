@@ -20,22 +20,22 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-//static const size_t num_alloc = 10000000;
+// static const size_t num_alloc = 10000000;
 static const size_t num_alloc = 3000000;
 static const size_t num_thread = 20;
-static const size_t num_thread_alloc = num_alloc/num_thread;
+static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
 static ::std::atomic<int> done{0};
 
 void thread_main()
 {
-  ::std::vector<void*> ptrs;
-  #ifdef BOEHM
+  ::std::vector<void *> ptrs;
+#ifdef BOEHM
   GC_stack_base sb;
   GC_get_stack_base(&sb);
   GC_register_my_thread(&sb);
-  while(!go)
+  while (!go)
     ;
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = GC_malloc(alloc_sz);
@@ -43,25 +43,25 @@ void thread_main()
       abort();
     ptrs.push_back(ret);
   }
-  for(auto&& ptr : ptrs)
-      GC_free(ptr);
+  for (auto &&ptr : ptrs)
+    GC_free(ptr);
   ++done;
   GC_unregister_my_thread();
-  #else
-  auto& allocator = cgc1::details::g_gks.gc_allocator();
+#else
+  auto &allocator = cgc1::details::g_gks.gc_allocator();
   auto &ts = allocator.initialize_thread();
-  while(!go)
+  while (!go)
     ;
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz);
-    if(!ret)
+    if (!ret)
       abort();
     ptrs.push_back(ret);
   }
-  for(auto&& ptr : ptrs)
-      ts.destroy(ptr);
+  for (auto &&ptr : ptrs)
+    ts.destroy(ptr);
   ++done;
-  #endif
+#endif
 }
 
 int main()
@@ -69,33 +69,32 @@ int main()
 #ifdef BOEHM
   ::std::cout << "Using bohem\n";
   GC_disable();
-  GC_INIT();  
+  GC_INIT();
   GC_allow_register_threads();
 #else
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
 #endif
   ::std::vector<::std::thread> threads;
-  for(size_t i = 0; i < num_thread; ++i)
-    {
-      threads.emplace_back(thread_main);
-    }
+  for (size_t i = 0; i < num_thread; ++i) {
+    threads.emplace_back(thread_main);
+  }
   ::std::chrono::high_resolution_clock::time_point t1 = ::std::chrono::high_resolution_clock::now();
   go = true;
-  while(done!=num_thread)
+  while (done != num_thread)
     ;
   ::std::chrono::high_resolution_clock::time_point t2 = ::std::chrono::high_resolution_clock::now();
   ::std::chrono::duration<double> time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
-  for(auto&& thread : threads)
+  for (auto &&thread : threads)
     thread.join();
   t1 = ::std::chrono::high_resolution_clock::now();
-  #ifdef BOEHM
+#ifdef BOEHM
   GC_enable();
   GC_gcollect();
-  #else
+#else
   cgc1::cgc_force_collect();
-  #endif
+#endif
   t2 = ::std::chrono::high_resolution_clock::now();
   time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;

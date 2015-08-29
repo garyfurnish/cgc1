@@ -15,8 +15,7 @@ namespace cgc1
       return static_cast<size_t>(2) << (n - 1);
     }
     template <typename Allocator, typename Traits>
-    inline allocator_t<Allocator, Traits>::allocator_t()
-        : m_shutdown(false)
+    inline allocator_t<Allocator, Traits>::allocator_t() : m_shutdown(false)
     {
       // notify traits that the allocator was created.
       m_traits.on_creation(*this);
@@ -93,7 +92,7 @@ namespace cgc1
         return ret;
       }
       // no space available in free list.
-      auto sz_available = m_slab.end() - m_current_end ;
+      auto sz_available = m_slab.end() - m_current_end;
       // heap out of memory.
       if (sz_available < 0) // shouldn't happen
         abort();
@@ -110,7 +109,7 @@ namespace cgc1
       assert(m_current_end <= m_slab.end());
       size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
       if (!m_slab.expand(expansion_size)) {
-	::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
+        ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
         // unable to expand heap so return error condition.
         return ::std::make_pair(nullptr, nullptr);
       }
@@ -125,56 +124,52 @@ namespace cgc1
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
-                                                             size_t create_sz,
-                                                             size_t minimum_alloc_length,
-                                                             size_t maximum_alloc_length,
-                                                             size_t allocate_sz,
-                                                             block_type &block)
+                                                                             size_t create_sz,
+                                                                             size_t minimum_alloc_length,
+                                                                             size_t maximum_alloc_length,
+                                                                             size_t allocate_sz,
+                                                                             block_type &block)
     {
-        // first check to see if we can find a partially used block that fits parameters.
-        auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
-        if (found_block != m_global_blocks.end()) {
-          // reuse old block.
-          auto old_block_addr = &*found_block;
-	  _u_unregister_allocator_block(*old_block_addr);
-          // move old block into new address.
-          block = ::std::move(*found_block);
-          // move block registration.
-	  //          _u_move_registered_block(old_block_addr, &block);
-          // figure out location in vector that shifted.
-          size_t location = static_cast<size_t>(found_block - m_global_blocks.begin());
-          // remove block from vector.
-          m_global_blocks.erase(found_block);
-          // move all registrations after that global block back one position.
-          for (size_t i = location; i < m_global_blocks.size(); ++i) {
-            _u_move_registered_block(&m_global_blocks[i + 1], &m_global_blocks[i]);
-          }
-          return;
+      // first check to see if we can find a partially used block that fits parameters.
+      auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
+      if (found_block != m_global_blocks.end()) {
+        // reuse old block.
+        auto old_block_addr = &*found_block;
+        _u_unregister_allocator_block(*old_block_addr);
+        // move old block into new address.
+        block = ::std::move(*found_block);
+        // move block registration.
+        //          _u_move_registered_block(old_block_addr, &block);
+        // figure out location in vector that shifted.
+        size_t location = static_cast<size_t>(found_block - m_global_blocks.begin());
+        // remove block from vector.
+        m_global_blocks.erase(found_block);
+        // move all registrations after that global block back one position.
+        for (size_t i = location; i < m_global_blocks.size(); ++i) {
+          _u_move_registered_block(&m_global_blocks[i + 1], &m_global_blocks[i]);
         }
-	// otherwise just create a new block
-	_u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
+        return;
+      }
+      // otherwise just create a new block
+      _u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_create_allocator_block(this_thread_allocator_t &ta,
-                                                                        size_t sz,
-                                                                        size_t minimum_alloc_length,
-                                                                        size_t maximum_alloc_length,
-									block_type& block)
+    void allocator_t<Allocator, Traits>::_u_create_allocator_block(
+        this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block)
     {
       // try to allocate memory.
       auto memory = _u_get_memory(sz);
-      if (!memory.first)
-	{
-	  ::std::cerr << "out of memory\n";
+      if (!memory.first) {
+        ::std::cerr << "out of memory\n";
         throw out_of_memory_exception_t();
-	}
+      }
       // get actual size of memory.
       auto memory_size = size(memory);
       assert(memory_size > 0);
       // create block.
       //      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       block.~block_type();
-      new(&block) block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+      new (&block) block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       // call traits function that gets called when block is created.
       m_traits.on_create_allocator_block(ta, block);
     }
@@ -210,23 +205,24 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
-#if _CGC1_DEBUG_LEVEL>0
+#if _CGC1_DEBUG_LEVEL > 0
       _ud_verify();
       for (auto &&it : m_blocks) {
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
         if (it.m_block == &block)
           abort();
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
-        if (it.m_begin == block.begin())
-	  {
-	    ::std::cerr << __FILE__ << " " << __LINE__ << " Attempt to double register block.\n";
-	    ::std::cerr << __FILE__ << " " << __LINE__ << " " << &block << " " << reinterpret_cast<void*>(block.begin()) << ::std::endl;
-	    abort();
-	  }
+        if (it.m_begin == block.begin()) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << " Attempt to double register block.\n";
+          ::std::cerr << __FILE__ << " " << __LINE__ << " " << &block << " " << reinterpret_cast<void *>(block.begin())
+                      << ::std::endl;
+          abort();
+        }
       }
 #endif
       // create a fake handle to search for.
-      this_allocator_block_handle_t handle; handle.initialize(&ta, &block, block.begin());
+      this_allocator_block_handle_t handle;
+      handle.initialize(&ta, &block, block.begin());
       // find the place to insert the block.
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       // emplace a block handle.
@@ -247,7 +243,8 @@ namespace cgc1
     {
       _ud_verify();
       // create a fake handle to search for.
-      this_allocator_block_handle_t handle; handle.initialize(nullptr, &block, block.begin());
+      this_allocator_block_handle_t handle;
+      handle.initialize(nullptr, &block, block.begin());
       // uniqueness guarentees lb is handle if found.
       auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
       if (lb != m_blocks.end() && lb->m_begin == block.begin()) {
@@ -277,95 +274,85 @@ namespace cgc1
     }
     template <typename Allocator, typename Traits>
     template <typename Iterator>
-    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator & end, const ptrdiff_t offset)
+    void
+    allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator &end, const ptrdiff_t offset)
     {
 
-      if(begin!=end)
-	{
-	  block_type*  new_block = &*begin;
-	  block_type * old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
-      
-	  // create fake handle to search for.
-	  this_allocator_block_handle_t handle;
-	  handle.initialize(nullptr, old_block, new_block->begin());
-	  auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
-	  assert(lb!=m_blocks.end());
-	  assert(lb->m_begin==new_block->begin());
-	  size_t i = 0;
-	  size_t sz = static_cast<size_t>(end-begin);
-	  size_t contig_start = 0;
-	  size_t contiguous = 0;
-	  //first we must locate a section of contiuous blocks.
-	    do
-	    {
-	      auto& block_handle =* (lb+static_cast<difference_type>(i));
-	      auto next_old_block = reinterpret_cast<block_type*>(reinterpret_cast<uint8_t*>(old_block)+i*sizeof(block_type));
-	      if(block_handle.m_block==next_old_block)
-		{
-		  //another contiguous block found.
-		  contiguous++;
-		}
-	      else
-		{
-		  //if here, next block is not contiguous so move first.
-		  //move first
-		  _u_move_registered_blocks_contiguous(contiguous, begin+static_cast<ptrdiff_t>(contig_start), lb);
-		  //then update search.
-		  new_block = &*(begin+static_cast<ptrdiff_t>(i));
-		  old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
-		  handle.initialize(nullptr, old_block, new_block->begin());
-		  lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
-		  contiguous = 1;
-		  contig_start = i;
-		}
-	      ++i;
-	    } while(i < sz);
-	    //move last set of contiguous blocks.
-	    _u_move_registered_blocks_contiguous(contiguous, begin+static_cast<ptrdiff_t>(contig_start), lb);
-	}
+      if (begin != end) {
+        block_type *new_block = &*begin;
+        block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+
+        // create fake handle to search for.
+        this_allocator_block_handle_t handle;
+        handle.initialize(nullptr, old_block, new_block->begin());
+        auto lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
+        assert(lb != m_blocks.end());
+        assert(lb->m_begin == new_block->begin());
+        size_t i = 0;
+        size_t sz = static_cast<size_t>(end - begin);
+        size_t contig_start = 0;
+        size_t contiguous = 0;
+        // first we must locate a section of contiuous blocks.
+        do {
+          auto &block_handle = *(lb + static_cast<difference_type>(i));
+          auto next_old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(old_block) + i * sizeof(block_type));
+          if (block_handle.m_block == next_old_block) {
+            // another contiguous block found.
+            contiguous++;
+          } else {
+            // if here, next block is not contiguous so move first.
+            // move first
+            _u_move_registered_blocks_contiguous(contiguous, begin + static_cast<ptrdiff_t>(contig_start), lb);
+            // then update search.
+            new_block = &*(begin + static_cast<ptrdiff_t>(i));
+            old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+            handle.initialize(nullptr, old_block, new_block->begin());
+            lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
+            contiguous = 1;
+            contig_start = i;
+          }
+          ++i;
+        } while (i < sz);
+        // move last set of contiguous blocks.
+        _u_move_registered_blocks_contiguous(contiguous, begin + static_cast<ptrdiff_t>(contig_start), lb);
+      }
       _ud_verify();
     }
 
-
     template <typename Allocator, typename Traits>
     template <typename Iterator, typename LB>
-    void allocator_t<Allocator, Traits>::_u_move_registered_blocks_contiguous(size_t  contiguous, const Iterator& new_location, const LB& lb)
+    void allocator_t<Allocator, Traits>::_u_move_registered_blocks_contiguous(size_t contiguous,
+                                                                              const Iterator &new_location,
+                                                                              const LB &lb)
     {
 
-
-      
       this_allocator_block_handle_t new_handle;
-      auto adj_location = new_location+static_cast<ptrdiff_t>(contiguous-1);
+      auto adj_location = new_location + static_cast<ptrdiff_t>(contiguous - 1);
       new_handle.initialize(lb->m_thread_allocator, &*adj_location, adj_location->begin());
 
-
-      
       // uniqueness guarentees this is correct insertion point.
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), new_handle, block_handle_begin_compare_t{});
       // while block handle is not default constructable, we can move away from it.
       // thus we can use rotate to create an empty location to modify.
       // this is the optimal solution for moving in this fashion.
       if (likely(ub > lb)) {
-	::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
-	for(size_t i = contiguous; i >0; --i)
-	{
-	  auto ub_offset = static_cast<ptrdiff_t>(i);
-	  auto new_location_offset = static_cast<ptrdiff_t>(contiguous-i);
-	  (ub -  ub_offset)->m_block = &*(new_location+new_location_offset);
-	}
+        ::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
+        for (size_t i = contiguous; i > 0; --i) {
+          auto ub_offset = static_cast<ptrdiff_t>(i);
+          auto new_location_offset = static_cast<ptrdiff_t>(contiguous - i);
+          (ub - ub_offset)->m_block = &*(new_location + new_location_offset);
+        }
       } else {
-	::std::cerr << "During move, UB <=lb";
-	abort();
+        ::std::cerr << "During move, UB <=lb";
+        abort();
       }
       _ud_verify();
-
     }
 
-    
     template <typename Allocator, typename Traits>
     template <typename Container>
     void allocator_t<Allocator, Traits>::_u_move_registered_blocks(Container &blocks, ptrdiff_t offset)
-    {      
+    {
       _u_move_registered_blocks(blocks.begin(), blocks.end(), offset);
     }
     template <typename Allocator, typename Traits>
@@ -379,7 +366,7 @@ namespace cgc1
       if (lb != m_blocks.end()) {
         // sanity check uniqueness.
         if (lb->m_block == old_block) {
-	  _u_move_registered_blocks_contiguous(1,new_block,lb);
+          _u_move_registered_blocks_contiguous(1, new_block, lb);
         } else {
           // Uniqueness of block failed.
           ::std::cerr << "CGC1: Unable to find block to move\n";
@@ -400,7 +387,8 @@ namespace cgc1
       uint8_t *addr = reinterpret_cast<uint8_t *>(in_addr);
       _ud_verify();
       // create fake block handle to search for.
-      this_allocator_block_handle_t handle; handle.initialize(nullptr, nullptr, addr);
+      this_allocator_block_handle_t handle;
+      handle.initialize(nullptr, nullptr, addr);
       // note we find the ub, then move backwards one.
       // guarenteed that moving backwards one works because uniqueness.
       auto ub = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
@@ -659,7 +647,7 @@ namespace cgc1
       for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
         auto &&block = *block_it;
         assert(!block.empty());
-	(void)block;
+        (void)block;
       }
     }
 

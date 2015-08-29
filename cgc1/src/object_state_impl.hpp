@@ -10,7 +10,8 @@ namespace cgc1
     {
       return reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(v) - align(sizeof(object_state_t)));
     }
-    ALWAYS_INLINE inline void object_state_t::set_all(object_state_t *next, bool in_use, bool next_valid, bool quasi_freed) noexcept
+    ALWAYS_INLINE inline void
+    object_state_t::set_all(object_state_t *next, bool in_use, bool next_valid, bool quasi_freed) noexcept
     {
       m_next = reinterpret_cast<size_t>(next) | static_cast<size_t>(in_use) | (static_cast<size_t>(next_valid) << 1) |
                (static_cast<size_t>(quasi_freed) << 2);
@@ -60,7 +61,7 @@ namespace cgc1
     {
       size_t ptr = reinterpret_cast<size_t>(state);
       //      size_t iv = static_cast<size_t>(not_available());
-      m_next = (ptr & static_cast<size_t>(-4)) | (m_next&1);//(iv & 1);
+      m_next = (ptr & static_cast<size_t>(-4)) | (m_next & 1); //(iv & 1);
     }
     ALWAYS_INLINE inline uint8_t *object_state_t::object_start() const noexcept
     {

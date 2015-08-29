@@ -19,9 +19,9 @@ namespace cgc1
        **/
       void initialize(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)
       {
-	m_thread_allocator = ta;
-	m_block = block;
-	m_begin = begin;
+        m_thread_allocator = ta;
+        m_block = block;
+        m_begin = begin;
       }
       bool operator==(const allocator_block_handle_t &b) const
       {
@@ -50,9 +50,8 @@ namespace cgc1
     ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
                                                     const allocator_block_handle_t<Global_Allocator> &abh)
     {
-      os << "(" << abh.m_thread_allocator << "," << abh.m_block << "," << static_cast<void*>(abh.m_begin) << ")";
+      os << "(" << abh.m_thread_allocator << "," << abh.m_block << "," << static_cast<void *>(abh.m_begin) << ")";
       return os;
     }
-
   }
 }

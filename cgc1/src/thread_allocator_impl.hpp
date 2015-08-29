@@ -62,7 +62,10 @@ namespace cgc1
               [this](typename this_allocator_block_set_t::allocator_block_type &&block) {
                 m_allocator.destroy_allocator_block(*this, ::std::move(block));
               },
-              [this]() { m_allocator._mutex().lock(); assume_unlock(m_allocator._mutex()); },
+              [this]() {
+                m_allocator._mutex().lock();
+                assume_unlock(m_allocator._mutex());
+              },
               [this]() {
                 CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
                 m_allocator._mutex().unlock();
@@ -80,7 +83,7 @@ namespace cgc1
     size_t thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::find_block_set_id(size_t sz)
     {
       if (sz <= 16)
-	return 0;
+        return 0;
       sz = sz >> 4;
       // This is guarenteed to be positive.
       size_t id = static_cast<size_t>(64 - cgc1_builtin_clz1(sz));
@@ -94,7 +97,7 @@ namespace cgc1
       // we want minimums to be page size compatible.
       size_t min_size = slab_t::page_size();
       if (min_size <= 4096 * 4)
-	  min_size = 4096 * 4;
+        min_size = 4096 * 4;
       if (min_size > 4096 * 128)
         min_size = 4096 * 128;
       for (size_t i = 0; i < c_bins; ++i) {
@@ -111,8 +114,8 @@ namespace cgc1
         // based on the numbers we use for multiple, generate min and max allocation sizes.
         size_t min = static_cast<size_t>(1) << (i + 3);
         size_t max = (static_cast<size_t>(1) << (i + 4)) - 1;
-	if(i==c_bins-1)
-	  max=c_infinite_length;
+        if (i == c_bins - 1)
+          max = c_infinite_length;
         m_allocators[i]._set_allocator_sizes(min, max);
       }
     }
@@ -169,14 +172,15 @@ namespace cgc1
       auto allocator = &m_allocators[block_id];
       // destroy object.
       auto ret = allocator->destroy(v);
-      //handle allocator rounded size up.
+      // handle allocator rounded size up.
       if (!ret && block_id > 0) {
         allocator = &m_allocators[block_id - 1];
         ret = allocator->destroy(v);
       }
       // do book keeping for returning memory to global.
       // do this if we exceed the destroy threshold or externally forced.
-      if (m_force_free_empty_blocks.load(::std::memory_order_relaxed) || allocator->num_destroyed_since_last_free() > destroy_threshold()) {
+      if (m_force_free_empty_blocks.load(::std::memory_order_relaxed) ||
+          allocator->num_destroyed_since_last_free() > destroy_threshold()) {
         // ok, this needs to be tweaked.
         free_empty_blocks(m_minimum_local_blocks, false);
       }
@@ -207,8 +211,8 @@ namespace cgc1
       // if not succesful, that allocator needs more memory.
       // figre out how much memory to request.
       size_t memory_request = get_allocator_block_size(id);
-      if(memory_request < sz*3)
-	memory_request = sz*3;
+      if (memory_request < sz * 3)
+        memory_request = sz * 3;
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
@@ -221,25 +225,21 @@ namespace cgc1
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
-	typename global_allocator::block_type block;
-	{
-	  CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
-	  // fill the empty block.
-	  m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
-							m_allocators[id].allocator_max_size(), sz, block);
+        typename global_allocator::block_type block;
+        {
+          CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+          // fill the empty block.
+          m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                                          m_allocators[id].allocator_max_size(), sz, block);
 
-	  // gcreate and grab the empty block.
-	  auto& inserted_block_ref = abs.add_block(::std::move(block),
-						   [this]() { },
-						   [this]() {
-						   },
-						   [this](auto begin, auto end, auto offset) {
-						     CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
-						     m_allocator._u_move_registered_blocks(begin, end, offset);
-						   }
-						   );
-	  m_allocator._u_register_allocator_block(*this, inserted_block_ref);
-	}
+          // gcreate and grab the empty block.
+          auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
+                                                   [this](auto begin, auto end, auto offset) {
+                                                     CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                                                     m_allocator._u_move_registered_blocks(begin, end, offset);
+                                                   });
+          m_allocator._u_register_allocator_block(*this, inserted_block_ref);
+        }
       } catch (out_of_memory_exception_t) {
         abort();
         // we aren't going to try to handle out of memory at this point.
@@ -264,7 +264,7 @@ namespace cgc1
     void
     thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_destroy_threshold(destroy_threshold_type threshold)
     {
-      m_destroy_threshold = static_cast<uint16_t>(threshold>>3);
+      m_destroy_threshold = static_cast<uint16_t>(threshold >> 3);
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::set_minimum_local_blocks(uint16_t minimum)

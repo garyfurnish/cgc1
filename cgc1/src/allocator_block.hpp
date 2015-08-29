@@ -105,7 +105,7 @@ namespace cgc1
        * @param last_max_alloc_available Return the previous last max alloc available.
        * @return True on success, false on failure.
       **/
-      bool destroy(void *v, size_t& last_collapsed_size, size_t& last_max_alloc_available);
+      bool destroy(void *v, size_t &last_collapsed_size, size_t &last_max_alloc_available);
       /**
        * \brief Collect any adjacent blocks that may have formed into one block.
       **/
@@ -141,6 +141,7 @@ namespace cgc1
        * \brief Return updated last max alloc available.
        **/
       size_t last_max_alloc_available() const noexcept;
+
     public:
       /**
        * \brief Free list for this block.
@@ -172,7 +173,7 @@ namespace cgc1
       unique_ptr_allocated<user_data_type, Allocator> m_default_user_data;
       /**
        * \brief Updated last max alloc available.
-       * 
+       *
        * Designed to sync with allocator block sets.
        **/
       size_t m_last_max_alloc_available = 0;
@@ -219,14 +220,14 @@ namespace cgc1
       /*      uint8_t *allocator_block_begin() const
       {
         return m_allocator_block_begin;
-	}*/
+        }*/
       /**
        * \brief Return beginning of allocator block as object state.
        **/
       /*      object_state_t *allocator_block_state_begin() const
       {
         return reinterpret_cast<object_state_t *>(allocator_block_begin());
-	}*/
+        }*/
 
     private:
       /**
@@ -243,7 +244,7 @@ namespace cgc1
       bool m_is_default = false;
       /**
        * \brief True if uncollectable, false otherwise.
-       * 
+       *
        * Only used for gc_type.
       **/
       bool m_uncollectable = false;

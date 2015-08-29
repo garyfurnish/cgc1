@@ -86,14 +86,14 @@ namespace cgc1
       **/
       template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
       auto add_block(allocator_block_type &&block,
-		     Lock_Functional &&lock_func,
-		     Unlock_Functional &&unlock_func,
-		     Move_Functional &&move_func) -> allocator_block_type&;
+                     Lock_Functional &&lock_func,
+                     Unlock_Functional &&unlock_func,
+                     Move_Functional &&move_func) -> allocator_block_type &;
       /**
        * \brief Add a block to the set.
       **/
-      auto add_block(allocator_block_type && block) -> allocator_block_type&;
-      
+      auto add_block(allocator_block_type &&block) -> allocator_block_type &;
+
       /**
        * \brief Remove a block from the set.
        *
@@ -158,8 +158,10 @@ namespace cgc1
        * Coalescing, etc happens here.
       **/
       void _do_maintenance();
+
     private:
-      allocator_block_type* m_last_block = nullptr;
+      allocator_block_type *m_last_block = nullptr;
+
     public:
       /**
        * \brief Blocks that are available for placement.
@@ -175,7 +177,7 @@ namespace cgc1
        * \brief All blocks.
       **/
       allocator_block_vector_t m_blocks;
-      
+
     private:
       /**
        * \brief Minimum allocation size.

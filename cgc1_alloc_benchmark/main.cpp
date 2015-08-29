@@ -35,7 +35,7 @@ int main()
 #else
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
-  auto& allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = cgc1::details::g_gks.gc_allocator();
 
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {

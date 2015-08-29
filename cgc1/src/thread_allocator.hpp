@@ -171,7 +171,7 @@ namespace cgc1
       uint16_t m_destroy_threshold = ::std::numeric_limits<uint16_t>::max();
       /**
        * \brief Set this to true to force destruction of empty blocks.
-       * 
+       *
        * For instance a garbage collector may want to use this.
        * This lets you turn the destroy threshold very high.
        **/
