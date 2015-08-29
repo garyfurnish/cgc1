@@ -33,7 +33,7 @@ namespace cgc1
       using allocator = Allocator;
       using user_data_type = User_Data;
       static user_data_type s_default_user_data;
-      allocator_block_t() noexcept = default;
+      allocator_block_t() = default;
       /**
        * \brief Constructor
        * @param start Start of memory block that this allocator uses.
@@ -41,7 +41,7 @@ namespace cgc1
        * @param minimum_alloc_length Minimum length of object that can be allocated using this allocator.
        * @param maximum_alloc_length Maximum length of object that can be allocated using this allocator.
       **/
-      allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
+      allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length);
       allocator_block_t(const allocator_block_t &) = delete;
       allocator_block_t(allocator_block_t &&) noexcept;
       allocator_block_t &operator=(const allocator_block_t &) = delete;

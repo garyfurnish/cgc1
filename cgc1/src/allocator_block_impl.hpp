@@ -11,9 +11,8 @@ namespace cgc1
     allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
                                                                size_t length,
                                                                size_t minimum_alloc_length,
-                                                               size_t maximum_alloc_length) noexcept
-        : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)),
-          m_end(reinterpret_cast<uint8_t *>(start) + length),
+                                                               size_t maximum_alloc_length)
+        : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
     {
