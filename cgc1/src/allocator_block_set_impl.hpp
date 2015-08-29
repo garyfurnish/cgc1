@@ -122,7 +122,7 @@ namespace cgc1
       if (unlikely(!ret)) {
         // this shouldn't happen
         // so memory corruption, abort.
-        ::std::cerr << __FILE__ << " " << __LINE__ << "ABS failed to allocate, logic error/memory corruption." << ::std::endl;
+        ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption." << ::std::endl;
         abort();
         return nullptr;
       }
@@ -194,14 +194,11 @@ namespace cgc1
       _verify();
       if (!m_blocks.empty()) {
         typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
-        auto &back = last_block();
+	//        auto &back = last_block();
 	auto blocks_insertion_point = ::std::upper_bound(m_blocks.begin(), m_blocks.end(),block , begin_compare);
 	lock_func();
 	auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
 	move_func(moved_begin+1, m_blocks.end(), static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
-	//	m_blocks.emplace_back(::std::move(block));
-	(void)move_func;
-	(void)blocks_insertion_point;
 	unlock_func();
         // if moved on emplacement.
         if (unlikely(&m_blocks.front() != bbegin)) {
@@ -209,9 +206,9 @@ namespace cgc1
           ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();
         }
-	//	m_last_block = &m_blocks.back();
 	m_last_block = &*moved_begin;
-        size_t avail = back.max_alloc_available();
+	regenerate_available_blocks();
+	/*        size_t avail = back.max_alloc_available();
         if (avail) {
           auto pair = ::std::make_pair(avail, &back);
           // make sure not already in available blocks.
@@ -223,7 +220,7 @@ namespace cgc1
           // remember, available blocks is sorted, so must emplace in appropriate spot.
           auto insertion_point = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
           m_available_blocks.emplace(insertion_point, ::std::move(pair));
-        }
+	  }*/
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
