@@ -204,10 +204,11 @@ namespace cgc1
     {
       _verify();
       if (!m_blocks.empty()) {
+        assert(m_last_block < &*m_blocks.end());
         typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
         auto blocks_insertion_point = ::std::upper_bound(m_blocks.begin(), m_blocks.end(), block, begin_compare);
         lock_func();
-        auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
+        const auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
         move_func(moved_begin + 1, m_blocks.end(), static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
         unlock_func();
         // if moved on emplacement.
@@ -216,8 +217,27 @@ namespace cgc1
           ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();
         }
+        for (auto &&pair : m_available_blocks) {
+          assert(!pair.second->full());
+          assert(pair.second->last_max_alloc_available() == pair.first);
+          assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
+          if (pair.second >= &*moved_begin) {
+            pair.second += 1;
+          }
+          assert(pair.second->last_max_alloc_available() == pair.first);
+        }
+        if (m_last_block >= &*moved_begin) {
+          m_last_block++;
+        }
+        assert(m_last_block < &*m_blocks.end());
+        assert(m_last_block);
+        auto pair = ::std::make_pair(m_last_block->max_alloc_available(), m_last_block);
+        if (pair.first) {
+          auto avail_ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+          m_available_blocks.emplace(avail_ub, pair);
+        }
+        assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
         m_last_block = &*moved_begin;
-        regenerate_available_blocks();
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
@@ -285,6 +305,7 @@ namespace cgc1
       for (auto &pair : m_available_blocks) {
         unsafe_reference_cast<uint8_t *>(pair.second) += offset;
       }
+      unsafe_reference_cast<uint8_t *>(m_last_block) += offset;
       return static_cast<size_t>(offset);
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
