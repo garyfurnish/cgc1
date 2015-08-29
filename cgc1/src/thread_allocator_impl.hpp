@@ -221,11 +221,25 @@ namespace cgc1
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
-        // gcreate and grab the empty block.
-        typename global_allocator::block_type &block = abs.add_block();
-        // fill the empty block.
-        m_allocator.get_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
-                                        m_allocators[id].allocator_max_size(), sz, block);
+	typename global_allocator::block_type block;
+	{
+	  CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+	  // fill the empty block.
+	  m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+							m_allocators[id].allocator_max_size(), sz, block);
+
+	  // gcreate and grab the empty block.
+	  auto& inserted_block_ref = abs.add_block(::std::move(block),
+						   [this]() { },
+						   [this]() {
+						   },
+						   [this](auto begin, auto end, auto offset) {
+						     CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+						     m_allocator._u_move_registered_blocks(begin, end, offset);
+						   }
+						   );
+	  m_allocator._u_register_allocator_block(*this, inserted_block_ref);
+	}
       } catch (out_of_memory_exception_t) {
         abort();
         // we aren't going to try to handle out of memory at this point.

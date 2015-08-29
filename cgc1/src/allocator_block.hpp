@@ -33,7 +33,7 @@ namespace cgc1
       using allocator = Allocator;
       using user_data_type = User_Data;
       static user_data_type s_default_user_data;
-      allocator_block_t() = default;
+      allocator_block_t() noexcept = default;
       /**
        * \brief Constructor
        * @param start Start of memory block that this allocator uses.
@@ -41,7 +41,7 @@ namespace cgc1
        * @param minimum_alloc_length Minimum length of object that can be allocated using this allocator.
        * @param maximum_alloc_length Maximum length of object that can be allocated using this allocator.
       **/
-      allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length);
+      allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
       allocator_block_t(const allocator_block_t &) = delete;
       allocator_block_t(allocator_block_t &&) noexcept;
       allocator_block_t &operator=(const allocator_block_t &) = delete;
@@ -54,35 +54,35 @@ namespace cgc1
        * Return false if items are allocated or if no items are allocated and a collection is needed.
        * Note the semantics here!
       **/
-      bool empty() const;
+      bool empty() const noexcept;
       /**
        * \brief Return true if no more allocations can be performed.
       **/
-      bool full() const;
+      bool full() const noexcept;
       /**
        * \brief Begin iterator to allow bytewise iteration over memory block.
       **/
-      uint8_t *begin() const;
+      uint8_t *begin() const noexcept;
       /**
        * \brief End iterator to allow bytewise iteration over memory block.
       **/
-      uint8_t *end() const;
+      uint8_t *end() const noexcept;
       /**
        * \brief End iterator for object_states
       **/
-      object_state_t *current_end() const;
+      object_state_t *current_end() const noexcept;
       /**
        * \brief Return beginning object state.
        *
        * Produces undefined behavior if no valid object states.
       **/
-      object_state_t *_object_state_begin() const;
+      object_state_t *_object_state_begin() const noexcept;
       /**
        * \brief Find the object state associated with the given address.
        *
        * @return Associated object state, nullptr if not found.
       **/
-      object_state_t *find_address(void *addr) const;
+      object_state_t *find_address(void *addr) const noexcept;
       /**
        * \brief Allocate size bytes on the block.
        *

@@ -76,14 +76,24 @@ namespace cgc1
        * @return True if this block set allocated the memory and thus destroyed it, false otherwise.
       **/
       bool destroy(void *v);
+
+      /**
+       * \brief Add a block to the set.
+       *
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
+      **/
+      template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      auto add_block(allocator_block_type &&block,
+		     Lock_Functional &&lock_func,
+		     Unlock_Functional &&unlock_func,
+		     Move_Functional &&move_func) -> allocator_block_type&;
       /**
        * \brief Add a block to the set.
       **/
-      void add_block(allocator_block_type &&block);
-      /**
-       * \brief Add an empty block to the set.
-      **/
-      auto add_block() -> allocator_block_type &;
+      auto add_block(allocator_block_type && block) -> allocator_block_type&;
+      
       /**
        * \brief Remove a block from the set.
        *
@@ -139,9 +149,18 @@ namespace cgc1
        **/
       auto num_destroyed_since_last_free() const noexcept -> size_t;
       /**
-       * \brief All blocks.
+       * \brief Do internal verification.
       **/
-      allocator_block_vector_t m_blocks;
+      void _verify() const;
+      /**
+       * \brief Do maintance on thread associated blocks.
+       *
+       * Coalescing, etc happens here.
+      **/
+      void _do_maintenance();
+    private:
+      allocator_block_type* m_last_block = nullptr;
+    public:
       /**
        * \brief Blocks that are available for placement.
        *
@@ -153,16 +172,10 @@ namespace cgc1
       **/
       allocator_block_reference_vector_t m_available_blocks;
       /**
-       * \brief Do internal verification.
+       * \brief All blocks.
       **/
-      void _verify() const;
-      /**
-       * \brief Do maintance on thread associated blocks.
-       *
-       * Coalescing, etc happens here.
-      **/
-      void _do_maintenance();
-
+      allocator_block_vector_t m_blocks;
+      
     private:
       /**
        * \brief Minimum allocation size.

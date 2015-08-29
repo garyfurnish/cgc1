@@ -44,7 +44,7 @@ void thread_main()
     ptrs.push_back(ret);
   }
   for(auto&& ptr : ptrs)
-    GC_free(ptr);
+      GC_free(ptr);
   ++done;
   GC_unregister_my_thread();
   #else
@@ -59,7 +59,7 @@ void thread_main()
     ptrs.push_back(ret);
   }
   for(auto&& ptr : ptrs)
-    ts.destroy(ptr);
+      ts.destroy(ptr);
   ++done;
   #endif
 }

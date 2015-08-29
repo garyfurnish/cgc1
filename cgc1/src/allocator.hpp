@@ -166,18 +166,19 @@ namespace cgc1
       /**
        * \brief Create or reuse an allocator block in destination by reference.
        *
+       * The allocation block returned must be registered.
        * @param ta Thread allocator requesting block.
        * @param create_sz Size of block requested.
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param destination Returned allocator block.
       **/
-      void get_allocator_block(this_thread_allocator_t &ta,
+      void _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                size_t create_sz,
                                size_t minimum_alloc_length,
                                size_t maximum_alloc_length,
                                size_t allocate_size,
-                               block_type &destination) REQUIRES(!m_mutex);
+                               block_type &destination) REQUIRES(m_mutex);
 
       /**
        * \brief Release an interval of memory.
@@ -385,11 +386,6 @@ namespace cgc1
        **/
       void _u_collect() REQUIRES(m_mutex);
 
-    private:
-      /**
-       * \brief Vector type for storing blocks held by the global allocator.
-       **/
-      using global_block_vector_type = rebind_vector_t<block_type, allocator>;
       /**
        * \brief Register a allocator block before moving/destruction.
        *
@@ -398,6 +394,12 @@ namespace cgc1
        * @param block Block to register.
       **/
       void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+      
+    private:
+      /**
+       * \brief Vector type for storing blocks held by the global allocator.
+       **/
+      using global_block_vector_type = rebind_vector_t<block_type, allocator>;
       /**
        * \brief Return an allocator block.
        *

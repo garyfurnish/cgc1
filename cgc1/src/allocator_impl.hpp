@@ -124,24 +124,23 @@ namespace cgc1
       return ret;
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::get_allocator_block(this_thread_allocator_t &ta,
+    void allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                                              size_t create_sz,
                                                              size_t minimum_alloc_length,
                                                              size_t maximum_alloc_length,
                                                              size_t allocate_sz,
                                                              block_type &block)
     {
-      {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         // first check to see if we can find a partially used block that fits parameters.
         auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
         if (found_block != m_global_blocks.end()) {
           // reuse old block.
           auto old_block_addr = &*found_block;
+	  _u_unregister_allocator_block(*old_block_addr);
           // move old block into new address.
           block = ::std::move(*found_block);
           // move block registration.
-          _u_move_registered_block(old_block_addr, &block);
+	  //          _u_move_registered_block(old_block_addr, &block);
           // figure out location in vector that shifted.
           size_t location = static_cast<size_t>(found_block - m_global_blocks.begin());
           // remove block from vector.
@@ -154,9 +153,6 @@ namespace cgc1
         }
 	// otherwise just create a new block
 	_u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
-	// and register it.
-	_u_register_allocator_block(ta, block);
-      }
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_create_allocator_block(this_thread_allocator_t &ta,
@@ -222,7 +218,11 @@ namespace cgc1
           abort();
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
         if (it.m_begin == block.begin())
-          abort();
+	  {
+	    ::std::cerr << __FILE__ << " " << __LINE__ << " Attempt to double register block.\n";
+	    ::std::cerr << __FILE__ << " " << __LINE__ << " " << &block << " " << reinterpret_cast<void*>(block.begin()) << ::std::endl;
+	    abort();
+	  }
       }
 #endif
       // create a fake handle to search for.
@@ -277,12 +277,14 @@ namespace cgc1
     }
     template <typename Allocator, typename Traits>
     template <typename Iterator>
-    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator &end, ptrdiff_t offset)
+    void allocator_t<Allocator, Traits>::_u_move_registered_blocks(const Iterator &begin, const Iterator & end, const ptrdiff_t offset)
     {
+
       if(begin!=end)
 	{
 	  block_type*  new_block = &*begin;
 	  block_type * old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+      
 	  // create fake handle to search for.
 	  this_allocator_block_handle_t handle;
 	  handle.initialize(nullptr, old_block, new_block->begin());

@@ -11,7 +11,7 @@ namespace cgc1
      allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
                                                                       size_t length,
                                                                       size_t minimum_alloc_length,
-                                                                      size_t maximum_alloc_length)
+                                                                      size_t maximum_alloc_length) noexcept
         : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
@@ -87,29 +87,29 @@ namespace cgc1
       return m_start != nullptr;
     }
     template <typename Allocator, typename User_Data>
-    bool allocator_block_t<Allocator, User_Data>::empty() const
+    bool allocator_block_t<Allocator, User_Data>::empty() const noexcept
     {
       if (!m_next_alloc_ptr)
         return false;
       return reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == begin() && !m_next_alloc_ptr->next_valid();
     }
     template <typename Allocator, typename User_Data>
-    inline bool allocator_block_t<Allocator, User_Data>::full() const
+    inline bool allocator_block_t<Allocator, User_Data>::full() const noexcept
     {
       return m_next_alloc_ptr == nullptr && m_free_list.empty();
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::begin() const
+    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::begin() const noexcept
     {
       return m_start;
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::end() const
+    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::end() const noexcept
     {
       return m_end;
     }
     template <typename Allocator, typename User_Data>
-    inline object_state_t *allocator_block_t<Allocator, User_Data>::current_end() const
+    inline object_state_t *allocator_block_t<Allocator, User_Data>::current_end() const noexcept
     {
       if (!m_next_alloc_ptr)
         return reinterpret_cast<object_state_t *>(end());
@@ -117,12 +117,12 @@ namespace cgc1
         return m_next_alloc_ptr;
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline object_state_t *allocator_block_t<Allocator, User_Data>::_object_state_begin() const
+    ALWAYS_INLINE inline object_state_t *allocator_block_t<Allocator, User_Data>::_object_state_begin() const noexcept
     {
       return reinterpret_cast<object_state_t *>(begin());
     }
     template <typename Allocator, typename User_Data>
-    object_state_t *allocator_block_t<Allocator, User_Data>::find_address(void *addr) const
+    object_state_t *allocator_block_t<Allocator, User_Data>::find_address(void *addr) const noexcept
     {
       for (auto it = make_next_iterator(_object_state_begin()); it != make_next_iterator(current_end()); ++it) {
         if (it->object_end() > addr) {
