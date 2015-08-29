@@ -97,13 +97,23 @@ namespace cgc1
       **/
       bool destroy(void *v);
       /**
+       * \brief Destroy a v that is on the block.
+       *
+       * The usual cause of failure would be the pointer not being in the block.
+       * @param v Pointer to destroy.
+       * @param last_collapsed_size Max size of allocation made available by destroying.
+       * @param last_max_alloc_available Return the previous last max alloc available.
+       * @return True on success, false on failure.
+      **/
+      bool destroy(void *v, size_t& last_collapsed_size, size_t& last_max_alloc_available);
+      /**
        * \brief Collect any adjacent blocks that may have formed into one block.
       **/
       void collect();
       /**
        * \brief Return the maximum allocation size available.
       **/
-      size_t max_alloc_available() const;
+      size_t max_alloc_available();
       /**
        * \brief Verify object state os.
        *
@@ -127,7 +137,10 @@ namespace cgc1
        * \brief Return maximum object allocation length.
       **/
       size_t maximum_allocation_length() const;
-
+      /**
+       * \brief Return updated last max alloc available.
+       **/
+      size_t last_max_alloc_available() const noexcept;
     public:
       /**
        * \brief Free list for this block.
@@ -157,6 +170,12 @@ namespace cgc1
        * The allocated memory is stored in control allocator.
        **/
       unique_ptr_allocated<user_data_type, Allocator> m_default_user_data;
+      /**
+       * \brief Updated last max alloc available.
+       * 
+       * Designed to sync with allocator block sets.
+       **/
+      size_t m_last_max_alloc_available = 0;
       /**
        * \brief Maximum object allocation length.
        *

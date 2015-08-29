@@ -129,6 +129,7 @@ namespace cgc1
       // ok, so we have allocated the memory.
       auto it = lower_bound;
       it->first = it->second->max_alloc_available();
+      assert(it->first==it->second->last_max_alloc_available());
       // see if there is allocation left in block.
       if (it->first == 0) {
         m_available_blocks.erase(it);
@@ -151,29 +152,45 @@ namespace cgc1
     {
       _verify();
       auto it = ::std::lower_bound(m_blocks.begin(),m_blocks.end(), v, end_val_compare);
-      if (it!=m_blocks.end() && it->destroy(v)) {
-	if (it != (m_blocks.end() - 1) && !it->full()) {
-	  // this is goofy
-	  sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
-	  auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-	  auto ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-				      [&it](auto &ab) { return ab.second == &*it; });
-
-	  if (ab_it != m_available_blocks.end()) {
-	    assert(ab_it < ub);
-	    if (ub - 1 == ab_it) {
-	      // don't move at all, life made easy.
-	    } else {
-	      // ab_it and ub-1 swap places while maintaing ordering of stuff inbetween them.
-	      // rotate is optimal over erase/insert.
-	      ::std::rotate(ab_it, ab_it + 1, ub);
-	      *(ub - 1) = pair;
+      size_t last_collapsed_size = 0;
+      size_t prev_last_max_alloc_available = 0;
+      if (it!=m_blocks.end() && it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
+	if (&*it != &last_block() && !it->full()) {
+	  typename allocator_block_reference_vector_t::iterator ab_it2;
+	  //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
+	  //	    [&it](auto &ab) { return ab.second == &*it; });
+	  sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);		  
+	  ab_it2 = ::std::lower_bound(m_available_blocks.begin(),m_available_blocks.end(), pair2, abrvr_compare);	 
+	  if(ab_it2 !=m_available_blocks.end())
+	    {
+	      while(ab_it2->first==pair2.first)
+		{
+		  if(ab_it2->second==&*it)
+		    break;
+		}
+	      if(ab_it2->second!=&*it)
+		goto NOT_FOUND;
+	      
+	      auto new_sz = ::std::max(ab_it2->first,last_collapsed_size);
+	      sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);		  
+	      auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+	      assert(ab_it2 < ub);
+	      if (ub - 1 == ab_it2) {
+		// don't move at all, life made easy.
+	      } else {
+		// ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
+		// rotate is optimal over erase/insert.
+		::std::rotate(ab_it2, ab_it2 + 1, ub);
+	      }
+	      *(ub-1)=pair;
 	    }
-	  } else {
-	    m_available_blocks.emplace(ub, ::std::move(pair));
-	  }
-	  _verify();
-	} else {
+	  else
+	    {
+	    NOT_FOUND:
+	      sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
+	      auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+	      m_available_blocks.emplace(ub, ::std::move(pair));
+	    }
 	}
 	// increment destroyed count.
 	m_num_destroyed_since_free += 1;
@@ -194,7 +211,6 @@ namespace cgc1
       _verify();
       if (!m_blocks.empty()) {
         typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
-	//        auto &back = last_block();
 	auto blocks_insertion_point = ::std::upper_bound(m_blocks.begin(), m_blocks.end(),block , begin_compare);
 	lock_func();
 	auto moved_begin = m_blocks.emplace(blocks_insertion_point, ::std::move(block));
@@ -208,19 +224,6 @@ namespace cgc1
         }
 	m_last_block = &*moved_begin;
 	regenerate_available_blocks();
-	/*        size_t avail = back.max_alloc_available();
-        if (avail) {
-          auto pair = ::std::make_pair(avail, &back);
-          // make sure not already in available blocks.
-          // if this happens, the previous back was in the available blocks.
-          // but back of m_blocks is guarented never to be in available blocks by constraint.
-          // so this should not happen.
-          assert(::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-                                [&pair](auto a) { return a.second == pair.second; }) == m_available_blocks.end());
-          // remember, available blocks is sorted, so must emplace in appropriate spot.
-          auto insertion_point = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-          m_available_blocks.emplace(insertion_point, ::std::move(pair));
-	  }*/
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));

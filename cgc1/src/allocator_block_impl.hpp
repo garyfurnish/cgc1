@@ -244,6 +244,14 @@ namespace cgc1
     }
     template <typename Allocator, typename User_Data>
     bool allocator_block_t<Allocator, User_Data>::destroy(void *v)
+							  {
+							    size_t tmp=0;
+							    size_t last_max_alloc_available=0;
+							    return destroy(v,tmp, last_max_alloc_available);
+							  }
+
+    template <typename Allocator, typename User_Data>
+    bool allocator_block_t<Allocator, User_Data>::destroy(void *v, size_t& last_collapsed_size, size_t& last_max_alloc_available)
     {
       // get object state.
       object_state_t *state = object_state_t::from_object_start(v);
@@ -272,16 +280,20 @@ namespace cgc1
         // if the next state is valid, then there are states after
         // so add it to free list.
         m_free_list.push_back(state);
+	last_collapsed_size = state->object_size();
       } else {
         // if here the next state is invalid, so this is at tail
         // so just adjust pointer.
         m_next_alloc_ptr = state;
+	last_collapsed_size = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
       }
+      last_max_alloc_available = m_last_max_alloc_available;
+      m_last_max_alloc_available = ::std::max(m_last_max_alloc_available,last_collapsed_size);
       _verify(state);
       return true;
     }
     template <typename Allocator, typename User_Data>
-    size_t allocator_block_t<Allocator, User_Data>::max_alloc_available() const
+    size_t allocator_block_t<Allocator, User_Data>::max_alloc_available()
     {
       size_t max_alloc = 0;
       // if we can alloc at tail, first check that size.
@@ -291,6 +303,7 @@ namespace cgc1
       for (object_state_t *state : m_free_list) {
         max_alloc = ::std::max(max_alloc, state->object_size());
       }
+      m_last_max_alloc_available = max_alloc;
       return max_alloc;
     }
     template <typename Allocator, typename User_Data>
@@ -356,7 +369,11 @@ namespace cgc1
     {
       return m_maximum_alloc_length;
     }
-
+    template <typename Allocator, typename User_Data>
+    size_t allocator_block_t<Allocator, User_Data>::last_max_alloc_available() const noexcept
+    {
+      return m_last_max_alloc_available;
+    }
     bool
     is_valid_object_state(const object_state_t *state, const uint8_t *user_data_range_begin, const uint8_t *user_data_range_end)
     {
