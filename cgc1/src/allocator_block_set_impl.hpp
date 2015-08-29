@@ -50,8 +50,9 @@ namespace cgc1
       for (auto &block : m_blocks) {
         // the back one doesn't go in available blocks,
         // we handle it explicitly.
-        if (&block == &last_block())
+        if (&block == &last_block()) {
           continue;
+        }
         if (!block.full()) {
           sized_block_ref_t pair = ::std::make_pair(block.max_alloc_available(), &block);
           m_available_blocks.emplace_back(::std::move(pair));
@@ -90,6 +91,14 @@ namespace cgc1
       assert(ait == m_available_blocks.end());
 
 #endif
+
+      for (auto &&pair : m_available_blocks) {
+        (void)pair;
+        assert(pair.second != &last_block());
+        assert(!pair.second->full());
+        assert(pair.second->last_max_alloc_available() == pair.first);
+        //	  assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
+      }
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void *allocator_block_set_t<Allocator, Allocator_Block_User_Data>::allocate(size_t sz)
@@ -99,6 +108,7 @@ namespace cgc1
         if (!m_blocks.empty()) {
           assert(&last_block());
           void *ret = last_block().allocate(sz);
+
           return ret;
         }
       }
@@ -132,6 +142,7 @@ namespace cgc1
       if (it->first == 0) {
         m_available_blocks.erase(it);
         _verify();
+
         return ret;
       }
       // find new insertion point.
@@ -143,6 +154,7 @@ namespace cgc1
       // otherwise rotate the list to move it to the new_ub position.
       ::std::rotate(new_ub, it, it + 1);
       _verify();
+
       return ret;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -163,6 +175,7 @@ namespace cgc1
             while (ab_it2->first == pair2.first) {
               if (ab_it2->second == &*it)
                 break;
+              ab_it2++;
             }
             if (ab_it2->second != &*it)
               goto NOT_FOUND;
@@ -189,6 +202,8 @@ namespace cgc1
         // increment destroyed count.
         m_num_destroyed_since_free += 1;
         _verify();
+
+        regenerate_available_blocks();
         return true;
       }
       _verify();
@@ -202,6 +217,7 @@ namespace cgc1
         Unlock_Functional &&unlock_func,
         Move_Functional &&move_func) -> allocator_block_type &
     {
+
       _verify();
       if (!m_blocks.empty()) {
         assert(m_last_block < &*m_blocks.end());
@@ -219,11 +235,12 @@ namespace cgc1
         }
         for (auto &&pair : m_available_blocks) {
           assert(!pair.second->full());
-          assert(pair.second->last_max_alloc_available() == pair.first);
-          assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
+          //          assert(pair.second->last_max_alloc_available() == pair.first);
+          //          assert(pair.second->last_max_alloc_available() == pair.second->max_alloc_available());
           if (pair.second >= &*moved_begin) {
             pair.second += 1;
           }
+          //	  pair.first = pair.second->max_alloc_available();
           assert(pair.second->last_max_alloc_available() == pair.first);
         }
         if (m_last_block >= &*moved_begin) {
@@ -238,6 +255,7 @@ namespace cgc1
         }
         assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
         m_last_block = &*moved_begin;
+        regenerate_available_blocks();
         _verify();
       } else {
         m_blocks.emplace_back(::std::move(block));
@@ -266,8 +284,9 @@ namespace cgc1
           ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(), [&it](auto &&abp) { return abp.second == &*it; });
       if (ait != m_available_blocks.end())
         m_available_blocks.erase(ait);
+      // is this  a bug? THIS WAS >, now >=
       for (auto &&ab : m_available_blocks) {
-        if (ab.second > &*it)
+        if (ab.second >= &*it)
           ab.second--;
       }
       // use lock functional.
@@ -278,10 +297,15 @@ namespace cgc1
       move_func(moved_begin, m_blocks.end(), -static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
       // unlock functional
       unlock_func();
-      if (m_blocks.empty())
-        m_last_block = nullptr;
-      else
-        m_last_block = &m_blocks.back();
+      if (&last_block() == &*it) {
+        if (!m_available_blocks.empty()) {
+          m_last_block = m_available_blocks.back().second;
+          m_available_blocks.pop_back();
+        }
+      } else if (&last_block() >= &*it) {
+        m_last_block--;
+      }
+      regenerate_available_blocks();
       _verify();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -293,6 +317,7 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline size_t allocator_block_set_t<Allocator, Allocator_Block_User_Data>::grow_blocks(size_t sz)
     {
+      _verify();
       // save old location of blocks.
       typename allocator_block_vector_t::value_type *bbegin = &m_blocks.front();
       if (sz == 0 || sz < m_blocks.size())
@@ -303,9 +328,10 @@ namespace cgc1
       auto offset = reinterpret_cast<uint8_t *>(&m_blocks.front()) - reinterpret_cast<uint8_t *>(bbegin);
       // adjust location of available blocks by adding offset to each.
       for (auto &pair : m_available_blocks) {
-        unsafe_reference_cast<uint8_t *>(pair.second) += offset;
+        pair.second = reinterpret_cast<allocator_block_type *>(reinterpret_cast<uint8_t *>(pair.second) + offset);
       }
-      unsafe_reference_cast<uint8_t *>(m_last_block) += offset;
+      m_last_block = reinterpret_cast<allocator_block_type *>(reinterpret_cast<uint8_t *>(m_last_block) + offset);
+      _verify();
       return static_cast<size_t>(offset);
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
@@ -331,6 +357,7 @@ namespace cgc1
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::free_empty_blocks(
         L &&l, Lock_Functional &&lock_func, Unlock_Functional &&unlock_func, Move_Functional &&move_func, size_t min_to_leave)
     {
+      _verify();
       // this looks really complicated but it is actually quite light weight since blocks are tiny and everything is contiguous.
       size_t num_empty = 0;
       // first we collect and see how many total empty blocks there are.

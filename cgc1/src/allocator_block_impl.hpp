@@ -46,6 +46,7 @@ namespace cgc1
           m_minimum_alloc_length(block.m_minimum_alloc_length),
           m_start(block.m_start),
           m_default_user_data(std::move(block.m_default_user_data)),
+          m_last_max_alloc_available(block.m_last_max_alloc_available),
           m_maximum_alloc_length(block.m_maximum_alloc_length)
     {
       // invalidate moved from block.
@@ -63,6 +64,7 @@ namespace cgc1
       m_end = block.m_end;
       m_minimum_alloc_length = block.m_minimum_alloc_length;
       m_start = block.m_start;
+      m_last_max_alloc_available = block.m_last_max_alloc_available;
       m_maximum_alloc_length = block.m_maximum_alloc_length;
       // invalidate moved from block.
       block.clear();

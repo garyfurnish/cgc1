@@ -221,7 +221,9 @@ namespace cgc1
           // if not safe to move a block, expand that allocator block set.
           m_allocator._mutex().lock();
           m_allocator._ud_verify();
+          abs._verify();
           ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
+          abs._verify();
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
           m_allocator._mutex().unlock();
         }
