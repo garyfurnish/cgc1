@@ -8,7 +8,7 @@ namespace cgc1
   {
 
     // size comparison for available blocks.
-    static const auto abrvr_compare = [](auto &&r, auto &&it) { return r.first < it.first; };
+    static const auto abrvr_compare = [](auto &&r, auto &&it) { return r< it;};
     // begin compare for block ordering.
     static const auto begin_compare = [](auto &&r, auto &&it) { return r.begin() < it.begin(); };
     static const auto begin_val_compare = [](auto &&r, auto &&val) { return r.begin() < val; };
@@ -167,14 +167,19 @@ namespace cgc1
           //	    [&it](auto &ab) { return ab.second == &*it; });
           sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
           ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
+	  auto ab_it = ab_it2;
           if (ab_it2 != m_available_blocks.end()) {
+	    #if _CGC1_DEBUG_LEVEL > 1
             while (ab_it2->first == pair2.first) {
               if (ab_it2->second == &*it)
                 break;
               ab_it2++;
             }
+	    #endif
             if (ab_it2->second != &*it)
               goto NOT_FOUND;
+	    (void)ab_it;
+	    assert(ab_it==ab_it2);
 
             auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
             sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
