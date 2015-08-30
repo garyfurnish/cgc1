@@ -22,7 +22,7 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-static const size_t num_alloc = 200000000;
+static const size_t num_alloc = 10000000;
 // static const size_t num_alloc = 3000000;
 static const size_t num_thread = 64;
 static const size_t num_thread_alloc = num_alloc / num_thread;
@@ -103,8 +103,8 @@ int main()
 {
 #ifdef BOEHM
   ::std::cout << "Using bohem\n";
-  GC_disable();
   GC_INIT();
+  GC_disable();
   GC_allow_register_threads();
 #else
   ::std::cout << "Using cgc1\n";
@@ -132,6 +132,8 @@ int main()
   GC_enable();
   GC_gcollect();
 #else
+  //  for(size_t i = 0; i < 500; ++i)
+  //    cgc1::cgc_force_collect();
   cgc1::cgc_force_collect();
 #endif
   t2 = ::std::chrono::high_resolution_clock::now();

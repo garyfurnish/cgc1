@@ -33,6 +33,8 @@ namespace cgc1
     public:
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
       using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, cgc_allocator_traits>;
+      using duration_type = ::std::chrono::duration<double>;
+
       global_kernel_state_t();
       global_kernel_state_t(const global_kernel_state_t &) = delete;
       global_kernel_state_t(global_kernel_state_t &&) = delete;
@@ -164,6 +166,27 @@ namespace cgc1
       **/
       object_state_t *find_valid_object_state(void *addr) const REQUIRES(!m_mutex);
 
+      /**
+       * \brief Return time for clear phase of gc.
+       **/
+      auto clear_mark_time_span() const -> duration_type;
+      /**
+       * \brief Return time for mark phase of gc.
+       **/
+      auto mark_time_span() const -> duration_type;
+      /**
+       * \brief Return time for sweep phase of gc.
+       **/
+      auto sweep_time_span() const -> duration_type;
+      /**
+       * \brief Return time for notify phase of gc.
+       **/
+      auto notify_time_span() const -> duration_type;
+      /**
+       * \brief Return total gc collect time.
+       **/
+      auto total_collect_time_span() const -> duration_type;
+
       mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
 
     private:
@@ -273,6 +296,27 @@ namespace cgc1
        * True if the kernel has been initialized, false otherwise.
       **/
       bool m_initialized GUARDED_BY(m_mutex) = false;
+      /**
+       * \brief Time for clear phase of gc.
+       **/
+      duration_type m_clear_mark_time_span = duration_type::min();
+      /**
+       * \brief Time for mark phase of gc.
+       **/
+      duration_type m_mark_time_span = duration_type::min();
+      /**
+       * \brief Time for sweep phase of gc.
+       **/
+      duration_type m_sweep_time_span = duration_type::min();
+      /**
+       * \brief Time for notify phase of gc.
+       **/
+      duration_type m_notify_time_span = duration_type::min();
+      /**
+       * \brief Total gc collect time.
+       **/
+      duration_type m_total_collect_time_span = duration_type::min();
+
       /*
        * \brief Size of slab allocator at start.
       */

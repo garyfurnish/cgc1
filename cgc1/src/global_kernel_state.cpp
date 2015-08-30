@@ -72,6 +72,27 @@ namespace cgc1
     {
       return m_enabled_count > 0;
     }
+    auto global_kernel_state_t::clear_mark_time_span() const -> duration_type
+    {
+      return m_clear_mark_time_span;
+    }
+    auto global_kernel_state_t::mark_time_span() const -> duration_type
+    {
+      return m_mark_time_span;
+    }
+    auto global_kernel_state_t::sweep_time_span() const -> duration_type
+    {
+      return m_sweep_time_span;
+    }
+    auto global_kernel_state_t::notify_time_span() const -> duration_type
+    {
+      return m_notify_time_span;
+    }
+    auto global_kernel_state_t::total_collect_time_span() const -> duration_type
+    {
+      return m_total_collect_time_span;
+    }
+
     object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
       // During garbage collection we may assume that the GC data is static.
@@ -207,6 +228,8 @@ namespace cgc1
         CGC1_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
         _u_setup_gc_threads();
       }
+      ::std::chrono::high_resolution_clock::time_point t1, t2, tstart;
+      tstart = t1 = ::std::chrono::high_resolution_clock::now();
       // clear all marks.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_clear();
@@ -215,6 +238,9 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_clear_finished();
       }
+      t2 = ::std::chrono::high_resolution_clock::now();
+      m_clear_mark_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+      t1 = t2;
       // start marking.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_mark();
@@ -223,6 +249,9 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_mark_finished();
       }
+      t2 = ::std::chrono::high_resolution_clock::now();
+      m_mark_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+      t1 = t2;
       // start sweeping.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
@@ -231,10 +260,17 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_sweep_finished();
       }
+      t2 = ::std::chrono::high_resolution_clock::now();
+      m_sweep_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+      t1 = t2;
       // notify safe to resume threads.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->notify_all_threads_resumed();
       }
+      t2 = ::std::chrono::high_resolution_clock::now();
+      m_notify_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
+      m_total_collect_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - tstart);
+
       m_num_collections++;
       m_collect = false;
       m_thread_mutex.lock();
@@ -335,7 +371,7 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(pow2(33), pow2(36));
-      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      // const size_t num_gc_threads = ::std::thread::hardware_concurrency();
       const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
       if (!num_gc_threads) {

@@ -111,41 +111,41 @@ namespace cgc1
      * @param ptr Start object.
      * @param advance Functional used to advance to next object.
      **/
-    functional_iterator_t(T *t, In_Advance &&advance) : m_t(t), m_advance(::std::forward<In_Advance>(advance))
+    functional_iterator_t(T *t, In_Advance &&advance) noexcept : m_t(t), m_advance(::std::forward<In_Advance>(advance))
     {
     }
-    functional_iterator_t(const functional_iterator_t<T, Advance> &) = default;
-    functional_iterator_t(functional_iterator_t<T, Advance> &&) = default;
-    functional_iterator_t<T, Advance> &operator=(const functional_iterator_t &) = default;
-    functional_iterator_t<T, Advance> &operator=(functional_iterator_t &&) = default;
-    T &operator*() const
+    functional_iterator_t(const functional_iterator_t<T, Advance> &) noexcept = default;
+    functional_iterator_t(functional_iterator_t<T, Advance> &&) noexcept = default;
+    functional_iterator_t<T, Advance> &operator=(const functional_iterator_t &) noexcept = default;
+    functional_iterator_t<T, Advance> &operator=(functional_iterator_t &&) noexcept = default;
+    T &operator*() const noexcept
     {
       return *m_t;
     }
-    T *operator->() const
+    T *operator->() const noexcept
     {
       return m_t;
     }
-    operator T *() const
+    operator T *() const noexcept
     {
       return m_t;
     }
-    functional_iterator_t<T, Advance> &operator++(int)
+    functional_iterator_t<T, Advance> &operator++(int) noexcept
     {
       auto ret = functional_iterator_t<T, Advance>(m_t, m_advance);
       m_t = m_advance(m_t);
       return ret;
     }
-    functional_iterator_t<T, Advance> &operator++()
+    functional_iterator_t<T, Advance> &operator++() noexcept
     {
       m_t = m_advance(m_t);
       return *this;
     }
-    bool operator==(const functional_iterator_t<T, Advance> &it) const
+    bool operator==(const functional_iterator_t<T, Advance> &it) const noexcept
     {
       return m_t == it.m_t;
     }
-    bool operator!=(const functional_iterator_t<T, Advance> &it) const
+    bool operator!=(const functional_iterator_t<T, Advance> &it) const noexcept
     {
       return m_t != it.m_t;
     }
@@ -158,7 +158,7 @@ namespace cgc1
    * \brief Function to make functional iterators that uses type deduction to avoid end user templates.
   **/
   template <typename T, typename Advance>
-  auto make_functional_iterator(T *t, Advance &&advance) -> functional_iterator_t<T, Advance>
+  auto make_functional_iterator(T *t, Advance &&advance) noexcept -> functional_iterator_t<T, Advance>
   {
     return functional_iterator_t<T, Advance>(t, ::std::forward<Advance>(advance));
   }
@@ -167,9 +167,9 @@ namespace cgc1
    **/
   struct iterator_next_advancer_t {
     template <typename T>
-    auto operator()(T t) -> decltype(t->next())
+    auto operator()(T &&t) const noexcept -> decltype(t->next())
     {
-      return t->next();
+      return ::std::forward<T>(t)->next();
     }
   };
   /**
@@ -181,7 +181,7 @@ namespace cgc1
    * \brief Function to make next iterators that uses type deduction to avoid end user templates.
   **/
   template <typename T>
-  auto make_next_iterator(T *t) -> next_iterator<T>
+  auto make_next_iterator(T *t) noexcept -> next_iterator<T>
   {
     return make_functional_iterator(t, iterator_next_advancer_t{});
   }
