@@ -22,9 +22,9 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-// static const size_t num_alloc = 10000000;
-static const size_t num_alloc = 3000000;
-static const size_t num_thread = 20;
+static const size_t num_alloc = 200000000;
+// static const size_t num_alloc = 3000000;
+static const size_t num_thread = 64;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
@@ -51,13 +51,12 @@ void thread_main()
       abort();
     ptrs.emplace_back(ret);
   }
-  for(size_t i = 0; i < ptrs.size(); ++i)
-    {
-      if(i%2)
-	GC_free(ptrs[i]);
-    }
+  for (size_t i = 0; i < ptrs.size(); ++i) {
+    if (i % 2)
+      GC_free(ptrs[i]);
+  }
   ptrs.clear();
-  for (size_t i = 0; i < num_thread_alloc/2; ++i) {
+  for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
       abort();
@@ -69,29 +68,32 @@ void thread_main()
 #else
   auto &allocator = cgc1::details::g_gks.gc_allocator();
   auto &ts = allocator.initialize_thread();
+
+  using ts_type = typename ::std::decay<decltype(ts)>::type;
+  for (size_t i = 0; i < ts_type::c_bins; ++i)
+    ts.set_allocator_multiple(i, ts.get_allocator_multiple(i) * 256);
+
   ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   start_cv.wait(go_lk, []() { return go.load(); });
   go_lk.unlock();
-  
+
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz);
     if (!ret)
       abort();
     ptrs.emplace_back(ret);
   }
-  for(size_t i = 0; i < ptrs.size(); ++i)
-    {
-      if(i%2)
-	ts.destroy(ptrs[i]);
-    }
+  for (size_t i = 0; i < ptrs.size(); ++i) {
+    if (i % 2)
+      ts.destroy(ptrs[i]);
+  }
   ptrs.clear();
-  for (size_t i = 0; i < num_thread_alloc/2; ++i) {
+  for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = ts.allocate(alloc_sz);
     if (!ret)
       abort();
     ptrs.emplace_back(ret);
   }
-
   ++done;
   done_cv.notify_all();
 #endif
@@ -112,7 +114,7 @@ int main()
   for (size_t i = 0; i < num_thread; ++i) {
     threads.emplace_back(thread_main);
   }
-  
+
   ::std::chrono::high_resolution_clock::time_point t1 = ::std::chrono::high_resolution_clock::now();
   go = true;
   start_cv.notify_all();

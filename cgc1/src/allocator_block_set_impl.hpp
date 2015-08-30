@@ -8,7 +8,7 @@ namespace cgc1
   {
 
     // size comparison for available blocks.
-    static const auto abrvr_compare = [](auto &&r, auto &&it) { return r< it;};
+    static const auto abrvr_compare = [](auto &&r, auto &&it) { return r < it; };
     // begin compare for block ordering.
     static const auto begin_compare = [](auto &&r, auto &&it) { return r.begin() < it.begin(); };
     static const auto begin_val_compare = [](auto &&r, auto &&val) { return r.begin() < val; };
@@ -167,24 +167,24 @@ namespace cgc1
           //	    [&it](auto &ab) { return ab.second == &*it; });
           sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
           ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
-	  auto ab_it = ab_it2;
+          auto ab_it = ab_it2;
           if (ab_it2 != m_available_blocks.end()) {
-	    #if _CGC1_DEBUG_LEVEL > 1
+#if _CGC1_DEBUG_LEVEL > 1
             while (ab_it2->first == pair2.first) {
               if (ab_it2->second == &*it)
                 break;
               ab_it2++;
             }
-	    #endif
+#endif
             if (ab_it2->second != &*it)
               goto NOT_FOUND;
-	    (void)ab_it;
-	    assert(ab_it==ab_it2);
+            (void)ab_it;
+            assert(ab_it == ab_it2);
 
             auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
             sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
-	    //            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-	    auto ub = ::std::upper_bound(ab_it2, m_available_blocks.end(), pair, abrvr_compare);
+            //            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+            auto ub = ::std::upper_bound(ab_it2, m_available_blocks.end(), pair, abrvr_compare);
             assert(ab_it2 < ub);
             if (ub - 1 == ab_it2) {
               // don't move at all, life made easy.
@@ -343,12 +343,14 @@ namespace cgc1
       }
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept -> allocator_block_type &
+    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept
+        -> allocator_block_type &
     {
       return *m_last_block;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() const noexcept -> const allocator_block_type &
+    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() const noexcept
+        -> const allocator_block_type &
     {
       return *m_last_block;
     }

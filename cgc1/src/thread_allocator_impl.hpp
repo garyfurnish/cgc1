@@ -108,8 +108,6 @@ namespace cgc1
           ::std::cerr << "Allocator multiple too large\n";
           abort();
         }
-	//magic numbers (default multiples seem small emperically)
-	allocator_multiple*=2;
         abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
         // use a nice default number of blocks before recycling.
         abs_data.set_max_blocks_before_recycle(5);
@@ -218,30 +216,30 @@ namespace cgc1
       try {
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
-	CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+        CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
         // see if safe to add a block
         if (!abs.add_block_is_safe()) {
           // if not safe to move a block, expand that allocator block set.
-	  //          m_allocator._mutex().lock();
+          //          m_allocator._mutex().lock();
           m_allocator._ud_verify();
           abs._verify();
           ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
           abs._verify();
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
-	  //          m_allocator._mutex().unlock();
+          //          m_allocator._mutex().unlock();
         }
         typename global_allocator::block_type block;
-	// fill the empty block.
-	m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
-							m_allocators[id].allocator_max_size(), sz, block);
+        // fill the empty block.
+        m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                                        m_allocators[id].allocator_max_size(), sz, block);
 
-	// gcreate and grab the empty block.
-	auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
-						 [this](auto begin, auto end, auto offset) {
-						   CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
-						   m_allocator._u_move_registered_blocks(begin, end, offset);
-						 });
-	m_allocator._u_register_allocator_block(*this, inserted_block_ref);
+        // gcreate and grab the empty block.
+        auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
+                                                 [this](auto begin, auto end, auto offset) {
+                                                   CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                                                   m_allocator._u_move_registered_blocks(begin, end, offset);
+                                                 });
+        m_allocator._u_register_allocator_block(*this, inserted_block_ref);
       } catch (out_of_memory_exception_t) {
         abort();
         // we aren't going to try to handle out of memory at this point.

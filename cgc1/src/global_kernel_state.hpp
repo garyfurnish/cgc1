@@ -24,7 +24,7 @@ namespace cgc1
       template <typename Allocator>
       inline void on_creation(Allocator &a)
       {
-        a.initialize(pow2(31), pow2(31));
+        a.initialize(pow2(31), pow2(33));
       }
       using allocator_block_user_data_type = user_data_base_t;
     };

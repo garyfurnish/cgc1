@@ -41,7 +41,10 @@ namespace cgc1
        * @param minimum_alloc_length Minimum length of object that can be allocated using this allocator.
        * @param maximum_alloc_length Maximum length of object that can be allocated using this allocator.
       **/
-      ALWAYS_INLINE inline allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
+      ALWAYS_INLINE inline allocator_block_t(void *start,
+                                             size_t length,
+                                             size_t minimum_alloc_length,
+                                             size_t maximum_alloc_length) noexcept;
       allocator_block_t(const allocator_block_t &) = delete;
       ALWAYS_INLINE inline allocator_block_t(allocator_block_t &&) noexcept = default;
       allocator_block_t &operator=(const allocator_block_t &) = delete;
