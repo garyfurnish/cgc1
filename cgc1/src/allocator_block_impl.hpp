@@ -7,11 +7,13 @@ namespace cgc1
 {
   namespace details
   {
+
+    static auto os_size_compare = [](auto&& a, auto&& b){return a->object_size() < b->object_size(); };
     template <typename Allocator, typename User_Data>
-    allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
+    ALWAYS_INLINE inline allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
                                                                size_t length,
                                                                size_t minimum_alloc_length,
-                                                               size_t maximum_alloc_length)
+                                                               size_t maximum_alloc_length) noexcept
         : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
@@ -38,7 +40,7 @@ namespace cgc1
       m_default_user_data = unique_ptr_allocated<user_data_type, Allocator>(&s_default_user_data);
       m_default_user_data->m_is_default = true;
     }
-    template <typename Allocator, typename User_Data>
+    /*    template <typename Allocator, typename User_Data>
     allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block) noexcept
         : m_free_list(std::move(block.m_free_list)),
           m_next_alloc_ptr(block.m_next_alloc_ptr),
@@ -50,10 +52,10 @@ namespace cgc1
           m_maximum_alloc_length(block.m_maximum_alloc_length)
     {
       // invalidate moved from block.
-      block.clear();
-    }
+      //  block.clear();
+      }*/
     template <typename Allocator, typename User_Data>
-    allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
+    ALWAYS_INLINE inline allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
     operator=(allocator_block_t<Allocator, User_Data> &&block) noexcept
     {
       if (m_default_user_data.get() == &s_default_user_data)
@@ -67,7 +69,7 @@ namespace cgc1
       m_last_max_alloc_available = block.m_last_max_alloc_available;
       m_maximum_alloc_length = block.m_maximum_alloc_length;
       // invalidate moved from block.
-      block.clear();
+      //block.clear();
       return *this;
     }
     template <typename Allocator, typename User_Data>
@@ -198,7 +200,9 @@ namespace cgc1
             state->set_next_valid(true);
             _verify(next);
             _verify(state);
-            m_free_list.push_back(next);
+	    auto ub = ::std::upper_bound(m_free_list.begin(),m_free_list.end(), next, os_size_compare);
+	    m_free_list.emplace(ub,next);
+	    //            m_free_list.push_back(next);
           }
           // take all of the memory.
           state->set_in_use(true);
@@ -283,8 +287,9 @@ namespace cgc1
       if (state->next_valid()) {
         // if the next state is valid, then there are states after
         // so add it to free list.
-        m_free_list.push_back(state);
-        last_collapsed_size = state->object_size();
+	auto ub = ::std::upper_bound(m_free_list.begin(),m_free_list.end(), state, os_size_compare);
+	m_free_list.emplace(ub,state);
+	last_collapsed_size = state->object_size();
       } else {
         // if here the next state is invalid, so this is at tail
         // so just adjust pointer.
@@ -305,9 +310,8 @@ namespace cgc1
       if (m_next_alloc_ptr)
         max_alloc = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
       // then check size of all objects in free list.
-      for (object_state_t *state : m_free_list) {
-        max_alloc = ::std::max(max_alloc, state->object_size());
-      }
+      if(!m_free_list.empty())
+	max_alloc = ::std::max(max_alloc, m_free_list.back()->object_size());
       m_last_max_alloc_available = max_alloc;
       return max_alloc;
     }

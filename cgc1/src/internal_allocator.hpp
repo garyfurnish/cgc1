@@ -208,6 +208,7 @@ namespace cgc1
       allocator.deallocate(t, 1);
     }
   };
+  static_assert(::std::is_nothrow_move_assignable<cgc_internal_deleter_t>::value,"");
   template <typename T>
   struct cgc_allocator_deleter_t<T, cgc_internal_allocator_t<void>> {
     using type = cgc_internal_deleter_t;

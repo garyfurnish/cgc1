@@ -24,7 +24,7 @@
 
 // static const size_t num_alloc = 10000000;
 static const size_t num_alloc = 3000000;
-static const size_t num_thread = 4;
+static const size_t num_thread = 20;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
@@ -49,7 +49,7 @@ void thread_main()
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
       abort();
-    ptrs.push_back(ret);
+    ptrs.emplace_back(ret);
   }
   for(size_t i = 0; i < ptrs.size(); ++i)
     {
@@ -61,7 +61,7 @@ void thread_main()
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
       abort();
-    ptrs.push_back(ret);
+    ptrs.emplace_back(ret);
   }
   ++done;
   done_cv.notify_all();
@@ -72,11 +72,12 @@ void thread_main()
   ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   start_cv.wait(go_lk, []() { return go.load(); });
   go_lk.unlock();
+  
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz);
     if (!ret)
       abort();
-    ptrs.push_back(ret);
+    ptrs.emplace_back(ret);
   }
   for(size_t i = 0; i < ptrs.size(); ++i)
     {
@@ -88,7 +89,7 @@ void thread_main()
     auto ret = ts.allocate(alloc_sz);
     if (!ret)
       abort();
-    ptrs.push_back(ret);
+    ptrs.emplace_back(ret);
   }
 
   ++done;

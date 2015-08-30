@@ -183,7 +183,8 @@ namespace cgc1
 
             auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
             sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
-            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+	    //            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
+	    auto ub = ::std::upper_bound(ab_it2, m_available_blocks.end(), pair, abrvr_compare);
             assert(ab_it2 < ub);
             if (ub - 1 == ab_it2) {
               // don't move at all, life made easy.
