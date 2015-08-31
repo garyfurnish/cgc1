@@ -8,7 +8,6 @@ namespace cgc1
     CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
     // set all flags to true.
     for (auto &&queue_struct : m_queued) {
-      //      queue_struct.m_flag = true;
       queue_struct.m_flag.unlock();
     }
   }
@@ -22,15 +21,21 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // this could theoretically throw from oom but we can't do anything about it.
       // throwing here would have no negative consequences, so don't do anything.
+      // add a new waiter to queue.
       m_queued.emplace_back();
       it = (--m_queued.end());
+      // acquire the lock to wait on.
       it->m_flag.lock();
     }
     bool pred_result;
+    // if we should check the predicate first
     if (_precheck_pred) {
+      // check the predicate.
+      // The predicate could throw an exception.
       try {
         pred_result = pred();
       } catch (...) {
+        // if it throws an exception we need to cleanup the queue.
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         it->m_flag.unlock();
         m_queued.erase(it);
@@ -39,6 +44,7 @@ namespace cgc1
       }
       if (pred_result) {
         {
+          // if the predicate is true, we should remove the waiter from the queue.
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
           it->m_flag.unlock();
           m_queued.erase(it);
@@ -52,15 +58,6 @@ namespace cgc1
       // we are going to unlock and sleep.
       lock.unlock();
       it->m_flag.lock();
-      /*      while (!it->m_flag) {
-        // sleep using OS until we get notified.
-        ::std::this_thread::yield();
-        }*/
-      // we have been notified, try to get lock.
-      /*      while (!lock.try_lock()) {
-        // sleep using OS until we get the lock.
-        ::std::this_thread::yield();
-        }*/
       lock.lock();
       // now we have the lock.
       // if the predicate is true
@@ -70,6 +67,7 @@ namespace cgc1
       try {
         pred_result = pred();
       } catch (...) {
+        // if it throws an exception we need to cleanup the queue.
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         it->m_flag.unlock();
         m_queued.erase(it);
@@ -78,6 +76,7 @@ namespace cgc1
       }
       if (pred()) {
         {
+          // if the predicate is true, we should remove the waiter from the queue.
           CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
           it->m_flag.unlock();
           m_queued.erase(it);
@@ -86,13 +85,13 @@ namespace cgc1
         return;
       }
       it->m_flag.lock();
-      //      it->m_flag = false;
     }
   }
   template <typename Allocator>
   template <typename Lock, typename Predicate>
   void internal_condition_variable_t<Allocator>::wait(Lock &&lock, Predicate &&pred)
   {
+    // forward to internal wait.
     wait(::std::forward<Lock>(lock), ::std::forward<Predicate>(pred), true);
   }
 
@@ -100,6 +99,7 @@ namespace cgc1
   template <typename Lock>
   void internal_condition_variable_t<Allocator>::wait(Lock &&lock)
   {
+    // forward to internal wait.
     wait(::std::forward<Lock>(lock), []() { return true; }, false);
   }
 }

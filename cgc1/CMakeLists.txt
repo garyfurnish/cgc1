@@ -1,6 +1,7 @@
 #INSTALL(DIRECTORY include/ DESTINATION include)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-add_compile_options(-fno-rtti)
+  add_compile_options(-fno-rtti)
+  add_compile_options(-fPIC)
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_library(cgc1
 src/allocator.hpp                 src/internal_allocator.hpp

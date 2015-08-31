@@ -9,49 +9,69 @@
 #include "clang_concurrency.hpp"
 namespace cgc1
 {
-  template <typename T1, typename T2>
-  void lock(T1 &t1, T2 &t2) ACQUIRE(t1, t2) NO_THREAD_SAFETY_ANALYSIS
+  /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1, typename Lockable2>
+  void lock(Lockable1 &lock1, Lockable2 &lock2) ACQUIRE(lock1, lock2) NO_THREAD_SAFETY_ANALYSIS
   {
-    ::std::lock(t1, t2);
+    ::std::lock(lock1, lock2);
   }
-
-  template <typename T1, typename T2, typename T3, typename T4>
-  void lock(T1 &t1, T2 &t2, T3 &t3, T4 &t4) ACQUIRE(t1, t2, t3, t4) NO_THREAD_SAFETY_ANALYSIS
+  /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1, typename Lockable2, typename Lockable3, typename Lockable4>
+  void lock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4)
+      ACQUIRE(lock1, lock2, lock3, lock4) NO_THREAD_SAFETY_ANALYSIS
   {
-    ::std::lock(t1, t2, t3, t4);
+    ::std::lock(lock1, lock2, lock3, lock4);
   }
-  template <typename T1, typename T2, typename T3, typename T4, typename T5>
-  void lock(T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5) ACQUIRE(t1, t2, t3, t4, t5) NO_THREAD_SAFETY_ANALYSIS
+  /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1, typename Lockable2, typename Lockable3, typename Lockable4, typename Lockable5>
+  void lock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4, Lockable5 &lock5)
+      ACQUIRE(lock1, lock2, lock3, lock4, lock5) NO_THREAD_SAFETY_ANALYSIS
   {
-    ::std::lock(t1, t2, t3, t4, t5);
+    ::std::lock(lock1, lock2, lock3, lock4, lock5);
   }
-  template <typename T1>
-  void assume_unlock(T1 &t1) RELEASE(t1) NO_THREAD_SAFETY_ANALYSIS
+  /**
+   * \brief For static analysis, assume lock1 is unlocked.
+   **/
+  template <typename Lockable1>
+  void assume_unlock(Lockable1 &lock1) RELEASE(lock1) NO_THREAD_SAFETY_ANALYSIS
   {
-    (void)t1;
+    (void)lock1;
   }
-  template <typename T1, typename T2, typename T3, typename T4, typename T5>
-  void unlock(T1 &t1, T2 &t2, T3 &t3, T4 &t4, T5 &t5) RELEASE(t1, t2, t3, t4, t5) NO_THREAD_SAFETY_ANALYSIS
+  /**
+   * \brief Unlock lock1, lock2, ..., lockn in order.
+   **/
+  template <typename Lockable1, typename Lockable2, typename Lockable3, typename Lockable4, typename Lockable5>
+  void unlock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4, Lockable5 &lock5)
+      RELEASE(lock1, lock2, lock3, lock4, lock5) NO_THREAD_SAFETY_ANALYSIS
   {
-    t1.unlock();
-    t2.unlock();
-    t3.unlock();
-    t4.unlock();
-    t5.unlock();
+    lock1.unlock();
+    lock2.unlock();
+    lock3.unlock();
+    lock4.unlock();
+    lock5.unlock();
   }
+  /**
+   * \brief Scoped variable for assuming that lock is locked.
+   **/
   class lock_assume_t
   {
   public:
-    template <typename T>
-    lock_assume_t(T &t) ACQUIRE(t)
+    template <typename Lockable>
+    lock_assume_t(Lockable &lock1) ACQUIRE(lock1)
     {
-      (void)t;
+      (void)lock1;
     }
-    template <typename T1, typename T2>
-    lock_assume_t(T1 &t1, T2 &t2) ACQUIRE(t1, t2)
+    template <typename Lockable1, typename Lockable2>
+    lock_assume_t(Lockable1 &lock1, Lockable2 &lock2) ACQUIRE(lock1, lock2)
     {
-      (void)t1;
-      (void)t2;
+      (void)lock1;
+      (void)lock2;
     }
     ~lock_assume_t() RELEASE()
     {
@@ -61,36 +81,61 @@ namespace cgc1
 #ifndef __APPLE__
 namespace cgc1
 {
-  template <typename T>
-  using unique_lock_t = ::std::unique_lock<T>;
-  template <typename T>
+  /**
+   * \brief The class unique_lock_t is a general-purpose mutex ownership wrapper.
+   **/
+  template <typename Lock>
+  using unique_lock_t = ::std::unique_lock<Lock>;
+  /**
+   * \brief Scoped variable for locking lock.
+   **/
+  template <typename Lock1>
   class lock_guard_t
   {
   public:
-    lock_guard_t(T &t) ACQUIRE(t) : m_T(t)
+    lock_guard_t(Lock1 &lock1) ACQUIRE(lock1) : m_lock(lock1)
     {
-      t.lock();
+      lock1.lock();
     }
-    lock_guard_t(const lock_guard_t<T> &) = delete;
+    lock_guard_t(const lock_guard_t<Lock1> &) = delete;
     ~lock_guard_t() RELEASE()
     {
-      m_T.unlock();
+      m_lock.unlock();
     }
-    lock_guard_t<T> &operator=(const lock_guard_t<T> &) = delete;
-    T &m_T;
-  } SCOPED_CAPABILITY;
+    lock_guard_t<Lock1> &operator=(const lock_guard_t<Lock1> &) = delete;
 
+  private:
+    /**
+     * \brief Underlying lock.
+     **/
+    Lock1 &m_lock;
+  } SCOPED_CAPABILITY;
+  /**
+   * \brief Lockable that is an operating system mutex.
+   **/
   class CAPABILITY("mutex") mutex_t
   {
   public:
+    /**
+     * \brief Lock lock.
+     **/
     void lock() ACQUIRE()
     {
       m_mutex.lock();
     }
+    /**
+     * \brief Unlock lock.
+     **/
     void unlock() RELEASE()
     {
       m_mutex.unlock();
     }
+    /**
+     * \brief Try to acquire lock.
+     *
+     * Does not block.
+     * @return True if acquired lock, false otherwise.
+     **/
     bool try_lock() TRY_ACQUIRE(true)
     {
       return m_mutex.try_lock();
@@ -101,6 +146,9 @@ namespace cgc1
     }
 
   protected:
+    /**
+     * \brief Underlying OS mutex.
+     **/
     ::std::mutex m_mutex;
   };
 }
@@ -120,6 +168,9 @@ namespace cgc1
   cgc1::lock_assume_t CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE(x);
 namespace cgc1
 {
+  /**
+   * \brief Lockable that is a hardware spinlock.
+   **/
   class CAPABILITY("mutex") spinlock_t
   {
   public:
@@ -129,23 +180,38 @@ namespace cgc1
     spinlock_t(const spinlock_t &) = delete;
     spinlock_t(spinlock_t &&) = default;
 #ifndef __clang__
+    /**
+     * \brief Lock lock.
+     **/
     void lock()
     {
       while (!try_lock())
         _mm_pause();
     }
 #else
-    void lock()
+    /**
+     * \brief Lock lock.
+     **/
+    void lock() ACQUIRE()
     {
       while (!try_lock())
         __asm__ volatile("pause");
     }
 #endif
+    /**
+     * \brief Unlock lock.
+     **/
     void unlock() noexcept RELEASE()
     {
       ::std::atomic_thread_fence(::std::memory_order_release);
       m_lock = false;
     }
+    /**
+     * \brief Try to acquire lock.
+     *
+     * Does not block.
+     * @return True if acquired lock, false otherwise.
+     **/
     bool try_lock() noexcept TRY_ACQUIRE(true)
     {
       bool expected = false;
@@ -158,53 +224,87 @@ namespace cgc1
     }
 
   protected:
+    /**
+     * \brief Underlying atomic value.
+     **/
     ::std::atomic<bool> m_lock;
   };
-  template <typename T1, typename T2>
+  /**
+   * \brief The class double_lock_t is a general-purpose mutex ownership wrapper for two Lockables.
+   *
+   * This is not compatible with clang thread safety analysis yet.
+   * Uses a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1, typename Lockable2>
   class double_lock_t
   {
   public:
-    double_lock_t(T1 &t1, T2 &t2) : m_t1(&t1), m_t2(&t2)
+    double_lock_t(Lockable1 &t1, Lockable2 &t2) : m_lock1(&t1), m_lock2(&t2)
     {
-      ::std::lock(*m_t1, *m_t2);
+      ::std::lock(*m_lock1, *m_lock2);
     }
     ~double_lock_t() NO_THREAD_SAFETY_ANALYSIS
     {
-      if (m_t1 && m_t2) {
-        m_t1->unlock();
-        m_t2->unlock();
+      if (m_lock1 && m_lock2) {
+        m_lock1->unlock();
+        m_lock2->unlock();
       }
     }
+    /**
+     * \brief Lock locks.
+     *
+     * Aborts if lock has been released.
+     **/
     void lock()
     {
-      if (m_t1 && m_t2)
-        ::std::lock(*m_t1, *m_t2);
+      if (m_lock1 && m_lock2)
+        ::std::lock(*m_lock1, *m_lock2);
       else
         abort();
     }
+    /**
+     * \brief Unlock locks.
+     *
+     * Aborts if lock has been released.
+     **/
     void unlock() NO_THREAD_SAFETY_ANALYSIS
     {
-      m_t1->unlock();
-      m_t2->unlock();
+      if (m_lock1 && m_lock2) {
+        m_lock1->unlock();
+        m_lock2->unlock();
+      } else {
+        abort();
+      }
     }
+    /**
+     * \brief Disassociates the associated mutexes without unlocking them.
+     **/
     void release()
     {
-      m_t1 = nullptr;
-      m_t2 = nullptr;
+      m_lock1 = nullptr;
+      m_lock2 = nullptr;
     }
+    /**
+     * \brief Try to acquire locks.
+     *
+     * Does not block.
+     * @return True if acquired lock, false otherwise.
+     **/
     bool try_lock() NO_THREAD_SAFETY_ANALYSIS
     {
-      if (m_t1->try_lock()) {
-        if (m_t2->try_lock())
+      if (m_lock1->try_lock()) {
+        if (m_lock2->try_lock())
           return true;
         else
-          m_t1->unlock();
+          m_lock1->unlock();
       }
       return false;
     }
 
   private:
-    T1 *m_t1;
-    T2 *m_t2;
+    /**
+     * \brief Underlying lockable.
+     **/
+    Lockable1 *m_lock1, *m_lock2;
   };
 }

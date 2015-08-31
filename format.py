@@ -2,7 +2,7 @@
 #Copyright (c) 2014 Gary Furnish
 #Licensed under the MIT License (MIT)
 
-import os, fnmatch, json
+import os, fnmatch, json, sys
 from multiprocessing import Pool
 from utilities import printing_system
 with open("settings.json") as settings_file:
@@ -25,3 +25,4 @@ def format(filename):
 pool = Pool()
 files = list(find_files(".","*.hpp")) + list(find_files(".","*.cpp"))
 pool.map(format,files)
+sys.exit(0)

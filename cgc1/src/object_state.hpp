@@ -10,6 +10,9 @@ namespace cgc1
      * \brief All object_state_t must be at least c_align_pow2 aligned, so test that.
     **/
     bool is_aligned_properly(const object_state_t *os) noexcept;
+    /**
+     * \brief Object state for an object in allocator block.
+     **/
     class object_state_t
     {
     public:
@@ -104,10 +107,17 @@ namespace cgc1
       void set_user_flags(size_t flags) noexcept;
       /**
        * \brief Using pointer hiding, store next pointer, next_valid, in_use.
+       *
+       * Description is in little endian.
+       * 0th bit is in_use
+       * 1st bit is next_valid
+       * 2nd bit is quasi-freed (allocator intends for free to happen during collect).
       **/
       size_t m_next;
       /**
        * \brief Using pointer hiding, store user data pointer and 3 user flags.
+       *
+       * Description is in little endian.  Bottom 3 bits are user flags.
       **/
       size_t m_user_data;
     };
@@ -115,6 +125,4 @@ namespace cgc1
     static_assert(::std::is_pod<object_state_t>::value, "object_state_t is not POD");
   }
 }
-#ifdef CGC1_INLINES
 #include "object_state_impl.hpp"
-#endif

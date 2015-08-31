@@ -7,7 +7,8 @@
 #include "../cgc1/src/slab_allocator.hpp"
 #include "../cgc1/src/allocator_block.hpp"
 #include "../cgc1/src/allocator.hpp"
-using namespace bandit;
+using namespace ::bandit;
+using namespace ::cgc1::literals;
 void allocator_tests()
 {
   describe("allocator", []() {
@@ -17,8 +18,8 @@ void allocator_tests()
         AssertThat(allocator->initialize(100000, 100000000), IsTrue());
         cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
         auto &allocator_set = ta.allocator_by_size(55);
-        AssertThat(allocator_set.allocator_min_size(), Is().LessThan(static_cast<size_t>(55)));
-        AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(static_cast<size_t>(55)));
+        AssertThat(allocator_set.allocator_min_size(), Is().LessThan(55_sz));
+        AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(55_sz));
         AssertThat(ta.set_allocator_multiple(20, 50), IsFalse());
         void *alloc1 = ta.allocate(100);
         AssertThat(alloc1 != nullptr, IsTrue());
@@ -89,13 +90,48 @@ void allocator_tests()
         }
       }
     });
-    it("thread_allocator _do_maintenance", []() {
+    it("test_abs_remove_block", []() {
+      // make an allocator.
+      auto allocator = ::std::make_unique<::cgc1::details::allocator_t<>>();
+      AssertThat(allocator->initialize(100000, 100000000), IsTrue());
+      // get thread local state.
+      auto &tls = allocator->initialize_thread();
+      // ok, for this as soon as possible we want to get rid of the extra blocks from abs.
+      tls.set_destroy_threshold(0);
+      tls.set_minimum_local_blocks(0);
+      // so we need to get the abs.
+      const size_t size_to_alloc = 100;
+      // get block set id.
+      auto id = tls.find_block_set_id(size_to_alloc);
+      auto &abs = tls.allocators()[id];
+      // list to store allocate pointers in so we can destroy them.
+      ::std::vector<void *> ptrs;
+      while (abs.m_blocks.size() != 2)
+        ptrs.emplace_back(tls.allocate(size_to_alloc));
+      ptrs.pop_back();
+      AssertThat(abs.m_blocks.size(), Equals(2_sz));
+      // get rid of one of the blocks by freeing everything in it.
+      for (auto &&ptr : ptrs)
+        tls.destroy(ptr);
+      AssertThat(abs.m_blocks.size(), Equals(1_sz));
+      {
+        // the one block that is left should have the same address in registration as in the block set.
+        CGC1_CONCURRENCY_LOCK_GUARD(allocator->_mutex());
+        assert(allocator->_u_blocks().size() == 1);
+        AssertThat(allocator->_u_blocks(), HasLength(1));
+        bool block_correct = &abs.m_blocks.front() == allocator->_u_blocks()[0].m_block;
+        assert(block_correct);
+        AssertThat(block_correct, IsTrue());
+      }
+      allocator->destroy_thread();
+    });
+    it("thread_allocator_do_maintenance", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
       AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       cgc1::details::allocator_t<>::this_thread_allocator_t ta(*allocator);
       ta._do_maintenance();
     });
-    it("test global block recycling", []() {
+    it("test_global_block_recycling", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
       AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       auto &ta = allocator->initialize_thread();

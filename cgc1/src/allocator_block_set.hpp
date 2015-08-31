@@ -8,6 +8,8 @@ namespace cgc1
     using memory_range_t = ::std::pair<void *, void *>;
     /**
      * \brief This is a set of allocator blocks with the same minimum and maximum allocation size.
+     *
+     * This stores lists of allocator blocks for various sizes of allocations.
     **/
     template <typename Allocator = ::std::allocator<void>, typename Allocator_Block_User_Data = user_data_base_t>
     class allocator_block_set_t
@@ -27,12 +29,14 @@ namespace cgc1
       allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
       /**
        * \brief Constructor
+       *
        * @param allocator_min_size Minimum allocation size.
        * @param allocator_max_size Maximum allocation size.
       **/
       allocator_block_set_t(size_t allocator_min_size, size_t allocator_max_size);
       /**
        * \brief Set minimum and maximum allocation size.
+       *
        * This should not be called after first use.
        * @param min Minimum allocation size.
        * @param max Maximum allocation size.
@@ -52,6 +56,7 @@ namespace cgc1
       size_t size() const;
       /**
        * \brief Regenerate available blocks in case it is stale.
+       *
        * Also should be called if m_blocks may have changed locations because of allocation.
       **/
       void regenerate_available_blocks();
@@ -61,6 +66,7 @@ namespace cgc1
       void collect();
       /**
        * \brief Allocate memory of given size, return nullptr if not possible in existing blocks.
+       *
        * @param sz Size to allocate.
        * @return A pointer to allocated memory, nullptr on failure.
       **/
@@ -70,24 +76,45 @@ namespace cgc1
        * @return True if this block set allocated the memory and thus destroyed it, false otherwise.
       **/
       bool destroy(void *v);
+
+      /**
+       * \brief Add a block to the set.
+       *
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
+      **/
+      template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      auto add_block(allocator_block_type &&block,
+                     Lock_Functional &&lock_func,
+                     Unlock_Functional &&unlock_func,
+                     Move_Functional &&move_func) -> allocator_block_type &;
       /**
        * \brief Add a block to the set.
       **/
-      void add_block(allocator_block_type &&block);
-      /**
-       * \brief Add an empty block to the set.
-      **/
-      auto add_block() -> allocator_block_type &;
+      auto add_block(allocator_block_type &&block) -> allocator_block_type &;
+
       /**
        * \brief Remove a block from the set.
-      **/
-      void remove_block(typename allocator_block_vector_t::iterator it);
+       *
+       * The functional on_move is a functional of the form (begin,end,offset) that is called on blocks that are moved.
+       * param it Position to remove.
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
+       **/
+      template <typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      void remove_block(typename allocator_block_vector_t::iterator it,
+                        Lock_Functional &&lock_func,
+                        Unlock_Functional &&unlock_func,
+                        Move_Functional &&move_func);
       /**
        * \brief Return true if add_block would cause the container of blocks to move in memory, false otherwise.
       **/
       bool add_block_is_safe() const;
       /**
        * \brief Grow the capacity of m_blocks.  Return the offset by which it moved.
+       *
        * Thus subtract offset from m_blocks[i] to get the old position.
        * @param sz If provided, the number of blocks to reserve.
       **/
@@ -95,40 +122,61 @@ namespace cgc1
       /**
        * \brief Return reference to last added block.
       **/
-      auto last_block() -> allocator_block_type &;
+      auto last_block() noexcept -> allocator_block_type &;
       /**
        * \brief Return reference to last added block.
       **/
-      auto last_block() const -> const allocator_block_type &;
+      auto last_block() const noexcept -> const allocator_block_type &;
       /**
-       * \brief Push all empty block memory ranges onto container t and then remove them.
+       * \brief Push all empty block memory ranges onto container t and then remove th
+       *
+       * The on_move is a functional of the form (begin,end,offset) that is called on blocks that are moved.
        * @param l Function to call on removed blocks (called multiple times with r val block ref).
+       * @param lock_func Functional with no args called before modifing blocks.
+       * @param unlock_func Functional with no args called after modifying blocks.
+       * @param move_func Functional to call on moved blocks.
        * @param min_to_leave Minimum number of free blocks to leave in this set.
       **/
-      template <typename L>
-      void free_empty_blocks(L &&l, size_t min_to_leave = 0);
+      template <typename L, typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
+      void free_empty_blocks(L &&l,
+                             Lock_Functional &&lock_func,
+                             Unlock_Functional &&unlock_func,
+                             Move_Functional &&move_func,
+                             size_t min_to_leave = 0);
 
       /**
        * \brief Return the number of memory addresses destroyed since last free empty blocks operation.
        **/
       auto num_destroyed_since_last_free() const noexcept -> size_t;
       /**
-       * \brief All blocks.
-      **/
-      allocator_block_vector_t m_blocks;
-      /**
-       * \brief Blocks that are available for placement.
-      **/
-      allocator_block_reference_vector_t m_available_blocks;
-      /**
        * \brief Do internal verification.
       **/
       void _verify() const;
       /**
        * \brief Do maintance on thread associated blocks.
-       * (coalescing, etc)
+       *
+       * Coalescing, etc happens here.
       **/
       void _do_maintenance();
+
+    private:
+      allocator_block_type *m_last_block = nullptr;
+
+    public:
+      /**
+       * \brief Blocks that are available for placement.
+       *
+       * This is sorted by allocation size available.
+       * It does not contain a pointer to the last block.
+       * So if last block keeps getting hit, it is not necessary to recalculate memory free.
+       * First part of an element is memory available in that block.
+       * Second part is a pointer to the block.
+      **/
+      allocator_block_reference_vector_t m_available_blocks;
+      /**
+       * \brief All blocks.
+      **/
+      allocator_block_vector_t m_blocks;
 
     private:
       /**

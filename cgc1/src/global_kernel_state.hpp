@@ -15,13 +15,16 @@ namespace cgc1
   namespace details
   {
     class thread_local_kernel_state_t;
+    /**
+     * \brief CGC allocator traits.
+     **/
     struct cgc_allocator_traits {
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       template <typename Allocator>
       inline void on_creation(Allocator &a)
       {
-        a.initialize(pow2(24), pow2(27));
+        a.initialize(pow2(31), pow2(33));
       }
       using allocator_block_user_data_type = user_data_base_t;
     };
@@ -30,6 +33,8 @@ namespace cgc1
     public:
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
       using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, cgc_allocator_traits>;
+      using duration_type = ::std::chrono::duration<double>;
+
       global_kernel_state_t();
       global_kernel_state_t(const global_kernel_state_t &) = delete;
       global_kernel_state_t(global_kernel_state_t &&) = delete;
@@ -41,11 +46,13 @@ namespace cgc1
       void shutdown() REQUIRES(!m_mutex);
       /**
        * \brief Enable garbage collection.
+       *
        * Works using a incremented variable.
       **/
       void enable();
       /**
        * \brief Disable garbage collection.
+       *
        * Works using a incremented variable.
       **/
       void disable();
@@ -63,11 +70,13 @@ namespace cgc1
       void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
       /**
        * \brief Return the number of collections that have happened.
+       *
        * May wrap around.
       **/
       size_t num_collections() const;
       /**
        * \brief Initialize the current thread for garbage collection.
+       *
        * @param top_of_stack Top of the current thread's stack.
       **/
       void initialize_current_thread(void *top_of_stack) REQUIRES(!m_mutex, !m_thread_mutex);
@@ -77,6 +86,7 @@ namespace cgc1
       void destroy_current_thread() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Master collect function for a given thread.
+       *
        * This calls into the thread kernel state's collect.
       **/
       void _collect_current_thread() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
@@ -92,7 +102,11 @@ namespace cgc1
        * \brief Return the internal slab allocator.
       **/
       slab_allocator_t &_internal_slab_allocator() const;
-
+      /**
+       * \brief Return the thread local kernel state for the current thread.
+       *
+       * @return nullptr on error.
+       **/
       thread_local_kernel_state_t *tlks(::std::thread::id id) REQUIRES(!m_thread_mutex);
       /**
        * \brief Add a root the global kernel state.
@@ -108,10 +122,18 @@ namespace cgc1
       void wait_for_finalization() REQUIRES(!m_thread_mutex);
       /**
        * \brief Wait for ongoing collection to finish.
+       *
+       * Waits on main mutex only.
+       * Used for things such as adding roots.
+       * Returns with lock on mutex held.
       **/
       void wait_for_collection() REQUIRES(!m_mutex) ACQUIRE(m_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
        * \brief Wait for ongoing collection to finish.
+       *
+       * Waits for both main mutex and thread mutex.
+       * Used when need to alter thread data.
+       * Returns with lock on mutex and thread mutex held.
       **/
       void wait_for_collection2() ACQUIRE(m_mutex, m_thread_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
@@ -120,8 +142,22 @@ namespace cgc1
       template <typename Container>
       void _add_freed_in_last_collection(Container &container) REQUIRES(!m_mutex);
       /**
+       * \brief Add number of pointers that were freed in last collection.
+       *
+       * This is always valid in both release and debug modes.
+       **/
+      void _add_num_freed_in_last_collection(size_t num_freed) noexcept;
+      /**
+       * \brief Return number of pointers that were freed in last collection.
+       *
+       * This is always valid in both release and debug modes.
+       **/
+      size_t num_freed_in_last_collection() const noexcept;
+      /**
        * \brief Return pointers that were freed in the last collection.
+       *
        * In non-debug mode may be empty.
+       * Returns hidden pointers.
       **/
       cgc_internal_vector_t<uintptr_t> _d_freed_in_last_collection() const REQUIRES(!m_mutex);
       /**
@@ -130,31 +166,57 @@ namespace cgc1
       bool is_valid_object_state(const object_state_t *os) const;
       /**
        * \brief Find a valid object state for the given addr.
-       * @return nullptr if not found.
+       *
        * This does not need a mutex held if this is called during garbage collection because all of the relevant state is frozen.
+       * @return nullptr if not found.
       **/
       object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex);
       /**
        * \brief Find a valid object state for the given addr.
+       *
        * @return nullptr if not found.
       **/
       object_state_t *find_valid_object_state(void *addr) const REQUIRES(!m_mutex);
+
+      /**
+       * \brief Return time for clear phase of gc.
+       **/
+      auto clear_mark_time_span() const -> duration_type;
+      /**
+       * \brief Return time for mark phase of gc.
+       **/
+      auto mark_time_span() const -> duration_type;
+      /**
+       * \brief Return time for sweep phase of gc.
+       **/
+      auto sweep_time_span() const -> duration_type;
+      /**
+       * \brief Return time for notify phase of gc.
+       **/
+      auto notify_time_span() const -> duration_type;
+      /**
+       * \brief Return total gc collect time.
+       **/
+      auto total_collect_time_span() const -> duration_type;
 
       mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
 
     private:
       /**
        * \brief Initialize the global kernel state.
+       *
       * This may be called multiple times, but will be a nop if already called.
       **/
       void _u_initialize() REQUIRES(m_mutex);
       /**
        * \brief Pause all threads.
+       *
        * Abort on error because usually these errors are unrecoverable.
       **/
       void _u_suspend_threads() REQUIRES(m_thread_mutex);
       /**
        * \brief Resume all threads.
+       *
        * Abort on error because usually these errors are unrecoverable.
       **/
       void _u_resume_threads() REQUIRES(m_thread_mutex);
@@ -164,23 +226,6 @@ namespace cgc1
        * When called during collection, does not require m_thread_mutex as that data is frozen.
       **/
       void _u_setup_gc_threads() REQUIRES(m_mutex, m_thread_mutex);
-      /**
-       * \brief Do GC setup.
-      * Clean all existing marks.
-      **/
-      void _u_gc_setup() REQUIRES(m_mutex);
-      /**
-       * \brief Do GC mark phase.
-      **/
-      void _u_gc_mark() REQUIRES(m_mutex);
-      /**
-       * \brief Do GC sweep phase.
-      **/
-      void _u_gc_sweep() REQUIRES(m_mutex);
-      /**
-       * \brief Start finalization phase for gc.
-      **/
-      void _u_gc_finalize() REQUIRES(m_mutex);
       /**
        * \brief Internal slab allocator used for internal allocator.
       **/
@@ -193,19 +238,18 @@ namespace cgc1
        * \brief Allocator for gc.
       **/
       mutable gc_allocator_t m_gc_allocator;
+      /**
+       * \brief Main mutex for state.
+       **/
       mutable mutex_t m_mutex;
       /**
        * Number of paused threads in a collect cycle.
       **/
-      std::atomic<size_t> m_num_paused_threads;  // GUARDED_BY(m_mutex)
-                                                 /**
-                                                  * Number of paused threads that have finished garbage collection.
-                                                 **/
-      std::atomic<size_t> m_num_resumed_threads; // GUARDED_BY(m_mutex)
-                                                 /**
-                                                  * \brief True if during collection allocators are unlocked yet.
-                                                  **/
-      ::std::atomic<bool> m_allocators_available;
+      std::atomic<size_t> m_num_paused_threads;
+      /**
+       * Number of paused threads that have finished garbage collection.
+       **/
+      std::atomic<size_t> m_num_resumed_threads;
       /**
        * \brief Number of collections that have happened.
        * May wrap around.
@@ -214,6 +258,7 @@ namespace cgc1
 #ifndef _WIN32
       /**
        * \brief Condition variable used to broadcast
+       *
        * 1) When a thread has stopped and is in the signal handler.
        * 2) When a thread should resume normal operations.
       **/
@@ -227,37 +272,75 @@ namespace cgc1
        * \brief Mutex for protecting m_threads.
       **/
       mutable mutex_t m_thread_mutex;
-      mutable mutex_t m_block_mutex;
       /**
        * \brief This mutex is locked when mutexes are unavailable.
        **/
       mutable mutex_t m_allocators_unavailable_mutex;
+      /**
+       * \brief Vector of pointers to roots.
+       **/
       rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
        * \brief Vector of all threads registered with the kernel.
+       *
+       * This is a vector for cache locality.
       **/
       cgc_internal_vector_t<details::thread_local_kernel_state_t *> m_threads GUARDED_BY(m_thread_mutex);
       /**
        * \brief Threads that do the actual garbage collection.
-      * Not necesarily a one to one map.
+       *
+       * Not necesarily a one to one map.
       **/
       rebind_vector_t<::std::unique_ptr<gc_thread_t>, cgc_internal_malloc_allocator_t<void>> m_gc_threads;
       /**
-       * List of pointers freed in last collection.
+       * \brief List of pointers freed in last collection.
+       *
+       * In debug mode this is all pointers.
+       * Otherwise this is just ones to be finalized.
       **/
       cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
-       * True while a garbage collection is running, otherwise false.
+       * \brief True while a garbage collection is running, otherwise false.
       **/
-      std::atomic<bool> m_collect;
+      ::std::atomic<bool> m_collect;
       /**
-       * Increment variable for enabling or disabling
+       * \brief Increment variable for enabling or disabling
       **/
-      std::atomic<long> m_enabled_count;
+      ::std::atomic<long> m_enabled_count;
       /**
-       * True if the kernel has been initialized, false otherwise.
+       * \brief True if the kernel has been initialized, false otherwise.
       **/
       bool m_initialized GUARDED_BY(m_mutex) = false;
+      //
+      //
+      // Debug information under here.
+      //
+      //
+      /**
+       * \brief Absolute number of pointers freed in last collection.
+       **/
+      ::std::atomic<size_t> m_num_freed_in_last_collection{0};
+      /**
+       * \brief Time for clear phase of gc.
+       **/
+      duration_type m_clear_mark_time_span = duration_type::min();
+      /**
+       * \brief Time for mark phase of gc.
+       **/
+      duration_type m_mark_time_span = duration_type::min();
+      /**
+       * \brief Time for sweep phase of gc.
+       **/
+      duration_type m_sweep_time_span = duration_type::min();
+      /**
+       * \brief Time for notify phase of gc.
+       **/
+      duration_type m_notify_time_span = duration_type::min();
+      /**
+       * \brief Total gc collect time.
+       **/
+      duration_type m_total_collect_time_span = duration_type::min();
+
       /*
        * \brief Size of slab allocator at start.
       */
