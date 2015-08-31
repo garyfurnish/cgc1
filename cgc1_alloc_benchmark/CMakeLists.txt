@@ -13,7 +13,7 @@ ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 
 link_directories(${BOEHM_LIB})
-
+IF(${BOEHM_LIB})
 add_executable(cgc1_alloc_benchmark_boehm "main.cpp")
 target_include_directories(cgc1_alloc_benchmark_boehm PUBLIC ${BOEHM_INCLUDE})
 target_compile_definitions(cgc1_alloc_benchmark_boehm PUBLIC BOEHM)
@@ -23,3 +23,4 @@ add_executable(cgc1_alloc_benchmark_thread_boehm "main_thread.cpp")
 target_include_directories(cgc1_alloc_benchmark_thread_boehm PUBLIC ${BOEHM_INCLUDE})
 target_compile_definitions(cgc1_alloc_benchmark_thread_boehm PUBLIC BOEHM)
 target_link_libraries(cgc1_alloc_benchmark_thread_boehm gc pthread)
+ENDIF()
