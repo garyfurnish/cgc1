@@ -204,7 +204,7 @@ namespace cgc1
     }
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
-      if (depth > 1000) {
+      if (depth > 300) {
         // if recursion depth too big, put it on addresses to mark.
         m_addresses_to_mark.push_back(addr);
         return;
