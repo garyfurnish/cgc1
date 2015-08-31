@@ -15,6 +15,7 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"
 #include "../cgc1/src/packed_object_state.hpp"
+#include "../cgc1/src/packed_object_allocator.hpp"
 static ::std::vector<size_t> locations;
 static cgc1::spinlock_t debug_mutex;
 using namespace bandit;
@@ -735,6 +736,12 @@ static void multiple_slab_test1()
   ps->set_free(3, true);
   AssertThat(ps->is_free(3), IsTrue());
 
+  cgc1::details::packed_object_allocator_t poa;
+  AssertThat(cgc1::details::get_packed_object_size_id(31), Equals(0_sz));
+  AssertThat(cgc1::details::get_packed_object_size_id(32), Equals(0_sz));
+  AssertThat(cgc1::details::get_packed_object_size_id(33), Equals(1_sz));
+  AssertThat(cgc1::details::get_packed_object_size_id(512), Equals(4_sz));
+  AssertThat(cgc1::details::get_packed_object_size_id(513), Equals(::std::numeric_limits<size_t>::max()));
   //  cgc1::cgc_free(ret);
 }
 void gc_bandit_tests()
