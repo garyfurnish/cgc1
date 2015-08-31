@@ -93,15 +93,19 @@ namespace cgc1
       /**
        * \brief Return the GC allocator.
       **/
-      gc_allocator_t &gc_allocator() const;
+      gc_allocator_t &gc_allocator() const noexcept;
       /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
-      internal_allocator_t &_internal_allocator() const;
+      internal_allocator_t &_internal_allocator() const noexcept;
       /**
        * \brief Return the internal slab allocator.
       **/
-      slab_allocator_t &_internal_slab_allocator() const;
+      auto _internal_slab_allocator() const noexcept -> slab_allocator_t &;
+      /**
+       * \brief Return the internal fast slab allocator.
+       **/
+      auto _internal_fast_slab_allocator() const noexcept -> slab_allocator_t &;
       /**
        * \brief Return the thread local kernel state for the current thread.
        *
@@ -201,6 +205,11 @@ namespace cgc1
 
       mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
 
+      auto slow_slab_begin() const noexcept -> uint8_t *;
+      auto slow_slab_end() const noexcept -> uint8_t *;
+      auto fast_slab_begin() const noexcept -> uint8_t *;
+      auto fast_slab_end() const noexcept -> uint8_t *;
+
     private:
       /**
        * \brief Initialize the global kernel state.
@@ -230,6 +239,10 @@ namespace cgc1
        * \brief Internal slab allocator used for internal allocator.
       **/
       mutable slab_allocator_t m_slab_allocator;
+      /**
+       * \brief Internal slab allocator used for fast page allocation.
+      **/
+      mutable slab_allocator_t m_fast_slab_allocator;
       /**
        * \brief Internal allocator that can be touched during GC.
       **/

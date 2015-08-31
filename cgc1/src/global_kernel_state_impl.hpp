@@ -6,17 +6,21 @@ namespace cgc1
   namespace details
   {
     extern global_kernel_state_t g_gks;
-    inline auto global_kernel_state_t::gc_allocator() const -> gc_allocator_t &
+    inline auto global_kernel_state_t::gc_allocator() const noexcept -> gc_allocator_t &
     {
       return m_gc_allocator;
     }
-    inline auto global_kernel_state_t::_internal_allocator() const -> internal_allocator_t &
+    inline auto global_kernel_state_t::_internal_allocator() const noexcept -> internal_allocator_t &
     {
       return m_cgc_allocator;
     }
-    inline auto global_kernel_state_t::_internal_slab_allocator() const -> slab_allocator_t &
+    inline auto global_kernel_state_t::_internal_slab_allocator() const noexcept -> slab_allocator_t &
     {
       return m_slab_allocator;
+    }
+    inline auto global_kernel_state_t::_internal_fast_slab_allocator() const noexcept -> slab_allocator_t &
+    {
+      return m_fast_slab_allocator;
     }
     inline auto global_kernel_state_t::tlks(::std::thread::id id) -> thread_local_kernel_state_t *
     {
@@ -43,6 +47,22 @@ namespace cgc1
     inline mutex_t &global_kernel_state_t::_mutex() const RETURN_CAPABILITY(m_mutex)
     {
       return m_mutex;
+    }
+    inline auto global_kernel_state_t::slow_slab_begin() const noexcept -> uint8_t *
+    {
+      return m_slab_allocator.begin();
+    }
+    inline auto global_kernel_state_t::slow_slab_end() const noexcept -> uint8_t *
+    {
+      return m_slab_allocator.end();
+    }
+    inline auto global_kernel_state_t::fast_slab_begin() const noexcept -> uint8_t *
+    {
+      return m_fast_slab_allocator.begin();
+    }
+    inline auto global_kernel_state_t::fast_slab_end() const noexcept -> uint8_t *
+    {
+      return m_fast_slab_allocator.end();
     }
   }
 }
