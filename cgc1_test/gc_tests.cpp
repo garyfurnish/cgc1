@@ -17,8 +17,12 @@
 static ::std::vector<size_t> locations;
 static cgc1::spinlock_t debug_mutex;
 using namespace bandit;
+// alias
+static auto &gks = ::cgc1::details::g_gks;
+using namespace ::cgc1::literals;
 namespace cgc1
 {
+
   template <size_t bytes = 5000>
   static inline __attribute__((always_inline)) void clean_stack(size_t, size_t, size_t, size_t, size_t)
   {
@@ -91,10 +95,13 @@ static void root_test()
   root_test__setup(memory, old_memory);
   // force collection
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
+  gks.wait_for_finalization();
   // verify that nothing was collected.
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  auto last_collect = gks._d_freed_in_last_collection();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
   AssertThat(last_collect, HasLength(0));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that the we zero the memory so the pointer doesn't linger.
@@ -102,12 +109,15 @@ static void root_test()
   auto num_collections = cgc1::debug::num_gc_collections();
   // force collection.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+  last_collect = gks._d_freed_in_last_collection();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
   // now we should collect.
-  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
+  AssertThat(last_collect.size(), Equals(1_sz));
   // verify it collected the correct address.
   AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   // verify that we did perform a collection.
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
@@ -133,22 +143,28 @@ static void internal_pointer_test()
   internal_pointer_test__setup(memory, old_memory);
   // force collection.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks._d_freed_in_last_collection();
   // it should stick around because it has a root.
   AssertThat(last_collect, HasLength(0));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that we zero the memory so the pointer doesn't linger.
   cgc1::secure_zero_pointer(memory);
   // force collection.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  last_collect = gks._d_freed_in_last_collection();
   // now we should collect.
   AssertThat(last_collect, HasLength(1));
   // verify it collected the correct address.
   AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
 }
 /**
  * \brief Setup for atomic object test.
@@ -171,20 +187,30 @@ static void atomic_test()
   size_t old_memory;
   atomic_test__setup(memory, old_memory);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals(static_cast<size_t>(0)));
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks._d_freed_in_last_collection();
+  AssertThat(last_collect.size(), Equals(0_sz));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
   cgc1::cgc_set_atomic(memory, true);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  last_collect = gks._d_freed_in_last_collection();
+
   AssertThat(last_collect, HasLength(1));
   AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   cgc1::cgc_remove_root(&memory);
   cgc1::secure_zero_pointer(memory);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
   AssertThat(last_collect, HasLength(1));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
   cgc1::cgc_set_atomic(nullptr, true);
   cgc1::cgc_set_atomic(&old_memory, true);
@@ -203,10 +229,13 @@ static void finalizer_test()
   std::atomic<bool> finalized;
   finalizer_test__setup(finalized, old_memory);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks._d_freed_in_last_collection();
+  AssertThat(last_collect.size(), Equals(1_sz));
   AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   AssertThat(static_cast<bool>(finalized), IsTrue());
   // test bad parameters
   cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
@@ -230,15 +259,20 @@ static void uncollectable_test()
   size_t old_memory;
   uncollectable_test__setup(old_memory);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals(static_cast<size_t>(0)));
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks._d_freed_in_last_collection();
+  AssertThat(last_collect.size(), Equals(0_sz));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
   uncollectable_test__cleanup(old_memory);
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
-  AssertThat(last_collect.size(), Equals(static_cast<size_t>(1)));
-  AssertThat(last_collect[0] == old_memory, IsTrue());
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  last_collect = gks._d_freed_in_last_collection();
+  AssertThat(last_collect.size(), Equals(1_sz)) AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
   cgc1::cgc_set_uncollectable(nullptr, true);
   cgc1::cgc_set_uncollectable(&old_memory, true);
@@ -246,7 +280,7 @@ static void uncollectable_test()
 static void linked_list_test()
 {
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
+  gks.wait_for_finalization();
   std::atomic<bool> keep_going{true};
   auto test_thread = [&keep_going]() {
     CGC1_INITIALIZE_THREAD();
@@ -277,22 +311,28 @@ static void linked_list_test()
   ::std::this_thread::yield();
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
-    cgc1::details::g_gks.wait_for_finalization();
-    auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+    gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+    auto freed_last = gks._d_freed_in_last_collection();
     assert(freed_last.empty());
     AssertThat(freed_last, HasLength(0));
+#endif
+    AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
   }
   keep_going = false;
   t1.join();
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks._d_freed_in_last_collection();
   ::std::sort(locations.begin(), locations.end());
   ::std::sort(last_collect.begin(), last_collect.end());
   AssertThat(last_collect.size(), Equals(locations.size()));
   bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), locations.begin());
   assert(all_found);
   AssertThat(all_found, IsTrue());
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(locations.size()));
   locations.clear();
 }
 namespace race_condition_test_detail
@@ -332,7 +372,7 @@ namespace race_condition_test_detail
  **/
   static _NoInline_ void race_condition_test()
   {
-    const auto start_global_blocks = cgc1::details::g_gks.gc_allocator().num_global_blocks();
+    const auto start_global_blocks = gks.gc_allocator().num_global_blocks();
     // these must be cleared each time to prevent race conditions.
     llocations.clear();
     keep_going = true;
@@ -348,15 +388,17 @@ namespace race_condition_test_detail
     // this is obviously stochastic.
     while (finished_part1 != num_threads) {
       cgc1::cgc_force_collect();
-      cgc1::details::g_gks.wait_for_finalization();
-      auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+      gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+      auto freed_last = gks._d_freed_in_last_collection();
       assert(freed_last.empty());
       AssertThat(freed_last, HasLength(0));
+#endif
+      AssertThat(gks.num_freed_in_last_collection(), Equals(0_sz));
       // prevent test from hammering gc before threads are setup.
       // sleep could cause deadlock with some osx platform functionality
       // therefore intentionally use it to try to break things.
       ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
-      //      ::std::this_thread::yield();
     }
     // wait for threads to finish.
     keep_going = false;
@@ -364,8 +406,9 @@ namespace race_condition_test_detail
       thread.join();
     // force collection.
     cgc1::cgc_force_collect();
-    cgc1::details::g_gks.wait_for_finalization();
-    auto last_collect = cgc1::details::g_gks._d_freed_in_last_collection();
+    gks.wait_for_finalization();
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+    auto last_collect = gks._d_freed_in_last_collection();
     // pointers might be in arbitrary order so sort them.
     ::std::sort(llocations.begin(), llocations.end());
     ::std::sort(last_collect.begin(), last_collect.end());
@@ -378,11 +421,13 @@ namespace race_condition_test_detail
     assert(all_found);
     AssertThat(all_found, IsTrue());
     last_collect.clear();
+#endif
+    AssertThat(gks.num_freed_in_last_collection(), Equals(llocations.size()));
     // cleanup
     llocations.clear();
     // check to make sure empty blocks aren't being put in global blocks (ACTUAL BUG).
-    cgc1::details::g_gks.gc_allocator().collect();
-    AssertThat(cgc1::details::g_gks.gc_allocator().num_global_blocks(), Equals(start_global_blocks));
+    gks.gc_allocator().collect();
+    AssertThat(gks.gc_allocator().num_global_blocks(), Equals(start_global_blocks));
   }
 }
 static size_t expected_global_blocks(const size_t start, size_t taken, const size_t put_back)
@@ -393,7 +438,7 @@ static size_t expected_global_blocks(const size_t start, size_t taken, const siz
 static void return_to_global_test0()
 {
   // get the global allocator
-  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = gks.gc_allocator();
   // get the number of global blocks starting.
   const auto start_num_global_blocks = allocator.num_global_blocks();
   // this thread will create an object (which will create a thread local block)
@@ -409,10 +454,13 @@ static void return_to_global_test0()
   t1.join();
   // wait for thread to terminate.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
-  // make sure exactly one memory location was freed.
-  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+  gks.wait_for_finalization();
+// make sure exactly one memory location was freed.
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto freed_last = gks._d_freed_in_last_collection();
   AssertThat(freed_last, HasLength(1));
+#endif
+  AssertThat(gks.num_freed_in_last_collection(), Equals(1_sz));
   // make sure that exactly one global block was added.
   auto num_global_blocks = allocator.num_global_blocks();
   AssertThat(num_global_blocks, Equals(expected_global_blocks(start_num_global_blocks, 1, 1)));
@@ -420,7 +468,7 @@ static void return_to_global_test0()
 static void return_to_global_test1()
 {
   // get the global allocator
-  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = gks.gc_allocator();
   // put block bounds here.
   ::std::atomic<uint8_t *> begin{nullptr};
   ::std::atomic<uint8_t *> end{nullptr};
@@ -447,9 +495,9 @@ static void return_to_global_test1()
   t1.join();
   // wait for thread to terminate.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
+  gks.wait_for_finalization();
   // make sure nothing was freed (as it should have already been freed)
-  auto freed_last = cgc1::details::g_gks._d_freed_in_last_collection();
+  auto freed_last = gks._d_freed_in_last_collection();
   AssertThat(freed_last, HasLength(0));
   // check that the memory was returned to global free list.
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
@@ -462,7 +510,7 @@ static _NoInline_ void return_to_global_test2()
 {
   cgc1::clean_stack(0, 0, 0, 0, 0);
   // get the global allocator
-  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = gks.gc_allocator();
   ::std::atomic<bool> ready_for_test{false};
   ::std::atomic<bool> test_done{false};
   ::std::atomic<uint8_t *> begin{nullptr};
@@ -556,7 +604,7 @@ static _NoInline_ void return_to_global_test2()
   AssertThat(in_free2, IsFalse());
   // force a collection to cleanup.
   cgc1::cgc_force_collect();
-  cgc1::details::g_gks.wait_for_finalization();
+  gks.wait_for_finalization();
   // Verify that we haven't created any global blocks.
   cgc1::secure_zero(&begin, sizeof(begin));
   cgc1::secure_zero(&end, sizeof(end));

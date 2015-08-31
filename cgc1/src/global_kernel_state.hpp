@@ -142,6 +142,18 @@ namespace cgc1
       template <typename Container>
       void _add_freed_in_last_collection(Container &container) REQUIRES(!m_mutex);
       /**
+       * \brief Add number of pointers that were freed in last collection.
+       *
+       * This is always valid in both release and debug modes.
+       **/
+      void _add_num_freed_in_last_collection(size_t num_freed) noexcept;
+      /**
+       * \brief Return number of pointers that were freed in last collection.
+       *
+       * This is always valid in both release and debug modes.
+       **/
+      size_t num_freed_in_last_collection() const noexcept;
+      /**
        * \brief Return pointers that were freed in the last collection.
        *
        * In non-debug mode may be empty.
@@ -281,21 +293,33 @@ namespace cgc1
       **/
       rebind_vector_t<::std::unique_ptr<gc_thread_t>, cgc_internal_malloc_allocator_t<void>> m_gc_threads;
       /**
-       * List of pointers freed in last collection.
+       * \brief List of pointers freed in last collection.
+       *
+       * In debug mode this is all pointers.
+       * Otherwise this is just ones to be finalized.
       **/
       cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
-       * True while a garbage collection is running, otherwise false.
+       * \brief True while a garbage collection is running, otherwise false.
       **/
-      std::atomic<bool> m_collect;
+      ::std::atomic<bool> m_collect;
       /**
-       * Increment variable for enabling or disabling
+       * \brief Increment variable for enabling or disabling
       **/
-      std::atomic<long> m_enabled_count;
+      ::std::atomic<long> m_enabled_count;
       /**
-       * True if the kernel has been initialized, false otherwise.
+       * \brief True if the kernel has been initialized, false otherwise.
       **/
       bool m_initialized GUARDED_BY(m_mutex) = false;
+      //
+      //
+      // Debug information under here.
+      //
+      //
+      /**
+       * \brief Absolute number of pointers freed in last collection.
+       **/
+      ::std::atomic<size_t> m_num_freed_in_last_collection{0};
       /**
        * \brief Time for clear phase of gc.
        **/

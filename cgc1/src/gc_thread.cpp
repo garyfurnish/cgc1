@@ -255,6 +255,8 @@ namespace cgc1
     void gc_thread_t::_sweep()
     {
       assert(m_block_begin && m_block_end);
+      // Number freed in last collection.
+      size_t num_freed = 0;
       // iterate through all blocks
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
@@ -266,17 +268,20 @@ namespace cgc1
           assert(os_it->next() == end || os_it->next_valid());
           // if in use and not marked, get ready to free it.
           if (os_it->in_use() && !is_marked(os_it)) {
+            ++num_freed;
             gc_user_data_t *ud = static_cast<gc_user_data_t *>(os_it->user_data());
             if (ud) {
               if (ud->m_is_default) {
                 os_it->set_quasi_freed();
-#if _CGC1_DEBUG_LEVEL > 0
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
                 m_to_be_freed.push_back(os_it);
 #endif
 
               } else {
                 if (ud->m_uncollectable) {
                   // if uncollectable don't do anything.
+                  // didn't actually free anything, so decrement.
+                  --num_freed;
                   continue;
                 } else if (ud->m_finalizer) {
                   // if it has a finalizer, finalize.
@@ -293,6 +298,7 @@ namespace cgc1
           }
         }
       }
+      g_gks._add_num_freed_in_last_collection(num_freed);
     }
     void gc_thread_t::_finalize()
     {

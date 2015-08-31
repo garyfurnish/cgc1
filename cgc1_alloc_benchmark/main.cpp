@@ -71,12 +71,12 @@ int main()
   ::std::cout << "Total bytes " << GC_get_total_bytes() << ::std::endl;
   ::std::cout << "Unampped bytes " << GC_get_unmapped_bytes() << ::std::endl;
 
-  for (size_t i = 0; i < num_alloc; ++i) {
+  /*  for (size_t i = 0; i < num_alloc; ++i) {
     if (i % 2)
       ptrs[i] = nullptr;
   }
   //  memset(ptrs, 0, sizeof(void *) * num_alloc);
-  //  ptrs = nullptr;
+  //  ptrs = nullptr;*/
   GC_gcollect();
   ::std::cout << "Collected\n";
   ::std::cout << "Free bytes " << GC_get_free_bytes() << ::std::endl;

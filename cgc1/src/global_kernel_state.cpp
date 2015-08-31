@@ -203,6 +203,7 @@ namespace cgc1
         return;
       }
       m_collect = true;
+      m_num_freed_in_last_collection = 0;
       m_freed_in_last_collection.clear();
       m_num_paused_threads = m_num_resumed_threads = 0;
       m_allocators_unavailable_mutex.lock();
@@ -277,6 +278,14 @@ namespace cgc1
       _u_resume_threads();
       m_thread_mutex.unlock();
       m_mutex.unlock();
+    }
+    void global_kernel_state_t::_add_num_freed_in_last_collection(size_t num_freed) noexcept
+    {
+      m_num_freed_in_last_collection += num_freed;
+    }
+    size_t global_kernel_state_t::num_freed_in_last_collection() const noexcept
+    {
+      return m_num_freed_in_last_collection;
     }
     cgc_internal_vector_t<uintptr_t> global_kernel_state_t::_d_freed_in_last_collection() const
     {
@@ -371,8 +380,8 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(pow2(33), pow2(36));
-      // const size_t num_gc_threads = ::std::thread::hardware_concurrency();
-      const size_t num_gc_threads = 1;
+      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      // const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
       if (!num_gc_threads) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";

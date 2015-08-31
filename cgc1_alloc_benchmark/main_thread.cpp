@@ -132,8 +132,6 @@ int main()
   GC_enable();
   GC_gcollect();
 #else
-  //  for(size_t i = 0; i < 500; ++i)
-  //    cgc1::cgc_force_collect();
   cgc1::cgc_force_collect();
 #endif
   t2 = ::std::chrono::high_resolution_clock::now();
