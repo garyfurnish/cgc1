@@ -1,0 +1,3 @@
+[submodule "bandit"]
+	path = bandit
+	url = git@github.com:joakimkarlsson/bandit.git

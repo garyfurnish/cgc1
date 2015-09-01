@@ -1,4 +1,4 @@
-find_path(BANDIT_INCLUDE_PATH bandit/bandit.h)
+find_path(BANDIT_INCLUDE_PATH bandit/bandit.h ../bandit)
 include_directories(${BANDIT_INCLUDE_PATH})
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_compile_options(-fPIE)
