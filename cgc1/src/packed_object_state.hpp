@@ -1,5 +1,6 @@
 #pragma once
 #include <cgc1/declarations.hpp>
+#include "integer_block.hpp"
 namespace cgc1
 {
   namespace details
@@ -10,6 +11,8 @@ namespace cgc1
       static const constexpr size_t cs_entry_sz = Entry_Size;
       static const constexpr size_t cs_header_alignment = Header_Alignment;
       static const constexpr size_t cs_object_alignment = 32;
+
+      using bits_array_type = ::std::array<uint64_t, 8>;
 
       static constexpr size_t real_entry_size()
       {
