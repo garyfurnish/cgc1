@@ -72,12 +72,12 @@ namespace cgc1
   **/
   inline constexpr size_t align(size_t sz, size_t alignment)
   {
-    return ((sz + alignment + 1) / alignment) * alignment;
+    return ((sz + alignment - 1) / alignment) * alignment;
   }
   /**
    * \brief Align pointer to alignment.
   **/
-  inline const void *align(void *iptr, size_t alignment)
+  inline void *align(void *iptr, size_t alignment)
   {
     return reinterpret_cast<void *>(align(reinterpret_cast<size_t>(iptr), alignment));
   }

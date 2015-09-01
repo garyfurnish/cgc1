@@ -6,13 +6,13 @@ namespace cgc1
   namespace details
   {
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
-    struct packed_object_state_t {
+    struct alignas(32) packed_object_state_t {
     public:
       static const constexpr size_t cs_entry_sz = Entry_Size;
       static const constexpr size_t cs_header_alignment = Header_Alignment;
       static const constexpr size_t cs_object_alignment = 32;
 
-      using bits_array_type = ::std::array<uint64_t, 8>;
+      using bits_array_type = integer_block_t<8>;
 
       static constexpr size_t real_entry_size()
       {
@@ -59,8 +59,8 @@ namespace cgc1
 
       void free_unmarked() noexcept;
 
-      ::std::array<uint64_t, num_blocks_needed() * 8> m_free_bits;
-      ::std::array<uint64_t, num_blocks_needed() * 8> m_mark_bits;
+      ::std::array<integer_block_t<8>, num_blocks_needed()> m_free_bits;
+      ::std::array<integer_block_t<8>, num_blocks_needed()> m_mark_bits;
     };
     static_assert(::std::is_pod<packed_object_state_t<4096 * 4, 64, 128>>::value, "");
   }

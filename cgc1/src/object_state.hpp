@@ -13,20 +13,20 @@ namespace cgc1
     /**
      * \brief Object state for an object in allocator block.
      **/
-    class object_state_t
+    class alignas(16) object_state_t
     {
     public:
       /**
        * \brief Return the total size needed for an allocation of object state of sz with header_sz.
       **/
-      static constexpr size_t needed_size(size_t header_sz, size_t sz)
+      static constexpr size_t needed_size(size_t header_sz, size_t sz, size_t alignment = c_alignment)
       {
-        return align(header_sz) + align(sz);
+        return align(header_sz, alignment) + align(sz, alignment);
       }
       /**
        * \brief Return the address of the object_state from the allocated object memory.
       **/
-      static object_state_t *from_object_start(void *v) noexcept;
+      static object_state_t *from_object_start(void *v, size_t alignment = c_alignment) noexcept;
       /**
        * \brief Set next, in_use, and next_valid at once.
       **/
@@ -77,15 +77,15 @@ namespace cgc1
       /**
        * \brief Returns start of object.
       **/
-      uint8_t *object_start() const noexcept;
+      uint8_t *object_start(size_t alignment = c_alignment) const noexcept;
       /**
        * \brief Returns size of memory associated with this state.
       **/
-      size_t object_size() const noexcept;
+      size_t object_size(size_t alignment = c_alignment) const noexcept;
       /**
        * \brief Returns end of object.
       **/
-      uint8_t *object_end() const noexcept;
+      uint8_t *object_end(size_t alignment = c_alignment) const noexcept;
       /**
        * \brief Returns user data pointer.
       **/

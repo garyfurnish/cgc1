@@ -7,6 +7,7 @@ namespace cgc1
 {
   namespace details
   {
+
     using slab_allocator_object_t = details::object_state_t;
     static_assert(sizeof(slab_allocator_object_t) == c_alignment, "slab_allocator_object_t too large");
     static_assert(::std::is_pod<slab_allocator_object_t>::value, "slab_allocator_object_t is not POD");
@@ -21,6 +22,10 @@ namespace cgc1
     class slab_allocator_t
     {
     public:
+      static constexpr size_t cs_alignment = 32;
+
+      static constexpr size_t alignment() noexcept;
+
       /**
        * \brief Constructor.
        *
@@ -93,6 +98,10 @@ namespace cgc1
        * @param v Memory to deallocate.
        **/
       void deallocate_raw(void *v) REQUIRES(!m_mutex);
+      /**
+       * \brief Return offset from start of slab for pointer.
+       **/
+      ptrdiff_t offset(void *v) const noexcept;
 
     private:
       /**
@@ -108,6 +117,10 @@ namespace cgc1
        **/
       slab_allocator_object_t *m_end;
     };
+    constexpr size_t slab_allocator_t::alignment() noexcept
+    {
+      return cs_alignment;
+    }
   }
 }
 #ifdef CGC1_INLINES

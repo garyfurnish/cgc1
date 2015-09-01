@@ -7,9 +7,9 @@ namespace cgc1
     {
       return os == align_pow2(os, c_align_pow2);
     }
-    ALWAYS_INLINE inline object_state_t *object_state_t::from_object_start(void *v) noexcept
+    ALWAYS_INLINE inline object_state_t *object_state_t::from_object_start(void *v, size_t alignment) noexcept
     {
-      return reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(v) - align(sizeof(object_state_t)));
+      return reinterpret_cast<object_state_t *>(reinterpret_cast<uint8_t *>(v) - align(sizeof(object_state_t), alignment));
     }
     ALWAYS_INLINE inline void
     object_state_t::set_all(object_state_t *next, bool in_use, bool next_valid, bool quasi_freed) noexcept
@@ -64,18 +64,19 @@ namespace cgc1
       //      size_t iv = static_cast<size_t>(not_available());
       m_next = (ptr & static_cast<size_t>(-4)) | (m_next & 1); //(iv & 1);
     }
-    ALWAYS_INLINE inline uint8_t *object_state_t::object_start() const noexcept
+    ALWAYS_INLINE inline uint8_t *object_state_t::object_start(size_t alignment) const noexcept
     {
-      return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) + align(sizeof(object_state_t)));
+      return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) + align(sizeof(object_state_t), alignment));
     }
-    ALWAYS_INLINE inline size_t object_state_t::object_size() const noexcept
+    ALWAYS_INLINE inline size_t object_state_t::object_size(size_t alignment) const noexcept
     {
       // It is invariant that object_start() > next for all valid objects.
-      return static_cast<size_t>(reinterpret_cast<uint8_t *>(next()) - object_start());
+      return static_cast<size_t>(reinterpret_cast<uint8_t *>(next()) - object_start(alignment));
     }
-    ALWAYS_INLINE inline uint8_t *object_state_t::object_end() const noexcept
+    ALWAYS_INLINE inline uint8_t *object_state_t::object_end(size_t alignment) const noexcept
     {
-      return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) + align(sizeof(object_state_t)) + object_size());
+      return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) + align(sizeof(object_state_t)) +
+                                   object_size(alignment));
     }
     ALWAYS_INLINE inline user_data_base_t *object_state_t::user_data() const noexcept
     {

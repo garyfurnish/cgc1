@@ -5,25 +5,25 @@ namespace cgc1
   namespace details
   {
     template <size_t Quads>
-    void integer_block_t<Quads>::clear()
+    void integer_block_t<Quads>::clear() noexcept
     {
       ::std::fill(m_array.begin(), m_array.end(), 0);
     }
     template <size_t Quads>
-    void integer_block_t<Quads>::fill(uint64_t word)
+    void integer_block_t<Quads>::fill(uint64_t word) noexcept
     {
       ::std::fill(m_array.begin(), m_array.end(), word);
     }
 
     template <size_t Quads>
-    void integer_block_t<Quads>::set_bit(size_t i, bool value) const noexcept
+    void integer_block_t<Quads>::set_bit(size_t i, bool value) noexcept
     {
       auto pos = i / 64;
       auto sub_pos = i - (pos * 64);
       m_array[pos] = (m_array[pos] & (~(1ll << sub_pos))) | (static_cast<size_t>(value) << sub_pos);
     }
     template <size_t Quads>
-    void integer_block_t<Quads>::set_bit_atomic(size_t i, bool value, ::std::memory_order ordering) const noexcept
+    void integer_block_t<Quads>::set_bit_atomic(size_t i, bool value, ::std::memory_order ordering) noexcept
     {
       auto pos = i / 64;
       auto sub_pos = i - (pos * 64);
@@ -110,7 +110,7 @@ namespace cgc1
     auto integer_block_t<Quads>::operator|=(const integer_block_t &b) noexcept -> integer_block_t &
     {
       for (size_t i = 0; i < m_array.size(); ++i) {
-        m_array[i] |= b;
+        m_array[i] |= b.m_array[i];
       }
       return *this;
     }
@@ -133,9 +133,19 @@ namespace cgc1
     }
 
     template <size_t Quads>
+    constexpr size_t integer_block_t<Quads>::size() noexcept
+    {
+      return cs_quad_words;
+    }
+    template <size_t Quads>
     constexpr size_t integer_block_t<Quads>::size_in_bytes() noexcept
     {
       return sizeof(m_array);
+    }
+    template <size_t Quads>
+    constexpr size_t integer_block_t<Quads>::size_in_bits() noexcept
+    {
+      return size_in_bytes() * 8;
     }
   }
 }

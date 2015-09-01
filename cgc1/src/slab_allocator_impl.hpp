@@ -37,25 +37,25 @@ namespace cgc1
 
     CGC1_OPT_INLINE void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
     {
-      if (sz + c_alignment * 2 > object->object_size()) {
+      if (sz + cs_alignment * 2 > object->object_size(cs_alignment)) {
         // if not enough space to split, just take it all.
         object->set_in_use(true);
-        return object->object_start();
+        return object->object_start(cs_alignment);
       } else {
         // else create a new object state at the right place.
-        auto new_next = reinterpret_cast<slab_allocator_object_t *>(object->object_start() + sz);
+        auto new_next = reinterpret_cast<slab_allocator_object_t *>(object->object_start(cs_alignment) + sz);
         // set new object state.
         new_next->set_all(object->next(), false, object->next_valid());
         // set current object  state.
         object->set_all(new_next, true, true);
         // return location of start of object.
-        return object->object_start();
+        return object->object_start(cs_alignment);
       }
     }
     CGC1_OPT_INLINE void *slab_allocator_t::_u_allocate_raw_at_end(size_t sz)
     {
       // get total needed size.
-      size_t total_size = slab_allocator_object_t::needed_size(sizeof(slab_allocator_object_t), sz);
+      size_t total_size = slab_allocator_object_t::needed_size(sizeof(slab_allocator_object_t), sz, cs_alignment);
       auto object = m_end;
       // tack on needed size to current end.
       m_end = reinterpret_cast<slab_allocator_object_t *>(reinterpret_cast<uint8_t *>(m_end) + total_size);
@@ -78,12 +78,12 @@ namespace cgc1
         object->set_next_valid(true);
         m_end->set_all(&*_u_object_end(), false, false);
       }
-      return object->object_start();
+      return object->object_start(cs_alignment);
     }
     CGC1_OPT_INLINE void *slab_allocator_t::allocate_raw(size_t sz)
     {
       // align request.
-      sz = align(sz);
+      sz = align(sz, cs_alignment);
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // if empty, create at end.
       if (_u_empty()) {
@@ -107,13 +107,13 @@ namespace cgc1
         // This looks horrible but is just finding approximate lower bound and exact upper bound at the same time.
         // TODO: Can these bounds be made more precise.
         // Try to find an exact LB.
-        if (lb == _u_object_end() && it->object_size() >= sz && it->object_size() <= sz + c_alignment)
+        if (lb == _u_object_end() && it->object_size(cs_alignment) >= sz && it->object_size(cs_alignment) <= sz + cs_alignment)
           lb = it;
         // if new ub would be bigger then current ub, take it.
-        if (ub != _u_object_end() && it->object_size() >= ub->object_size())
+        if (ub != _u_object_end() && it->object_size(cs_alignment) >= ub->object_size(cs_alignment))
           ub = it;
         // if ub is undefined, take anything valid.
-        else if (ub == _u_object_end() && it->object_size() >= sz)
+        else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
           ub = it;
       }
       if (lb == _u_object_end()) {
@@ -126,13 +126,13 @@ namespace cgc1
       } else {
         // precise fit, use it.
         lb->set_in_use(true);
-        return lb->object_start();
+        return lb->object_start(cs_alignment);
       }
     }
     CGC1_OPT_INLINE void slab_allocator_t::deallocate_raw(void *v)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      auto object = slab_allocator_object_t::from_object_start(v);
+      auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
       // set not in use.
       object->set_in_use(false);
       // coalesce if possible.
@@ -146,6 +146,10 @@ namespace cgc1
         object->set_next(&*_u_object_end());
         m_end = object;
       }
+    }
+    CGC1_OPT_INLINE ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
+    {
+      return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
     }
   }
 }

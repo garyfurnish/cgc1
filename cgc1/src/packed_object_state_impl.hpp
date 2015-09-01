@@ -7,19 +7,21 @@ namespace cgc1
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     void packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::initialize() noexcept
     {
-      ::std::fill(m_free_bits.begin(), m_free_bits.end(), ::std::numeric_limits<uint64_t>::max());
+      for (auto &&it : m_free_bits)
+        it.fill(::std::numeric_limits<uint64_t>::max());
     }
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     void packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::clear_mark_bits() noexcept
     {
-      ::std::fill(m_mark_bits.begin(), m_mark_bits.end(), 0);
+      for (auto &&it : m_mark_bits)
+        it.clear();
     }
 
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::any_free() const noexcept -> bool
     {
       for (auto &&it : m_free_bits)
-        if (it)
+        if (it.any_set())
           return true;
       return false;
     }
@@ -27,7 +29,7 @@ namespace cgc1
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::none_free() const noexcept -> bool
     {
       for (auto &&it : m_free_bits)
-        if (it)
+        if (it.any_set())
           return false;
       return true;
     }
@@ -35,10 +37,9 @@ namespace cgc1
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::first_free() const noexcept -> size_t
     {
       for (size_t i = 0; i < m_free_bits.size(); ++i) {
-        const uint64_t &it = m_free_bits[i];
-        auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
-        if (first)
-          return (64 * i) + (first - 1);
+        auto ret = m_free_bits[i].first_set();
+        if (ret != ::std::numeric_limits<size_t>::max())
+          return i * 64 + ret;
       }
       return ::std::numeric_limits<size_t>::max();
     }
@@ -46,7 +47,7 @@ namespace cgc1
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::any_marked() const noexcept -> bool
     {
       for (auto &&it : m_mark_bits)
-        if (it)
+        if (it.any_set())
           return true;
       return false;
     }
@@ -54,7 +55,7 @@ namespace cgc1
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::none_marked() const noexcept -> bool
     {
       for (auto &&it : m_mark_bits)
-        if (it)
+        if (it.any_set())
           return false;
       return true;
     }
@@ -62,37 +63,30 @@ namespace cgc1
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     void packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::set_free(size_t i, bool val) noexcept
     {
-      auto pos = i / 64;
-      auto sub_pos = i - (pos * 64);
-      m_free_bits[pos] = (m_free_bits[pos] & (~(1ll << sub_pos))) | (static_cast<size_t>(val) << sub_pos);
+      auto pos = i / bits_array_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      m_free_bits[pos].set_bit(sub_pos, val);
     }
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     void packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::set_marked(size_t i) noexcept
     {
-      auto pos = i / 64;
-      auto sub_pos = i - (pos * 64);
-      auto &bits = unsafe_reference_cast<::std::atomic<uint64_t>>(m_mark_bits[pos]);
-      bool success = false;
-      while (!success) {
-        auto cur = bits.load(::std::memory_order_relaxed);
-        auto new_val = (cur & (~(1ll << sub_pos))) | (1ll << sub_pos);
-        success = bits.compare_exchange_weak(cur, new_val, ::std::memory_order_relaxed);
-      }
+      auto pos = i / bits_array_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      m_mark_bits[pos].set_bit_atomic(sub_pos, true, ::std::memory_order_relaxed);
     }
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::is_free(size_t i) const noexcept -> bool
     {
-      auto pos = i / 64;
-      auto sub_pos = i - (pos * 64);
-      return (m_free_bits[pos] & (1ll << sub_pos)) > sub_pos;
+      auto pos = i / bits_array_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      return m_free_bits[pos].get_bit(sub_pos);
     }
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::is_marked(size_t i) const noexcept -> bool
     {
-      auto pos = i / 64;
-      auto sub_pos = i - (pos * 64);
-      auto ret = (m_mark_bits[pos] & (1ll << sub_pos)) > (sub_pos);
-      return ret;
+      auto pos = i / bits_array_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      return m_mark_bits[pos].get_bit(sub_pos);
     }
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     constexpr auto packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::size() const noexcept -> size_t
@@ -144,9 +138,8 @@ namespace cgc1
     template <size_t Total_Size, size_t Entry_Size, size_t Header_Alignment>
     void packed_object_state_t<Total_Size, Entry_Size, Header_Alignment>::free_unmarked() noexcept
     {
-      for (size_t i = 0; i < m_free_bits.size(); ++i) {
-        m_free_bits[i] |= (~m_mark_bits[i]);
-      }
+      for (size_t i = 0; i < m_free_bits.size(); ++i)
+        m_free_bits[i] |= ~m_mark_bits[i];
     }
   }
 }

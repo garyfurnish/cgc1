@@ -633,15 +633,17 @@ static void multiple_slab_test1()
   auto &fast_slab = gks._internal_fast_slab_allocator();
   constexpr const size_t packed_size = 4096 * 8;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
-  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(16_sz));
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
   constexpr const size_t entry_size = 64;
   constexpr const size_t expected_entries = packed_size / entry_size - 4;
   using ps_type = ::cgc1::details::packed_object_state_t<packed_size, entry_size, 256>;
-  auto ps = new (ret) ps_type();
+  static_assert(sizeof(ps_type) <= packed_size, "");
   AssertThat(ps_type::num_blocks_needed(), Equals(2_sz));
   AssertThat(ps_type::num_entries_up(), Equals(packed_size / entry_size));
   AssertThat(ps_type::num_entries(), Equals(expected_entries));
-
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 32, Equals(0_sz));
+  auto ps = new (ret) ps_type();
+  (void)ps;
   AssertThat(static_cast<size_t>(ps->end() - ret), Is().LessThanOrEqualTo(packed_size));
 
   AssertThat(ret + packed_size >= ps->end(), IsTrue());
@@ -703,7 +705,7 @@ static void multiple_slab_test1()
   ps->clear_mark_bits();
   ::std::vector<void *> ptrs;
   bool keep_going = true;
-  AssertThat(ps->m_free_bits.size(), Equals(16_sz));
+  AssertThat(ps->m_free_bits.size() * ps_type::bits_array_type::size(), Equals(16_sz));
   while (keep_going) {
     void *ptr = ps->allocate();
     if (ptr)
