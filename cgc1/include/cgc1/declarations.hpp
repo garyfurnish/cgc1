@@ -300,4 +300,20 @@ namespace cgc1
     u.i = &in;
     return *u.t;
   }
+  /**
+   * \brief Unsafe cast of pointers
+   *
+   * Contain any undefined behavior here here.
+   * @tparam Type New type.
+   **/
+  template <typename Type, typename In>
+  Type *unsafe_cast(In *in)
+  {
+    union {
+      Type *t;
+      In *i;
+    } u;
+    u.i = in;
+    return u.t;
+  }
 }

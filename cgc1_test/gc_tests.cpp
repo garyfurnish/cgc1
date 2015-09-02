@@ -628,6 +628,27 @@ static void api_tests()
   cgc1::cgc_enable();
   AssertThat(cgc1::cgc_is_enabled(), Is().True());
 }
+
+static void multiple_slab_test0()
+{
+  auto &fast_slab = gks._internal_fast_slab_allocator();
+  constexpr const size_t packed_size = 4096 * 16;
+  uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
+  constexpr const size_t entry_size = 128ul;
+  constexpr const size_t expected_entries = packed_size / entry_size - 1;
+  using ps_type = ::cgc1::details::packed_object_state_t;
+  static_assert(sizeof(ps_type) <= packed_size, "");
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 32, Equals(0_sz));
+  auto ps = new (ret) ps_type();
+  (void)ps;
+
+  constexpr const cgc1::details::packed_object_state_info_t state{1ul, entry_size};
+  AssertThat(ps->size(state), Equals(expected_entries));
+  AssertThat(static_cast<size_t>(ps->end(state) - ret), Is().LessThanOrEqualTo(packed_size));
+  fast_slab.deallocate_raw(ret);
+}
+
 static void multiple_slab_test1()
 {
   auto &fast_slab = gks._internal_fast_slab_allocator();
@@ -635,79 +656,80 @@ static void multiple_slab_test1()
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
   constexpr const size_t entry_size = 64;
-  constexpr const size_t expected_entries = packed_size / entry_size - 4;
-  using ps_type = ::cgc1::details::packed_object_state_t<packed_size, entry_size, 256>;
+  constexpr const size_t expected_entries = packed_size / entry_size - 2;
+  using ps_type = ::cgc1::details::packed_object_state_t;
   static_assert(sizeof(ps_type) <= packed_size, "");
-  AssertThat(ps_type::num_blocks_needed(), Equals(2_sz));
-  AssertThat(ps_type::num_entries_up(), Equals(packed_size / entry_size));
-  AssertThat(ps_type::num_entries(), Equals(expected_entries));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 32, Equals(0_sz));
   auto ps = new (ret) ps_type();
   (void)ps;
-  AssertThat(static_cast<size_t>(ps->end() - ret), Is().LessThanOrEqualTo(packed_size));
 
-  AssertThat(ret + packed_size >= ps->end(), IsTrue());
-  AssertThat(ps->size(), Equals(expected_entries));
-  ps->initialize();
-  AssertThat(ps->any_free(), IsTrue());
-  AssertThat(ps->none_free(), IsFalse());
-  AssertThat(ps->first_free(), Equals(0_sz));
-  ps->set_free(0, false);
-  AssertThat(ps->first_free(), Equals(1_sz));
+  constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul};
+  AssertThat(ps->size(state), Equals(expected_entries));
+  AssertThat(static_cast<size_t>(ps->end(state) - ret), Is().LessThanOrEqualTo(packed_size));
+
+  AssertThat(ret + packed_size >= ps->end(state), IsTrue());
+  AssertThat(ps->size(state), Equals(expected_entries));
+  ps->initialize(state);
+  AssertThat(ps->any_free(state), IsTrue());
+  AssertThat(ps->none_free(state), IsFalse());
+  AssertThat(ps->first_free(state), Equals(0_sz));
+  ps->set_free(state, 0, false);
+  AssertThat(ps->first_free(state), Equals(1_sz));
   for (size_t i = 0; i < 64; ++i) {
-    ps->set_free(i, false);
+    ps->set_free(state, i, false);
   }
-  AssertThat(ps->first_free(), Equals(64_sz));
-  AssertThat(ps->is_free(53), IsFalse());
-  AssertThat(ps->is_free(64), IsTrue());
+  AssertThat(ps->first_free(state), Equals(64_sz));
+  AssertThat(ps->is_free(state, 53), IsFalse());
+  AssertThat(ps->is_free(state, 64), IsTrue());
   for (size_t i = 0; i < 255; ++i) {
-    ps->set_free(i, false);
+    ps->set_free(state, i, false);
   }
-  AssertThat(ps->first_free(), Equals(255_sz));
-  ps->set_free(69, true);
-  AssertThat(ps->first_free(), Equals(69_sz));
+  AssertThat(ps->first_free(state), Equals(255_sz));
+  ps->set_free(state, 69, true);
+  AssertThat(ps->first_free(state), Equals(69_sz));
 
-  ps->clear_mark_bits();
-  AssertThat(ps->any_marked(), IsFalse());
-  AssertThat(ps->none_marked(), IsTrue());
-  ps->set_marked(0);
-  AssertThat(ps->any_marked(), IsTrue());
-  AssertThat(ps->none_marked(), IsFalse());
+  ps->clear_mark_bits(state);
+  AssertThat(ps->any_marked(state), IsFalse());
+  AssertThat(ps->none_marked(state), IsTrue());
+  ps->set_marked(state, 0);
+  AssertThat(ps->any_marked(state), IsTrue());
+  AssertThat(ps->none_marked(state), IsFalse());
   for (size_t i = 0; i < 64; ++i) {
     if (i % 2)
-      ps->set_marked(i);
+      ps->set_marked(state, i);
   }
-  AssertThat(ps->is_marked(0), IsTrue());
-  AssertThat(ps->is_marked(31), IsTrue()) AssertThat(ps->is_marked(33), IsTrue()) for (size_t i = 200; i < 255; ++i)
-  {
+  AssertThat(ps->is_marked(state, 0), IsTrue());
+  AssertThat(ps->is_marked(state, 31), IsTrue());
+  AssertThat(ps->is_marked(state, 33), IsTrue());
+  for (size_t i = 200; i < 255; ++i) {
     if (i % 2)
-      ps->set_marked(i);
+      ps->set_marked(state, i);
   }
   for (size_t i = 1; i < 255; ++i) {
     if (i % 2 && (i < 64 || (i >= 200))) {
-      AssertThat(ps->is_marked(i), IsTrue());
+      AssertThat(ps->is_marked(state, i), IsTrue());
     } else {
-      AssertThat(ps->is_marked(i), IsFalse());
+      AssertThat(ps->is_marked(state, i), IsFalse());
     }
   }
   {
-    ps->initialize();
-    ps->clear_mark_bits();
-    void *ptr = ps->allocate();
+    ps->initialize(state);
+    ps->clear_mark_bits(state);
+    void *ptr = ps->allocate(state);
     AssertThat(ptr != nullptr, IsTrue());
-    AssertThat(ps->is_free(0), IsFalse());
-    AssertThat(ps->is_free(1), IsTrue());
-    AssertThat(ps->deallocate(ptr), IsTrue());
-    AssertThat(ps->is_free(0), IsTrue());
-    AssertThat(ps->is_free(1), IsTrue());
+    AssertThat(ps->is_free(state, 0), IsFalse());
+    AssertThat(ps->is_free(state, 1), IsTrue());
+    AssertThat(ps->deallocate(state, ptr), IsTrue());
+    AssertThat(ps->is_free(state, 0), IsTrue());
+    AssertThat(ps->is_free(state, 1), IsTrue());
   }
-  ps->initialize();
-  ps->clear_mark_bits();
+  ps->initialize(state);
+  ps->clear_mark_bits(state);
   ::std::vector<void *> ptrs;
   bool keep_going = true;
-  AssertThat(ps->m_free_bits.size() * ps_type::bits_array_type::size(), Equals(16_sz));
+  AssertThat(ps->num_blocks(state) * ps_type::bits_array_type::size(), Equals(8_sz));
   while (keep_going) {
-    void *ptr = ps->allocate();
+    void *ptr = ps->allocate(state);
     if (ptr)
       ptrs.push_back(ptr);
     else {
@@ -717,26 +739,26 @@ static void multiple_slab_test1()
   AssertThat(ptrs.size(), Equals(expected_entries));
   for (size_t i = 0; i < ptrs.size(); ++i) {
     if (i % 3) {
-      AssertThat(ps->deallocate(ptrs[i]), IsTrue());
+      AssertThat(ps->deallocate(state, ptrs[i]), IsTrue());
     }
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
     if (i % 3) {
-      AssertThat(ps->is_free(i), IsTrue());
+      AssertThat(ps->is_free(state, i), IsTrue());
     } else {
-      AssertThat(ps->is_free(i), IsFalse());
+      AssertThat(ps->is_free(state, i), IsFalse());
     }
   }
-  AssertThat(ps->is_free(3), IsFalse());
-  AssertThat(ps->is_free(6), IsFalse());
-  ps->set_marked(3);
-  AssertThat(ps->is_marked(3), IsTrue());
-  AssertThat(ps->is_marked(6), IsFalse());
-  ps->free_unmarked();
-  AssertThat(ps->is_free(3), IsFalse());
-  AssertThat(ps->is_free(6), IsTrue());
-  ps->set_free(3, true);
-  AssertThat(ps->is_free(3), IsTrue());
+  AssertThat(ps->is_free(state, 3), IsFalse());
+  AssertThat(ps->is_free(state, 6), IsFalse());
+  ps->set_marked(state, 3);
+  AssertThat(ps->is_marked(state, 3), IsTrue());
+  AssertThat(ps->is_marked(state, 6), IsFalse());
+  ps->free_unmarked(state);
+  AssertThat(ps->is_free(state, 3), IsFalse());
+  AssertThat(ps->is_free(state, 6), IsTrue());
+  ps->set_free(state, 3, true);
+  AssertThat(ps->is_free(state, 3), IsTrue());
 
   cgc1::details::packed_object_allocator_t poa;
   AssertThat(cgc1::details::get_packed_object_size_id(31), Equals(0_sz));
@@ -767,6 +789,11 @@ void gc_bandit_tests()
         cgc1::clean_stack(0, 0, 0, 0, 0);
       });
     }
+    it("multiple_slab_test0", []() {
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+      multiple_slab_test0();
+      cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
     it("multiple_slab_test1", []() {
       cgc1::clean_stack(0, 0, 0, 0, 0);
       multiple_slab_test1();

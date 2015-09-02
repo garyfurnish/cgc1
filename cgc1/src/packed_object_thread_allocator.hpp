@@ -12,12 +12,12 @@ namespace cgc1
     public:
       static constexpr const size_t cs_total_size = 4096 * 8;
 
-      ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 32, 512> *>> m_32;
+      /*      ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 32, 512> *>> m_32;
       ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 64, 256> *>> m_64;
       ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 128, 128> *>> m_128;
       ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 256, 128> *>> m_256;
       ::std::vector<::std::pair<void *, packed_object_state_t<cs_total_size, 512, 128> *>> m_512;
-
+      */
       void insert(const packed_object_package_t &state);
     };
 

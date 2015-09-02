@@ -9,8 +9,8 @@ namespace cgc1
     {
     public:
     private:
-      packed_object_package_t m_globals GUARDED_BY(m_mutex);
-      packed_object_package_t m_free_globals GUARDED_BY(m_mutex);
+      //      packed_object_package_t m_globals GUARDED_BY(m_mutex);
+      //      packed_object_package_t m_free_globals GUARDED_BY(m_mutex);
       spinlock_t m_mutex;
     };
   }
