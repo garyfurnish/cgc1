@@ -37,7 +37,7 @@ namespace cgc1
 {
   namespace literals
   {
-    inline ::std::size_t operator"" _sz(unsigned long long x)
+    constexpr inline ::std::size_t operator"" _sz(unsigned long long x)
     {
       return static_cast<::std::size_t>(x);
     }
@@ -316,4 +316,7 @@ namespace cgc1
     u.i = in;
     return u.t;
   }
+
+  template <size_t bytes = 5000>
+  extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
 }

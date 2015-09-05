@@ -6,12 +6,15 @@ namespace cgc1
   namespace details
   {
 
-    struct packed_object_state_info_t {
+    static constexpr const size_t c_packed_object_alignment = 32;
+    struct alignas(c_packed_object_alignment) packed_object_state_info_t {
       size_t m_num_blocks;
       size_t m_data_entry_sz;
+      size_t m_padding[2];
     };
+    static_assert(sizeof(packed_object_state_info_t) == c_packed_object_alignment, "");
 
-    struct alignas(32) packed_object_state_t {
+    struct alignas(c_packed_object_alignment) packed_object_state_t {
     public:
       static const constexpr size_t cs_header_alignment = 32;
       static const constexpr size_t cs_object_alignment = 32;
@@ -19,45 +22,44 @@ namespace cgc1
 
       using bits_array_type = integer_block_t<8>;
 
-      auto real_entry_size(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto header_size(const packed_object_state_info_t &) const noexcept -> size_t;
+      auto real_entry_size() const noexcept -> size_t;
+      auto header_size() const noexcept -> size_t;
 
-      void initialize(const packed_object_state_info_t &) noexcept;
-      void clear_mark_bits(const packed_object_state_info_t &) noexcept;
+      void initialize() noexcept;
+      void clear_mark_bits() noexcept;
 
-      auto any_free(const packed_object_state_info_t &) const noexcept -> bool;
-      auto none_free(const packed_object_state_info_t &) const noexcept -> bool;
-      auto first_free(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto any_marked(const packed_object_state_info_t &) const noexcept -> bool;
-      auto none_marked(const packed_object_state_info_t &) const noexcept -> bool;
+      auto any_free() const noexcept -> bool;
+      auto none_free() const noexcept -> bool;
+      auto first_free() const noexcept -> size_t;
+      auto any_marked() const noexcept -> bool;
+      auto none_marked() const noexcept -> bool;
 
-      auto is_free(const packed_object_state_info_t &, size_t i) const noexcept -> bool;
-      auto is_marked(const packed_object_state_info_t &, size_t i) const noexcept -> bool;
+      auto is_free(size_t i) const noexcept -> bool;
+      auto is_marked(size_t i) const noexcept -> bool;
 
-      auto size(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto size_bytes(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto total_size_bytes(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto begin(const packed_object_state_info_t &) noexcept -> uint8_t *;
-      auto end(const packed_object_state_info_t &) noexcept -> uint8_t *;
+      auto size() const noexcept -> size_t;
+      auto size_bytes() const noexcept -> size_t;
+      auto total_size_bytes() const noexcept -> size_t;
+      auto begin() noexcept -> uint8_t *;
+      auto end() noexcept -> uint8_t *;
 
-      void set_free(const packed_object_state_info_t &, size_t i, bool val) noexcept;
-      void set_marked(const packed_object_state_info_t &, size_t i) noexcept;
+      void set_free(size_t i, bool val) noexcept;
+      void set_marked(size_t i) noexcept;
 
-      void *allocate(const packed_object_state_info_t &) noexcept;
-      bool deallocate(const packed_object_state_info_t &, void *v) noexcept;
+      void *allocate() noexcept;
+      bool deallocate(void *v) noexcept;
 
-      void free_unmarked(const packed_object_state_info_t &) noexcept;
+      void free_unmarked() noexcept;
 
-      auto num_blocks(const packed_object_state_info_t &) const noexcept -> size_t;
-      auto free_bits(const packed_object_state_info_t &) noexcept -> bits_array_type *;
-      auto free_bits(const packed_object_state_info_t &) const noexcept -> const bits_array_type *;
-      auto mark_bits(const packed_object_state_info_t &) noexcept -> bits_array_type *;
-      auto mark_bits(const packed_object_state_info_t &) const noexcept -> const bits_array_type *;
-
-      //      ::std::array<integer_block_t<8>, num_blocks_needed()> m_free_bits;
-      //      ::std::array<integer_block_t<8>, num_blocks_needed()> m_mark_bits;
+      auto num_blocks() const noexcept -> size_t;
+      auto free_bits() noexcept -> bits_array_type *;
+      auto free_bits() const noexcept -> const bits_array_type *;
+      auto mark_bits() noexcept -> bits_array_type *;
+      auto mark_bits() const noexcept -> const bits_array_type *;
+      packed_object_state_info_t m_info;
     };
     static_assert(::std::is_pod<packed_object_state_t>::value, "");
+    static_assert(sizeof(packed_object_state_t) == c_packed_object_alignment, "");
   }
 }
 #include "packed_object_state_impl.hpp"

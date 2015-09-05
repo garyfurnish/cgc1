@@ -36,6 +36,11 @@ namespace cgc1
       slab_allocator_t(const slab_allocator_t &) = delete;
       slab_allocator_t(slab_allocator_t &&) = delete;
       /**
+       * \brief Align the next allocation to the given size.
+       * This is only guarenteed to work if done before any deallocation.
+       **/
+      void align_next(size_t sz) REQUIRES(!m_mutex);
+      /**
        * \brief Return start address of memory slab.
        **/
       uint8_t *begin() const;

@@ -10,6 +10,12 @@ namespace cgc1
       m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
       m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
     }
+    CGC1_OPT_INLINE void slab_allocator_t::align_next(size_t sz)
+    {
+      uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
+      auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_alignment;
+      allocate_raw(offset);
+    }
     CGC1_OPT_INLINE uint8_t *slab_allocator_t::begin() const
     {
       return m_slab.begin();
