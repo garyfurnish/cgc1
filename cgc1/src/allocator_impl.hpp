@@ -551,16 +551,13 @@ namespace cgc1
       auto it = m_thread_allocators.find(::std::this_thread::get_id());
       if (it != m_thread_allocators.end())
         return *it->second;
-      _ud_verify();
       // one doesn't already exist.
       // create a thread allocator.
       thread_allocator_unique_ptr_t ta = make_unique_allocator<this_thread_allocator_t, allocator>(*this);
-      _ud_verify();
       // get a reference to thread allocator.
       auto &ret = *ta.get();
       // put the thread allocator in the thread allocator list.
       m_thread_allocators.emplace(::std::this_thread::get_id(), ::std::move(ta));
-      _ud_verify();
       return ret;
     }
     template <typename Allocator, typename Traits>

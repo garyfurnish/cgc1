@@ -125,4 +125,6 @@ namespace cgc1
     static_assert(::std::is_pod<object_state_t>::value, "object_state_t is not POD");
   }
 }
+#ifdef CGC1_INLINES
 #include "object_state_impl.hpp"
+#endif

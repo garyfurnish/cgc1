@@ -7,6 +7,7 @@
 
 using namespace bandit;
 extern void gc_bandit_tests();
+extern void packed_object_tests();
 extern void slab_allocator_bandit_tests();
 extern void allocator_block_tests();
 extern void allocator_block_set_tests();
@@ -84,6 +85,7 @@ go_bandit([]() {
       AssertThat(in_array == out_array, IsTrue());
     });
   });
+  packed_object_tests();
   gc_bandit_tests();
 });
 

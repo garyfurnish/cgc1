@@ -3,3 +3,5 @@
 settings.json
 *.pyc
 doxygen
+**/out.txt
+**/#*#

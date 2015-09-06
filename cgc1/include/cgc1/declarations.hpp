@@ -11,11 +11,12 @@
 #ifndef CGC1_NO_INLINES
 #define CGC1_INLINES
 #define CGC1_OPT_INLINE inline
+#define CGC1_ALWAYS_INLINE __attribute__((always_inline)) inline
 #else
 #define CGC1_OPT_INLINE
+#define CGC1_ALWAYS_INLINE
 #endif
 #ifndef _WIN32
-#define ALWAYS_INLINE __attribute__((always_inline))
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
@@ -24,7 +25,6 @@
 #define likely(x) __builtin_expect(static_cast<bool>(x), 1)
 #define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
-#define ALWAYS_INLINE
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
 #define cgc1_builtin_current_stack() _AddressOfReturnAddress()

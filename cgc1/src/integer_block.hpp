@@ -11,6 +11,7 @@ namespace cgc1
        * \brief Number of quad words in integer block.
        **/
       static constexpr const size_t cs_quad_words = Quads;
+      using value_type = uint64_t;
 
       static_assert(cs_quad_words % 8 == 0, "Number of quad words must be divisible by 8.");
 
@@ -37,6 +38,10 @@ namespace cgc1
        **/
       auto any_set() const noexcept -> bool;
       /**
+       * \brief Return true if all bits are set.
+       **/
+      auto all_set() const noexcept -> bool;
+      /**
        * \brief Return true if no bit is set.
        **/
       auto none_set() const noexcept -> bool;
@@ -48,6 +53,10 @@ namespace cgc1
        * \brief Return the first bit that is not set.
        **/
       auto first_not_set() const noexcept -> size_t;
+      /**
+       * \brief Return number of set bits.
+       **/
+      auto popcount() const noexcept -> size_t;
 
       integer_block_t operator~() const noexcept;
       integer_block_t &negate() noexcept;
@@ -62,7 +71,7 @@ namespace cgc1
       static constexpr size_t size_in_bytes() noexcept;
       static constexpr size_t size_in_bits() noexcept;
 
-      ::std::array<uint64_t, cs_quad_words> m_array;
+      ::std::array<value_type, cs_quad_words> m_array;
     };
     static_assert(::std::is_pod<integer_block_t<8>>::value, "");
   }
