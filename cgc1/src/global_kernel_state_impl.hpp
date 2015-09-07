@@ -10,6 +10,10 @@ namespace cgc1
     {
       return m_gc_allocator;
     }
+    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept -> packed_object_allocator_t &
+    {
+      return m_packed_object_allocator;
+    }
     inline auto global_kernel_state_t::_internal_allocator() const noexcept -> internal_allocator_t &
     {
       return m_cgc_allocator;
@@ -17,10 +21,6 @@ namespace cgc1
     inline auto global_kernel_state_t::_internal_slab_allocator() const noexcept -> slab_allocator_t &
     {
       return m_slab_allocator;
-    }
-    inline auto global_kernel_state_t::_internal_fast_slab_allocator() const noexcept -> slab_allocator_t &
-    {
-      return m_fast_slab_allocator;
     }
     inline auto global_kernel_state_t::tlks(::std::thread::id id) -> thread_local_kernel_state_t *
     {
@@ -58,11 +58,11 @@ namespace cgc1
     }
     inline auto global_kernel_state_t::fast_slab_begin() const noexcept -> uint8_t *
     {
-      return m_fast_slab_allocator.begin();
+      return m_packed_object_allocator.begin();
     }
     inline auto global_kernel_state_t::fast_slab_end() const noexcept -> uint8_t *
     {
-      return m_fast_slab_allocator.end();
+      return m_packed_object_allocator.end();
     }
   }
 }

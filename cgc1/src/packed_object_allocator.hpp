@@ -36,6 +36,10 @@ namespace cgc1
 
       RETURN_CAPABILITY(m_mutex) auto _mutex() const noexcept -> mutex_type &;
 
+      auto begin() const noexcept -> uint8_t *;
+      auto end() const noexcept -> uint8_t *;
+      auto _slab() const noexcept -> slab_allocator_t &;
+
     private:
       /**
        * \brief Encapsulate access to thread local variable for thread allocator.
@@ -62,7 +66,7 @@ namespace cgc1
       /**
        * \brief Underlying slab.
        **/
-      slab_allocator_t m_slab;
+      mutable slab_allocator_t m_slab;
       packed_object_package_t m_globals GUARDED_BY(m_mutex);
       /**
        * \brief Free sections of slab.
@@ -75,4 +79,7 @@ namespace cgc1
     };
   }
 }
+#include "packed_object_allocator_inlines.hpp"
+#ifdef CGC1_INLINES
 #include "packed_object_allocator_impl.hpp"
+#endif

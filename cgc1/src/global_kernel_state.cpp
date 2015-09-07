@@ -51,7 +51,7 @@ namespace cgc1
     }
     global_kernel_state_t::global_kernel_state_t()
         : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size),
-          m_fast_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
+          m_packed_object_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
     {
       m_enabled_count = 1;
       details::initialize_tlks();

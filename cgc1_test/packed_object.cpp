@@ -12,7 +12,7 @@ using namespace ::cgc1::literals;
 static void packed_object_state_test0()
 {
   using cgc1::details::c_packed_object_block_size;
-  auto &fast_slab = gks._internal_fast_slab_allocator();
+  auto &fast_slab = gks._packed_object_allocator()._slab();
   fast_slab.align_next(c_packed_object_block_size);
   constexpr const size_t packed_size = 4096 * 8 - 32;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
@@ -122,11 +122,12 @@ static void packed_object_state_test0()
   AssertThat(ps->is_free(6), IsTrue());
   ps->set_free(3, true);
   AssertThat(ps->is_free(3), IsTrue());
+  fast_slab.deallocate_raw(ret);
 }
 
 static void multiple_slab_test0()
 {
-  auto &fast_slab = gks._internal_fast_slab_allocator();
+  auto &fast_slab = gks._packed_object_allocator()._slab();
   constexpr const size_t packed_size = 4096 * 16;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
@@ -148,7 +149,7 @@ static void multiple_slab_test0()
 
 static void multiple_slab_test0b()
 {
-  auto &fast_slab = gks._internal_fast_slab_allocator();
+  auto &fast_slab = gks._packed_object_allocator()._slab();
   constexpr const size_t packed_size = 4096 * 32;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
@@ -183,13 +184,13 @@ static void multiple_slab_test1()
   AssertThat(info1.m_num_blocks, Equals(::cgc1::details::packed_object_package_t::cs_total_size / 512 / 64));
   AssertThat(info1.m_data_entry_sz, Equals(64_sz));
 
-  cgc1::details::packed_object_allocator_t poa(4096 * 4096, 4096 * 4096);
+  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks._packed_object_allocator();
 
   cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
   {
     void *v = ta.allocate(128);
     AssertThat(v != nullptr, IsTrue());
-    ta.deallocate(v);
+    AssertThat(ta.deallocate(v), IsTrue());
     uint8_t *v2 = reinterpret_cast<uint8_t *>(ta.allocate(128));
     uint8_t *v3 = reinterpret_cast<uint8_t *>(ta.allocate(128));
     AssertThat(reinterpret_cast<void *>(v), Equals(reinterpret_cast<void *>(v2)));

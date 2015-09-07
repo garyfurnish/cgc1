@@ -10,6 +10,7 @@
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
 #include "slab_allocator.hpp"
+#include "packed_object_allocator.hpp"
 namespace cgc1
 {
   namespace details
@@ -95,6 +96,10 @@ namespace cgc1
       **/
       gc_allocator_t &gc_allocator() const noexcept;
       /**
+       * \brief Return the packed object allocator.
+       **/
+      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t &;
+      /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
       internal_allocator_t &_internal_allocator() const noexcept;
@@ -102,10 +107,6 @@ namespace cgc1
        * \brief Return the internal slab allocator.
       **/
       auto _internal_slab_allocator() const noexcept -> slab_allocator_t &;
-      /**
-       * \brief Return the internal fast slab allocator.
-       **/
-      auto _internal_fast_slab_allocator() const noexcept -> slab_allocator_t &;
       /**
        * \brief Return the thread local kernel state for the current thread.
        *
@@ -240,17 +241,18 @@ namespace cgc1
       **/
       mutable slab_allocator_t m_slab_allocator;
       /**
-       * \brief Internal slab allocator used for fast page allocation.
-      **/
-      mutable slab_allocator_t m_fast_slab_allocator;
-      /**
        * \brief Internal allocator that can be touched during GC.
       **/
       mutable internal_allocator_t m_cgc_allocator;
+
       /**
-       * \brief Allocator for gc.
+       * \brief Sparse allocator for gc.
       **/
       mutable gc_allocator_t m_gc_allocator;
+      /**
+       * \brief Packed object allocator for fast allocation.
+       **/
+      mutable packed_object_allocator_t m_packed_object_allocator;
       /**
        * \brief Main mutex for state.
        **/

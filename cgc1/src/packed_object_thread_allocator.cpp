@@ -106,12 +106,15 @@ namespace cgc1
           state->initialize();
           m_free_list.pop_back();
           v = state->allocate();
+
           m_locals.insert(id, state);
           return v;
         } else {
+
           packed_object_state_t *state = m_allocator._get_memory();
           state->m_info = packed_object_package_t::_get_info(id);
           state->initialize();
+
           v = state->allocate();
           m_locals.insert(id, state);
           return v;
