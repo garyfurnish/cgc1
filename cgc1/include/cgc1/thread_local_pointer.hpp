@@ -3,14 +3,14 @@ namespace cgc1
 {
   /**
    * \brief Header only implementation of thread local pointer.
-   * 
+   *
    * This is like a boost::thread_specific_ptr except header only and faster.
    **/
-  template<typename Pointer>
+  template <typename Pointer>
   class thread_local_pointer_t
   {
   public:
-    using pointer_type = Pointer*;
+    using pointer_type = Pointer *;
     using value_type = Pointer;
 #ifdef __APPLE__
     thread_local_pointer_t()
@@ -26,7 +26,7 @@ namespace cgc1
     {
       return unsafe_cast<value_type>(pthread_getspecific(s_pkey));
     }
-    void  set(pointer_type ptr) noexcept
+    void set(pointer_type ptr) noexcept
     {
       pthread_setspecific(s_pkey, ptr);
     }
@@ -37,16 +37,16 @@ namespace cgc1
     {
       return s_tlks;
     }
-    void  set(pointer_type ptr) noexcept
+    void set(pointer_type ptr) noexcept
     {
       s_tlks = ptr;
     }
 #endif
-    thread_local_pointer_t(const thread_local_pointer_t&) = delete;
-    thread_local_pointer_t(thread_local_pointer_t&&) = delete;
-    thread_local_pointer_t& operator=(const thread_local_pointer_t&) = delete;
-    thread_local_pointer_t& operator=(thread_local_pointer_t&&) = delete;
-    thread_local_pointer_t& operator=(pointer_type ptr)
+    thread_local_pointer_t(const thread_local_pointer_t &) = delete;
+    thread_local_pointer_t(thread_local_pointer_t &&) = delete;
+    thread_local_pointer_t &operator=(const thread_local_pointer_t &) = delete;
+    thread_local_pointer_t &operator=(thread_local_pointer_t &&) = delete;
+    thread_local_pointer_t &operator=(pointer_type ptr)
     {
       set(ptr);
       return *this;
@@ -55,14 +55,12 @@ namespace cgc1
     {
       return get();
     }
+
   private:
 #ifdef __APPLE__
     static pthread_key_t s_pkey;
-#elif defined(_WIN32)
-    static __declspec(thread) pointer_type s_tlks = nullptr;
 #else
-    static thread_local pointer_type *s_tlks = nullptr;
+    static thread_local pointer_type s_tlks;
 #endif
-
   };
 }

@@ -3,11 +3,18 @@
 #include "packed_object_thread_allocator.hpp"
 namespace cgc1
 {
-  template<>
+#ifdef __APPLE__
+  template <>
   pthread_key_t cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::s_pkey{};
+#else
+  template <>
+  thread_local cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::pointer_type
+      cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::s_tlks = nullptr;
+#endif
   namespace details
   {
-    thread_local_pointer_t<typename packed_object_allocator_t::thread_allocator_type> packed_object_allocator_t::t_thread_allocator{};
+    thread_local_pointer_t<typename packed_object_allocator_t::thread_allocator_type>
+        packed_object_allocator_t::t_thread_allocator{};
     packed_object_allocator_t::packed_object_allocator_t(size_t size, size_t size_hint) : m_slab(size, size_hint)
     {
       m_slab.align_next(c_packed_object_block_size);
