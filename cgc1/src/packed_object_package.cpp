@@ -1,7 +1,9 @@
 #include "packed_object_package.hpp"
 #include "packed_object_package_impl.hpp"
+#include <cgc1/warning_wrapper_push.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <cgc1/warning_wrapper_pop.hpp>
 
 using namespace ::cgc1::literals;
 namespace cgc1

@@ -28,7 +28,7 @@ static void packed_object_state_test0()
   constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul, {0, 0}};
   ps->m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
-  AssertThat(static_cast<size_t>(ps->end() - ret), Is().LessThanOrEqualTo(packed_size));
+  AssertThat(static_cast<size_t>(ps->end() - ret), IsLessThanOrEqualTo(packed_size));
 
   AssertThat(ret + packed_size >= ps->end(), IsTrue());
   AssertThat(ps->size(), Equals(expected_entries));

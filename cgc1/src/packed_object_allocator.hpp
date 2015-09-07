@@ -1,6 +1,7 @@
 #pragma once
 #include "packed_object_thread_allocator.hpp"
 #include "slab_allocator.hpp"
+#include <cgc1/thread_local_pointer.hpp>
 #include <map>
 namespace cgc1
 {
@@ -52,7 +53,7 @@ namespace cgc1
       /**
        * \brief Per thread thread allocator variable.
        **/
-      static thread_local thread_allocator_type *t_thread_allocator;
+      static thread_local_pointer_t<thread_allocator_type> t_thread_allocator;
       /**
        * \brief Type of unique ptr for thread allocator.
        **/

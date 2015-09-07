@@ -1,5 +1,6 @@
 #pragma once
 #include "integer_block.hpp"
+#include <numeric>
 namespace cgc1
 {
   namespace details

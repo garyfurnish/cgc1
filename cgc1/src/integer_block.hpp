@@ -1,6 +1,7 @@
 #pragma once
 #include <cgc1/declarations.hpp>
 #include <atomic>
+#include <array>
 namespace cgc1
 {
   namespace details
