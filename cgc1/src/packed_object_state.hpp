@@ -10,7 +10,8 @@ namespace cgc1
     struct alignas(c_packed_object_alignment) packed_object_state_info_t {
       size_t m_num_blocks;
       size_t m_data_entry_sz;
-      size_t m_padding[2];
+      size_t m_size;
+      size_t m_header_size;
     };
     static_assert(sizeof(packed_object_state_info_t) == c_packed_object_alignment, "");
 
@@ -41,6 +42,7 @@ namespace cgc1
       auto is_marked(size_t i) const noexcept -> bool;
 
       auto size() const noexcept -> size_t;
+      void _compute_size() noexcept;
       auto size_bytes() const noexcept -> size_t;
       auto total_size_bytes() const noexcept -> size_t;
       auto begin() noexcept -> uint8_t *;

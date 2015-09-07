@@ -4,6 +4,10 @@ ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_executable(cgc1_alloc_benchmark "main.cpp")
 target_link_libraries(cgc1_alloc_benchmark cgc1)
 
+add_executable(cgc1_alloc_benchmark_sparse "main.cpp")
+target_link_libraries(cgc1_alloc_benchmark_sparse cgc1)
+target_compile_definitions(cgc1_alloc_benchmark_sparse PUBLIC CGC1_SPARSE)
+
 add_executable(cgc1_alloc_benchmark_thread "main_thread.cpp")
 target_link_libraries(cgc1_alloc_benchmark_thread cgc1)
 

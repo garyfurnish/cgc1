@@ -25,8 +25,9 @@ static void packed_object_state_test0()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul, {0, 0}};
+  constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul, expected_entries, 0};
   ps->m_info = state;
+  ps->_compute_size();
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(static_cast<size_t>(ps->end() - ret), IsLessThanOrEqualTo(packed_size));
 
@@ -139,7 +140,7 @@ static void multiple_slab_test0()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{1ul, entry_size, {0, 0}};
+  constexpr const cgc1::details::packed_object_state_info_t state{1ul, entry_size, expected_entries, 32+128};
   ps->m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(), Equals(expected_entries * entry_size + 32 + 128));
@@ -161,7 +162,7 @@ static void multiple_slab_test0b()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{2ul, entry_size, {0, 0}};
+  constexpr const cgc1::details::packed_object_state_info_t state{2ul, entry_size, expected_entries,32+256};
   ps->m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(), Equals(expected_entries * entry_size + 32 + 256));

@@ -16,9 +16,7 @@ namespace cgc1
     }
     CGC1_ALWAYS_INLINE auto packed_object_state_t::header_size() const noexcept -> size_t
     {
-      auto blocks = m_info.m_num_blocks;
-      auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * cs_bits_array_multiple;
-      return align(unaligned, cs_header_alignment);
+      return m_info.m_header_size;
     }
     CGC1_OPT_INLINE void packed_object_state_t::initialize() noexcept
     {
@@ -116,12 +114,19 @@ namespace cgc1
     }
     CGC1_OPT_INLINE auto packed_object_state_t::size() const noexcept -> size_t
     {
+      return m_info.m_size;
+    }
+    CGC1_OPT_INLINE void packed_object_state_t::_compute_size() noexcept
+    {
       auto blocks = m_info.m_num_blocks;
+      auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * cs_bits_array_multiple;
+      m_info.m_header_size = align(unaligned, cs_header_alignment);
+
       auto hdr_sz = header_size();
       auto data_entry_sz = declared_entry_size();
       auto data_sz = blocks * data_entry_sz * bits_array_type::size_in_bits() - hdr_sz;
       auto num_data = data_sz / (real_entry_size());
-      return num_data;
+      m_info.m_size = num_data;
     }
     CGC1_OPT_INLINE auto packed_object_state_t::size_bytes() const noexcept -> size_t
     {

@@ -1,4 +1,9 @@
 #pragma once
+#include <cgc1/warning_wrapper_push.hpp>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/range/iterator_range.hpp>
+#include <cgc1/warning_wrapper_pop.hpp>
+
 namespace cgc1
 {
   namespace details
@@ -16,5 +21,17 @@ namespace cgc1
         return ::std::numeric_limits<size_t>::max();
       return ret;
     }
+    CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> void *
+    {
+      auto &vec = m_vectors[id];
+      for (auto &it : ::boost::make_iterator_range(vec.rbegin(), vec.rend())) {
+        auto &packed = *it;
+        auto ret = packed.allocate();
+        if (ret)
+          return ret;
+      }
+      return nullptr;
+    }
+
   }
 }

@@ -65,16 +65,12 @@ namespace cgc1
       /**
        * \brief Allocate an object with given size.
        **/
-      constexpr static packed_object_state_info_t _get_info(size_t id);
+      static packed_object_state_info_t _get_info(size_t id);
       /**
        * \brief Underlying states.
        **/
       array_type m_vectors;
     };
-    constexpr inline packed_object_state_info_t packed_object_package_t::_get_info(size_t id)
-    {
-      return packed_object_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), {0, 0}};
-    }
   }
 }
 #ifdef CGC1_INLINES

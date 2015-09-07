@@ -1,15 +1,19 @@
 #include "packed_object_package.hpp"
 #include "packed_object_package_impl.hpp"
-#include <cgc1/warning_wrapper_push.hpp>
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <cgc1/warning_wrapper_pop.hpp>
 
 using namespace ::cgc1::literals;
 namespace cgc1
 {
   namespace details
   {
+    packed_object_state_info_t packed_object_package_t::_get_info(size_t id)
+    {
+      packed_object_state_t state;
+      state.m_info = packed_object_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0};
+      state._compute_size();
+      return state.m_info;
+    }
+
     void packed_object_package_t::insert(packed_object_package_t &&state)
     {
       auto begin = ::boost::make_zip_iterator(::boost::make_tuple(m_vectors.begin(), state.m_vectors.begin()));
@@ -22,17 +26,6 @@ namespace cgc1
     void packed_object_package_t::insert(size_t id, packed_object_state_t *state)
     {
       m_vectors[id].emplace_back(state);
-    }
-    auto packed_object_package_t::allocate(size_t id) noexcept -> void *
-    {
-      auto &vec = m_vectors[id];
-      for (auto &it : ::boost::make_iterator_range(vec.rbegin(), vec.rend())) {
-        auto &packed = *it;
-        auto ret = packed.allocate();
-        if (ret)
-          return ret;
-      }
-      return nullptr;
     }
     auto packed_object_package_t::remove(size_t id, packed_object_state_t *state) -> bool
     {
