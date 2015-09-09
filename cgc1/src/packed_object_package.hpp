@@ -7,10 +7,6 @@ namespace cgc1
   namespace details
   {
     using namespace literals;
-    /**
-     * \brief Universal block size.
-     **/
-    static constexpr const size_t c_packed_object_block_size = 4096 * 128;
     class packed_object_allocator_t;
     /**
      * \brief Return the id for an object of a given size.
@@ -62,6 +58,10 @@ namespace cgc1
        * \brief Do Maintenance for package.
        **/
       void do_maintenance(cgc_internal_vector_t<void *> &free_list) noexcept;
+
+      template <typename Predicate>
+      void for_all(Predicate &&predicate);
+
       /**
        * \brief Allocate an object with given size.
        **/
@@ -76,3 +76,4 @@ namespace cgc1
 #ifdef CGC1_INLINES
 #include "packed_object_package_impl.hpp"
 #endif
+#include "packed_object_package_timpl.hpp"

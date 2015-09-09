@@ -41,6 +41,10 @@ namespace cgc1
       auto end() const noexcept -> uint8_t *;
       auto _slab() const noexcept -> slab_allocator_t &;
 
+      template <typename Predicate>
+      REQUIRES(!m_mutex)
+      void for_all_state(Predicate &&);
+
     private:
       /**
        * \brief Encapsulate access to thread local variable for thread allocator.

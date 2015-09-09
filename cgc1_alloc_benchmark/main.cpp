@@ -63,7 +63,7 @@ int main()
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
   auto &allocator = cgc1::details::g_gks._packed_object_allocator();
-    
+
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));

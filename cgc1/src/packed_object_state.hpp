@@ -12,14 +12,22 @@ namespace cgc1
       size_t m_data_entry_sz;
       size_t m_size;
       size_t m_header_size;
+      size_t m_padding[4];
     };
-    static_assert(sizeof(packed_object_state_info_t) == c_packed_object_alignment, "");
+    static_assert(sizeof(packed_object_state_info_t) == 2 * c_packed_object_alignment, "");
+
+    /**
+     * \brief Universal block size.
+     **/
+    static constexpr const size_t c_packed_object_block_size = 4096 * 128;
 
     struct alignas(c_packed_object_alignment) packed_object_state_t {
     public:
       static const constexpr size_t cs_header_alignment = 32;
       static const constexpr size_t cs_object_alignment = 32;
       static const constexpr size_t cs_bits_array_multiple = 2;
+      static const constexpr size_t cs_magic_number_0 = 0xa58d0aebb1fae1d9;
+      static const constexpr size_t cs_magic_number_1 = 0x164df5314ffcf804;
 
       using bits_array_type = integer_block_t<8>;
 
@@ -47,6 +55,8 @@ namespace cgc1
       auto total_size_bytes() const noexcept -> size_t;
       auto begin() noexcept -> uint8_t *;
       auto end() noexcept -> uint8_t *;
+      auto begin() const noexcept -> const uint8_t *;
+      auto end() const noexcept -> const uint8_t *;
 
       void set_free(size_t i, bool val) noexcept;
       void set_marked(size_t i) noexcept;
@@ -61,10 +71,16 @@ namespace cgc1
       auto free_bits() const noexcept -> const bits_array_type *;
       auto mark_bits() noexcept -> bits_array_type *;
       auto mark_bits() const noexcept -> const bits_array_type *;
+
+      auto has_valid_magic_numbers() const noexcept -> bool;
+
+      auto get_index(void *v) const noexcept -> size_t;
       packed_object_state_info_t m_info;
     };
     static_assert(::std::is_pod<packed_object_state_t>::value, "");
-    static_assert(sizeof(packed_object_state_t) == c_packed_object_alignment, "");
+    static_assert(sizeof(packed_object_state_t) == c_packed_object_alignment * 2, "");
+
+    extern packed_object_state_t *get_state(void *v);
   }
 }
 #ifdef CGC1_INLINES

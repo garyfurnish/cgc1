@@ -1,11 +1,21 @@
 #pragma once
 #include <atomic>
 #include <iostream>
+#include "slab_allocator.hpp"
 namespace cgc1
 {
   namespace details
   {
+    CGC1_OPT_INLINE packed_object_state_t *get_state(void *v)
+    {
+      uintptr_t vi = reinterpret_cast<uintptr_t>(v);
+      size_t mask = ::std::numeric_limits<size_t>::max() << (__builtin_ffsll(c_packed_object_block_size) - 1);
 
+      vi &= mask;
+      vi += slab_allocator_t::cs_alignment;
+      packed_object_state_t *state = reinterpret_cast<packed_object_state_t *>(vi);
+      return state;
+    }
     CGC1_ALWAYS_INLINE auto packed_object_state_t::declared_entry_size() const noexcept -> size_t
     {
       return m_info.m_data_entry_sz;
@@ -124,7 +134,7 @@ namespace cgc1
 
       auto hdr_sz = header_size();
       auto data_entry_sz = declared_entry_size();
-      auto data_sz = blocks * data_entry_sz * bits_array_type::size_in_bits() - hdr_sz;
+      auto data_sz = blocks * data_entry_sz * bits_array_type::size_in_bits() - hdr_sz - 32;
       auto num_data = data_sz / (real_entry_size());
       m_info.m_size = num_data;
     }
@@ -136,12 +146,19 @@ namespace cgc1
     {
       return size_bytes() + header_size();
     }
-
     CGC1_OPT_INLINE auto packed_object_state_t::begin() noexcept -> uint8_t *
     {
       return reinterpret_cast<uint8_t *>(this) + header_size();
     }
     CGC1_OPT_INLINE auto packed_object_state_t::end() noexcept -> uint8_t *
+    {
+      return begin() + size_bytes();
+    }
+    CGC1_OPT_INLINE auto packed_object_state_t::begin() const noexcept -> const uint8_t *
+    {
+      return reinterpret_cast<const uint8_t *>(this) + header_size();
+    }
+    CGC1_OPT_INLINE auto packed_object_state_t::end() const noexcept -> const uint8_t *
     {
       return begin() + size_bytes();
     }
@@ -194,6 +211,19 @@ namespace cgc1
     CGC1_OPT_INLINE auto packed_object_state_t::mark_bits() const noexcept -> const bits_array_type *
     {
       return free_bits() + num_blocks();
+    }
+    CGC1_OPT_INLINE auto packed_object_state_t::get_index(void *v) const noexcept -> size_t
+    {
+      auto diff = reinterpret_cast<const uint8_t *>(v) - begin();
+      if (diff < 0) {
+        assert(0);
+        return ::std::numeric_limits<size_t>::max();
+      }
+      return static_cast<size_t>(diff) / real_entry_size();
+    }
+    CGC1_OPT_INLINE auto packed_object_state_t::has_valid_magic_numbers() const noexcept -> bool
+    {
+      return m_info.m_padding[2] == cs_magic_number_0 && m_info.m_padding[3] == cs_magic_number_1;
     }
   }
 }

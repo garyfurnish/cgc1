@@ -236,6 +236,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_clear();
       }
+      _packed_object_allocator().for_all_state([](auto &&state) { state->clear_mark_bits(); });
       // wait for clear to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_clear_finished();
@@ -258,6 +259,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
       }
+      _packed_object_allocator().for_all_state([](auto &&state) { state->free_unmarked(); });
       // wait for sweeping to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_sweep_finished();

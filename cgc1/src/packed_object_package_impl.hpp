@@ -32,6 +32,5 @@ namespace cgc1
       }
       return nullptr;
     }
-
   }
 }

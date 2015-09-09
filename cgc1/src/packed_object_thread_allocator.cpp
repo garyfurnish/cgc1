@@ -124,12 +124,7 @@ namespace cgc1
     }
     auto packed_object_thread_allocator_t::deallocate(void *v) noexcept -> bool
     {
-      uintptr_t vi = reinterpret_cast<uintptr_t>(v);
-      size_t mask = ::std::numeric_limits<size_t>::max() << (__builtin_ffsll(c_packed_object_block_size) - 1);
-
-      vi &= mask;
-      vi += slab_allocator_t::cs_alignment;
-      packed_object_state_t *state = reinterpret_cast<packed_object_state_t *>(vi);
+      packed_object_state_t *state = get_state(v);
       state->deallocate(v);
       if (state->all_free()) {
         auto id = get_packed_object_size_id(state->declared_entry_size());

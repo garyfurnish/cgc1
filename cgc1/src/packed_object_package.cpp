@@ -9,7 +9,12 @@ namespace cgc1
     packed_object_state_info_t packed_object_package_t::_get_info(size_t id)
     {
       packed_object_state_t state;
-      state.m_info = packed_object_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0};
+      state.m_info =
+          packed_object_state_info_t{cs_total_size / ((1 + id) << 5) / 512,
+                                     (1_sz << (5 + id)),
+                                     0,
+                                     0,
+                                     {0, 0, packed_object_state_t::cs_magic_number_0, packed_object_state_t::cs_magic_number_1}};
       state._compute_size();
       return state.m_info;
     }

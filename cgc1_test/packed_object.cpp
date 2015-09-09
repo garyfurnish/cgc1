@@ -18,20 +18,20 @@ static void packed_object_state_test0()
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
   constexpr const size_t entry_size = 64;
-  constexpr const size_t expected_entries = packed_size / entry_size - 2;
+  constexpr const size_t expected_entries = packed_size / entry_size - 3;
   using ps_type = ::cgc1::details::packed_object_state_t;
   static_assert(sizeof(ps_type) <= packed_size, "");
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 32, Equals(0_sz));
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul, expected_entries, 0};
+  constexpr const cgc1::details::packed_object_state_info_t state{1ul, 64ul, expected_entries, 0, {0, 0, 0, 0}};
   ps->m_info = state;
   ps->_compute_size();
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(static_cast<size_t>(ps->end() - ret), IsLessThanOrEqualTo(packed_size));
-
-  AssertThat(ret + packed_size >= ps->end(), IsTrue());
+  auto max_end = ret + packed_size;
+  AssertThat(max_end, IsGreaterThanOrEqualTo(ps->end()));
   AssertThat(ps->size(), Equals(expected_entries));
   ps->initialize();
   AssertThat(ps->any_free(), IsTrue());
@@ -140,10 +140,12 @@ static void multiple_slab_test0()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{1ul, entry_size, expected_entries, 32+128};
+  constexpr const cgc1::details::packed_object_state_info_t state{
+      1ul, entry_size, expected_entries, sizeof(cgc1::details::packed_object_state_info_t) + 128, {0, 0, 0, 0}};
   ps->m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
-  AssertThat(ps->total_size_bytes(), Equals(expected_entries * entry_size + 32 + 128));
+  AssertThat(ps->total_size_bytes(),
+             Equals(expected_entries * entry_size + sizeof(cgc1::details::packed_object_state_info_t) + 128));
   AssertThat(static_cast<size_t>(ps->end() - ret), Is().LessThanOrEqualTo(packed_size));
   fast_slab.deallocate_raw(ret);
 }
@@ -162,10 +164,12 @@ static void multiple_slab_test0b()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const cgc1::details::packed_object_state_info_t state{2ul, entry_size, expected_entries,32+256};
+  constexpr const cgc1::details::packed_object_state_info_t state{
+      2ul, entry_size, expected_entries, sizeof(cgc1::details::packed_object_state_info_t) + 256, {0, 0, 0, 0}};
   ps->m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
-  AssertThat(ps->total_size_bytes(), Equals(expected_entries * entry_size + 32 + 256));
+  AssertThat(ps->total_size_bytes(),
+             Equals(expected_entries * entry_size + sizeof(cgc1::details::packed_object_state_info_t) + 256));
   AssertThat(static_cast<size_t>(ps->end() - ret), Is().LessThanOrEqualTo(packed_size));
   fast_slab.deallocate_raw(ret);
 }
@@ -217,13 +221,61 @@ static void multiple_slab_test1()
   poa.destroy_thread();
   AssertThat(poa.num_free_blocks(), Equals(0_sz));
   AssertThat(poa.num_globals(cgc1::details::get_packed_object_size_id(128)), Equals(1_sz));
-
   AssertThat(cgc1::details::get_packed_object_size_id(31), Equals(0_sz));
   AssertThat(cgc1::details::get_packed_object_size_id(32), Equals(0_sz));
   AssertThat(cgc1::details::get_packed_object_size_id(33), Equals(1_sz));
   AssertThat(cgc1::details::get_packed_object_size_id(512), Equals(4_sz));
   AssertThat(cgc1::details::get_packed_object_size_id(513), Equals(::std::numeric_limits<size_t>::max()));
   //  cgc1::cgc_free(ret);
+}
+/**
+ * \brief Setup for root test.
+ * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
+ **/
+static _NoInline_ void packed_root_test__setup(void *&memory, size_t &old_memory)
+{
+  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks._packed_object_allocator();
+  cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
+  cgc1::cgc_malloc(50);
+  memory = ta.allocate(50);
+  // hide a pointer away for comparison testing.
+  old_memory = cgc1::hide_pointer(memory);
+  cgc1::cgc_add_root(&memory);
+  //  AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
+  //  AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
+  //  AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
+}
+
+static void packed_root_test()
+{
+  void *memory;
+  size_t old_memory;
+  // setup a root.
+  packed_root_test__setup(memory, old_memory);
+  auto state = cgc1::details::get_state(memory);
+  AssertThat(state->has_valid_magic_numbers(), IsTrue());
+  // force collection
+  cgc1::cgc_force_collect();
+  gks.wait_for_finalization();
+  // verify that nothing was collected.
+  state = cgc1::details::get_state(memory);
+  auto index = state->get_index(memory);
+  AssertThat(state->has_valid_magic_numbers(), IsTrue());
+  AssertThat(state->is_marked(index), IsTrue());
+  AssertThat(state->is_free(index), IsFalse());
+  // remove the root.
+  cgc1::cgc_remove_root(&memory);
+  // make sure that the we zero the memory so the pointer doesn't linger.
+  cgc1::secure_zero_pointer(memory);
+  auto num_collections = cgc1::debug::num_gc_collections();
+  // force collection.
+  cgc1::cgc_force_collect();
+  gks.wait_for_finalization();
+  index = state->get_index(cgc1::unhide_pointer(old_memory));
+  AssertThat(state->is_marked(index), IsFalse());
+  AssertThat(state->is_free(index), IsTrue());
+  // verify that we did perform a collection.
+  AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
 void packed_object_tests()
 {
@@ -233,5 +285,6 @@ void packed_object_tests()
     it("multiple_slab_test0b", []() { multiple_slab_test0b(); });
 
     it("multiple_slab_test1", []() { multiple_slab_test1(); });
+    it("packed_root_test", []() { packed_root_test(); });
   });
 }

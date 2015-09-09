@@ -39,7 +39,7 @@ namespace cgc1
           return unsafe_cast<packed_object_state_t>(ret);
         }
       }
-      return unsafe_cast<packed_object_state_t>(m_slab.allocate_raw(c_packed_object_block_size));
+      return unsafe_cast<packed_object_state_t>(m_slab.allocate_raw(c_packed_object_block_size - slab_allocator_t::cs_alignment));
     }
     auto packed_object_allocator_t::initialize_thread() -> thread_allocator_type &
     {

@@ -27,6 +27,9 @@ namespace cgc1
       auto max_free() const noexcept -> size_t;
       void do_maintenance();
 
+      template <typename Predicate>
+      void for_all_state(Predicate &&predicate);
+
     private:
       packed_object_package_t m_locals;
       cgc_internal_vector_t<void *> m_free_list;
@@ -40,3 +43,4 @@ namespace cgc1
 #ifdef CGC1_INLINES
 #include "packed_object_thread_allocator_impl.hpp"
 #endif
+#include "packed_object_thread_allocator_timpl.hpp"
