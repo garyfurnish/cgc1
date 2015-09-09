@@ -216,14 +216,14 @@ namespace cgc1
       m_cgc_allocator._mutex().unlock();
       m_slab_allocator._mutex().unlock();
       m_allocators_unavailable_mutex.unlock();
-      if (m_gc_allocator._u_blocks().empty()) {
+      /*      if (m_gc_allocator._u_blocks().empty()) {
         m_num_collections++;
         m_collect = false;
         CGC1_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
         _u_resume_threads();
         m_mutex.unlock();
         return;
-      }
+        }*/
       // do collection
       {
         // Thread data can not be modified during collection.

@@ -10,6 +10,10 @@ target_compile_definitions(cgc1_alloc_benchmark_sparse PUBLIC CGC1_SPARSE)
 add_executable(cgc1_alloc_benchmark_thread "main_thread.cpp")
 target_link_libraries(cgc1_alloc_benchmark_thread cgc1)
 
+add_executable(cgc1_alloc_benchmark_thread_sparse "main_thread.cpp")
+target_link_libraries(cgc1_alloc_benchmark_thread_sparse cgc1)
+target_compile_definitions(cgc1_alloc_benchmark_thread_sparse PUBLIC CGC1_SPARSE)
+
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 target_compile_options(cgc1_alloc_benchmark PUBLIC -fPIE)
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")

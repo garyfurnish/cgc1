@@ -89,6 +89,14 @@ int main()
   ::std::cout << "Total bytes " << GC_get_total_bytes() << ::std::endl;
   ::std::cout << "Unampped bytes " << GC_get_unmapped_bytes() << ::std::endl;
 #elif defined(CGC1_SPARSE)
+  cgc1::cgc_force_collect();
+  auto &gks = cgc1::details::g_gks;
+  ::std::cout << "Clear: " << gks.clear_mark_time_span().count() << ::std::endl;
+  ::std::cout << "Mark: " << gks.mark_time_span().count() << ::std::endl;
+  ::std::cout << "Sweep: " << gks.sweep_time_span().count() << ::std::endl;
+  ::std::cout << "Notify: " << gks.notify_time_span().count() << ::std::endl;
+  ::std::cout << gks.total_collect_time_span().count() << ::std::endl;
+
 #else
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;

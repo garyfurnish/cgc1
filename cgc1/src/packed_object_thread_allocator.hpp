@@ -20,6 +20,10 @@ namespace cgc1
 
       auto allocate(size_t sz) noexcept -> void *;
       auto deallocate(void *v) noexcept -> bool;
+      auto destroy(void *v) noexcept -> bool
+      {
+        return deallocate(v);
+      }
 
       void set_max_in_use(size_t max_in_use);
       void set_max_free(size_t max_free);
