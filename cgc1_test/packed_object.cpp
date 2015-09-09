@@ -241,9 +241,8 @@ static _NoInline_ void packed_root_test__setup(void *&memory, size_t &old_memory
   // hide a pointer away for comparison testing.
   old_memory = cgc1::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
-  //  AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
-  //  AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
-  //  AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
+  AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
+  AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
 }
 
 static void packed_root_test()

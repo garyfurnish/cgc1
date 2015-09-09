@@ -67,6 +67,12 @@ namespace cgc1
   {
     if (!addr)
       return nullptr;
+    if (addr >= details::g_gks.fast_slab_begin() && addr < details::g_gks.fast_slab_end()) {
+      auto state = details::get_state(addr);
+      if (state->has_valid_magic_numbers())
+        return state->begin() + state->get_index(addr) * state->real_entry_size();
+      return nullptr;
+    }
     details::object_state_t *os = details::object_state_t::from_object_start(addr);
     if (!details::g_gks.is_valid_object_state(os)) {
       os = details::g_gks.find_valid_object_state(addr);
@@ -82,6 +88,12 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return 0;
+    if (start >= details::g_gks.fast_slab_begin() && start < details::g_gks.fast_slab_end()) {
+      auto state = details::get_state(addr);
+      if (state->has_valid_magic_numbers())
+        return state->declared_entry_size();
+      return 0;
+    }
     details::object_state_t *os = details::object_state_t::from_object_start(start);
     if (os)
       return os->object_size();
