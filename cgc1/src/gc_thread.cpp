@@ -167,12 +167,12 @@ namespace cgc1
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
-      tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end());
+      tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end(),
+                       g_gks._packed_object_allocator().begin(), g_gks._packed_object_allocator().end());
       return true;
     }
     void gc_thread_t::_clear_marks()
     {
-      assert(m_block_begin && m_block_end);
       // clear marks for all objects in blocks.
       // hopefully this takes advantage of cache locality.
       for (auto it = m_block_begin; it != m_block_end; ++it) {
@@ -253,7 +253,7 @@ namespace cgc1
 
       } else {
         auto state = get_state(addr);
-        if (!state->has_valid_magic_numbers() || state->is_marked(state->get_index(addr)))
+        if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
           return;
         state->set_marked(state->get_index(addr));
         // recurse to pointers.
@@ -274,7 +274,6 @@ namespace cgc1
     }
     void gc_thread_t::_sweep()
     {
-      assert(m_block_begin && m_block_end);
       // Number freed in last collection.
       size_t num_freed = 0;
       // iterate through all blocks

@@ -73,9 +73,11 @@ namespace cgc1
       * @param container Destination for addresses found.
       * @param begin Start of potential addresses.
       * @param end End of potential addresses.
+      * @param fast_slab_begin Beginning of fast slab.
+      * @param fast_slab_end End of fast slab.
       **/
       template <typename CONTAINER>
-      void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end);
+      void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end, uint8_t *fast_slab_begin, uint8_t *fast_slab_end);
       /**
       * \brief Add a location that may potentially hold a root.
       *

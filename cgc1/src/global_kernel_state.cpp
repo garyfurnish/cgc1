@@ -197,12 +197,15 @@ namespace cgc1
       m_gc_allocator.collect();
       // note that the order of allocator locks and unlocks are all important here to prevent deadlocks!
       // grab allocator locks so that they are in a consistent state for garbage collection.
-      lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_thread_mutex);
+      lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
+           m_slab_allocator._mutex(), m_thread_mutex);
       // make sure we aren't already collecting
       if (m_collect || m_num_paused_threads != m_num_resumed_threads) {
-        unlock(m_thread_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_mutex);
+        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
+               m_slab_allocator._mutex(), m_mutex);
         return;
       }
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       m_collect = true;
       m_num_freed_in_last_collection = 0;
       m_freed_in_last_collection.clear();
@@ -212,18 +215,11 @@ namespace cgc1
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
       // release allocator locks so they can be used.
+      m_packed_object_allocator._mutex().unlock();
       m_gc_allocator._mutex().unlock();
       m_cgc_allocator._mutex().unlock();
       m_slab_allocator._mutex().unlock();
       m_allocators_unavailable_mutex.unlock();
-      /*      if (m_gc_allocator._u_blocks().empty()) {
-        m_num_collections++;
-        m_collect = false;
-        CGC1_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
-        _u_resume_threads();
-        m_mutex.unlock();
-        return;
-        }*/
       // do collection
       {
         // Thread data can not be modified during collection.
@@ -236,7 +232,8 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_clear();
       }
-      _packed_object_allocator().for_all_state([](auto &&state) { state->clear_mark_bits(); });
+      _packed_object_allocator()._for_all_state([](auto &&state) { state->clear_mark_bits(); });
+      ::std::atomic_thread_fence(::std::memory_order_release);
       // wait for clear to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_clear_finished();
@@ -259,7 +256,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
       }
-      _packed_object_allocator().for_all_state([](auto &&state) { state->free_unmarked(); });
+      _packed_object_allocator()._for_all_state([](auto &&state) { state->free_unmarked(); });
       // wait for sweeping to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_sweep_finished();

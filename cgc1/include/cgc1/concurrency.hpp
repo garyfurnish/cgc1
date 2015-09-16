@@ -36,6 +36,21 @@ namespace cgc1
     ::std::lock(lock1, lock2, lock3, lock4, lock5);
   }
   /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1,
+            typename Lockable2,
+            typename Lockable3,
+            typename Lockable4,
+            typename Lockable5,
+            typename Lockable6>
+  void lock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4, Lockable5 &lock5, Lockable6 &lock6)
+      ACQUIRE(lock1, lock2, lock3, lock4, lock5, lock6) NO_THREAD_SAFETY_ANALYSIS
+  {
+    ::std::lock(lock1, lock2, lock3, lock4, lock5, lock6);
+  }
+
+  /**
    * \brief For static analysis, assume lock1 is unlocked.
    **/
   template <typename Lockable1>
@@ -56,6 +71,26 @@ namespace cgc1
     lock4.unlock();
     lock5.unlock();
   }
+  /**
+   * \brief Unlock lock1, lock2, ..., lockn in order.
+   **/
+  template <typename Lockable1,
+            typename Lockable2,
+            typename Lockable3,
+            typename Lockable4,
+            typename Lockable5,
+            typename Lockable6>
+  void unlock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4, Lockable5 &lock5, Lockable6 &lock6)
+      RELEASE(lock1, lock2, lock3, lock4, lock5, lock6) NO_THREAD_SAFETY_ANALYSIS
+  {
+    lock1.unlock();
+    lock2.unlock();
+    lock3.unlock();
+    lock4.unlock();
+    lock5.unlock();
+    lock6.unlock();
+  }
+
   /**
    * \brief Scoped variable for assuming that lock is locked.
    **/

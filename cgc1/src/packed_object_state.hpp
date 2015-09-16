@@ -75,6 +75,7 @@ namespace cgc1
       auto has_valid_magic_numbers() const noexcept -> bool;
 
       auto get_index(void *v) const noexcept -> size_t;
+      auto addr_in_header(void *v) const noexcept -> bool;
       packed_object_state_info_t m_info;
     };
     static_assert(::std::is_pod<packed_object_state_t>::value, "");

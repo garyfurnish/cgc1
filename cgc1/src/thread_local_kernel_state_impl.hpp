@@ -91,7 +91,8 @@ namespace cgc1
       return m_potential_roots;
     }
     template <typename CONTAINER>
-    void thread_local_kernel_state_t::scan_stack(CONTAINER &container, uint8_t *ibegin, uint8_t *iend)
+    void thread_local_kernel_state_t::scan_stack(
+        CONTAINER &container, uint8_t *ibegin, uint8_t *iend, uint8_t *fast_slab_begin, uint8_t *fast_slab_end)
     {
       // can't recover if we didn't set stack ptrs.
       if (!static_cast<uint8_t *>(m_stack_ptr) || !static_cast<uint8_t *>(m_top_of_stack))
@@ -103,6 +104,8 @@ namespace cgc1
       for (uint8_t **v = stack_ptr; v != reinterpret_cast<uint8_t **>(m_top_of_stack); ++v) {
         void *os = object_state_t::from_object_start(*v);
         if (os >= ibegin && os < iend) {
+          container.emplace_back(v);
+        } else if (*v >= fast_slab_begin && *v < fast_slab_end) {
           container.emplace_back(v);
         }
       }

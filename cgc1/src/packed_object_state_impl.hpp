@@ -170,8 +170,10 @@ namespace cgc1
         return nullptr;
       if (i == ::std::numeric_limits<size_t>::max())
         return nullptr;
+      // guarentee the memory address exists somewhere that is visible to gc
+      volatile auto memory_address = begin() + real_entry_size() * i;
       set_free(i, false);
-      return begin() + real_entry_size() * i;
+      return memory_address;
     }
     CGC1_OPT_INLINE bool packed_object_state_t::deallocate(void *vv) noexcept
     {
@@ -224,6 +226,10 @@ namespace cgc1
     CGC1_OPT_INLINE auto packed_object_state_t::has_valid_magic_numbers() const noexcept -> bool
     {
       return m_info.m_padding[2] == cs_magic_number_0 && m_info.m_padding[3] == cs_magic_number_1;
+    }
+    CGC1_OPT_INLINE auto packed_object_state_t::addr_in_header(void *v) const noexcept -> bool
+    {
+      return begin() > v;
     }
   }
 }

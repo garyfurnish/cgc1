@@ -41,9 +41,9 @@ namespace cgc1
       auto end() const noexcept -> uint8_t *;
       auto _slab() const noexcept -> slab_allocator_t &;
 
+      // TODO: NOT SURE IF THIS SHOULD BE NO LOCK OR NOT... maybe we need to acquire it in gc?
       template <typename Predicate>
-      REQUIRES(!m_mutex)
-      void for_all_state(Predicate &&);
+      NO_THREAD_SAFETY_ANALYSIS void _for_all_state(Predicate &&);
 
     private:
       /**

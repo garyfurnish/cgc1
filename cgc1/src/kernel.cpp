@@ -28,6 +28,19 @@ namespace cgc1
     {
       return details::g_gks.num_collections();
     }
+
+    auto _cgc_hidden_packed_marked(uintptr_t loc) -> bool
+    {
+      auto state = cgc1::details::get_state(cgc1::unhide_pointer(loc));
+      auto index = state->get_index(cgc1::unhide_pointer(loc));
+      return state->is_marked(index);
+    }
+    auto _cgc_hidden_packed_free(uintptr_t loc) -> bool
+    {
+      auto state = cgc1::details::get_state(cgc1::unhide_pointer(loc));
+      auto index = state->get_index(cgc1::unhide_pointer(loc));
+      return state->is_free(index);
+    }
   }
   bool in_signal_handler() noexcept
   {
@@ -42,7 +55,7 @@ namespace cgc1
     auto &ta = details::g_gks.gc_allocator().initialize_thread();
     return ta.allocate(sz);
   }
-  extern uintptr_t cgc_hidden_malloc(size_t sz)
+  uintptr_t cgc_hidden_malloc(size_t sz)
   {
     void *addr = cgc_malloc(sz);
     secure_zero(addr, sz);
