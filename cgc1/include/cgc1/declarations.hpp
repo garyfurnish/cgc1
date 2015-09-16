@@ -11,11 +11,12 @@
 #ifndef CGC1_NO_INLINES
 #define CGC1_INLINES
 #define CGC1_OPT_INLINE inline
+#define CGC1_ALWAYS_INLINE __attribute__((always_inline)) inline
 #else
 #define CGC1_OPT_INLINE
+#define CGC1_ALWAYS_INLINE
 #endif
 #ifndef _WIN32
-#define ALWAYS_INLINE __attribute__((always_inline))
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
@@ -24,7 +25,6 @@
 #define likely(x) __builtin_expect(static_cast<bool>(x), 1)
 #define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
-#define ALWAYS_INLINE
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
 #define cgc1_builtin_current_stack() _AddressOfReturnAddress()
@@ -37,7 +37,7 @@ namespace cgc1
 {
   namespace literals
   {
-    inline ::std::size_t operator"" _sz(unsigned long long x)
+    constexpr inline ::std::size_t operator"" _sz(unsigned long long x)
     {
       return static_cast<::std::size_t>(x);
     }
@@ -72,12 +72,12 @@ namespace cgc1
   **/
   inline constexpr size_t align(size_t sz, size_t alignment)
   {
-    return ((sz + alignment + 1) / alignment) * alignment;
+    return ((sz + alignment - 1) / alignment) * alignment;
   }
   /**
    * \brief Align pointer to alignment.
   **/
-  inline const void *align(void *iptr, size_t alignment)
+  inline void *align(void *iptr, size_t alignment)
   {
     return reinterpret_cast<void *>(align(reinterpret_cast<size_t>(iptr), alignment));
   }
@@ -300,4 +300,23 @@ namespace cgc1
     u.i = &in;
     return *u.t;
   }
+  /**
+   * \brief Unsafe cast of pointers
+   *
+   * Contain any undefined behavior here here.
+   * @tparam Type New type.
+   **/
+  template <typename Type, typename In>
+  Type *unsafe_cast(In *in)
+  {
+    union {
+      Type *t;
+      In *i;
+    } u;
+    u.i = in;
+    return u.t;
+  }
+
+  template <size_t bytes = 5000>
+  extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
 }

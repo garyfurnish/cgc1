@@ -343,13 +343,13 @@ namespace cgc1
       }
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept
+    CGC1_ALWAYS_INLINE auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept
         -> allocator_block_type &
     {
       return *m_last_block;
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
-    ALWAYS_INLINE inline auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() const noexcept
+    CGC1_ALWAYS_INLINE auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() const noexcept
         -> const allocator_block_type &
     {
       return *m_last_block;

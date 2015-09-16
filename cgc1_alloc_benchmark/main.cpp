@@ -29,6 +29,7 @@ int main()
   using hrc = ::std::chrono::high_resolution_clock;
   hrc::time_point t1 = hrc::now();
   void **ptrs = nullptr;
+  (void)ptrs;
 #ifdef BOEHM
   ::std::cout << "Using bohem\n";
   GC_disable();
@@ -44,11 +45,24 @@ int main()
 
     ptrs[i] = ret;
   }
-#else
-  (void)ptrs;
-  ::std::cout << "Using cgc1\n";
+#elif defined(CGC1_SPARSE)
+  ::std::cout << "Using cgc1 sparse\n";
   CGC1_INITIALIZE_THREAD();
   auto &allocator = cgc1::details::g_gks.gc_allocator();
+
+  auto &ts = allocator.initialize_thread();
+  for (size_t i = 0; i < num_alloc; ++i) {
+    auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
+    if (!ret)
+      abort();
+    for (size_t li = 0; li < 8; ++li)
+      ret[li] = ts.allocate(alloc_sz);
+  }
+
+#else
+  ::std::cout << "Using cgc1\n";
+  CGC1_INITIALIZE_THREAD();
+  auto &allocator = cgc1::details::g_gks._packed_object_allocator();
 
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
@@ -62,27 +76,27 @@ int main()
   hrc::time_point t2 = hrc::now();
 #ifdef BOEHM
   GC_enable();
-  //::std::cout << "Free bytes " << GC_get_free_bytes() << ::std::endl;
-  //  GC_gcollect();
-  //::std::cout << "Collected\n";
   ::std::cout << GC_base(ptrs) << ::std::endl;
   ::std::cout << "Free bytes " << GC_get_free_bytes() << ::std::endl;
   ::std::cout << "heap size is " << GC_get_heap_size() << ::std::endl;
   ::std::cout << "Total bytes " << GC_get_total_bytes() << ::std::endl;
   ::std::cout << "Unampped bytes " << GC_get_unmapped_bytes() << ::std::endl;
 
-  /*  for (size_t i = 0; i < num_alloc; ++i) {
-    if (i % 2)
-      ptrs[i] = nullptr;
-  }
-  //  memset(ptrs, 0, sizeof(void *) * num_alloc);
-  //  ptrs = nullptr;*/
   GC_gcollect();
   ::std::cout << "Collected\n";
   ::std::cout << "Free bytes " << GC_get_free_bytes() << ::std::endl;
   ::std::cout << "heap size is " << GC_get_heap_size() << ::std::endl;
   ::std::cout << "Total bytes " << GC_get_total_bytes() << ::std::endl;
   ::std::cout << "Unampped bytes " << GC_get_unmapped_bytes() << ::std::endl;
+#elif defined(CGC1_SPARSE)
+  cgc1::cgc_force_collect();
+  auto &gks = cgc1::details::g_gks;
+  ::std::cout << "Clear: " << gks.clear_mark_time_span().count() << ::std::endl;
+  ::std::cout << "Mark: " << gks.mark_time_span().count() << ::std::endl;
+  ::std::cout << "Sweep: " << gks.sweep_time_span().count() << ::std::endl;
+  ::std::cout << "Notify: " << gks.notify_time_span().count() << ::std::endl;
+  ::std::cout << gks.total_collect_time_span().count() << ::std::endl;
+
 #else
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;

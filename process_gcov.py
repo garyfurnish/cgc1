@@ -8,7 +8,7 @@ with open("settings.json") as settings_file:
     gcov_location = settings_json["gcov_location"]
     gcov_location = os.path.abspath(gcov_location)
 os.chdir(build_location+"/cgc1/unixmake_gcc_gcov/cgc1/CMakeFiles/cgc1.dir/src")
-printing_system(gcov_location+"/gcov *.gcno *.gcda -p -f -m &> gcov.tmp")
+printing_system(gcov_location+"/gcov *.gcno *.gcda -p -f -m > gcov.tmp")
 found_already = set()
 empty_already = set()
 with open('gcov.tmp', 'r') as f:

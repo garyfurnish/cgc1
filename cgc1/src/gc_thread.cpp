@@ -167,12 +167,12 @@ namespace cgc1
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
-      tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end());
+      tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end(),
+                       g_gks._packed_object_allocator().begin(), g_gks._packed_object_allocator().end());
       return true;
     }
     void gc_thread_t::_clear_marks()
     {
-      assert(m_block_begin && m_block_end);
       // clear marks for all objects in blocks.
       // hopefully this takes advantage of cache locality.
       for (auto it = m_block_begin; it != m_block_end; ++it) {
@@ -197,8 +197,9 @@ namespace cgc1
       for (auto root : m_stack_roots)
         _mark_addrs(*unsafe_reference_cast<void **>(root), 0);
       // mark all roots.
-      for (auto it = m_root_begin; it != m_root_end; ++it)
-        _mark_addrs(*it, 0);
+      for (auto it = m_root_begin; it != m_root_end; ++it) {
+        _mark_addrs(**it, 0);
+      }
       // mark additional stuff.
       _mark_mark_vector();
     }
@@ -214,31 +215,50 @@ namespace cgc1
       // Find heap begin and end.
       void *heap_begin = g_gks.gc_allocator()._u_begin();
       void *heap_end = g_gks.gc_allocator()._u_current_end();
+      void *fast_heap_begin = g_gks.fast_slab_begin();
+      void *fast_heap_end = g_gks.fast_slab_end();
+      bool fast_heap = false;
       object_state_t *os = object_state_t::from_object_start(addr);
       // if outside heap, definitely not valid object state.
-      if (os < heap_begin || os >= heap_end)
-        return;
-      if (!g_gks.is_valid_object_state(os)) {
-        // This is calling during garbage collection, therefore no mutex is needed.
-        CGC1_CONCURRENCY_LOCK_ASSUME(g_gks._mutex());
-        os = g_gks._u_find_valid_object_state(addr);
-        if (!os)
+      if (os < heap_begin || os >= heap_end) {
+        if (addr < fast_heap_begin || addr >= fast_heap_end) {
           return;
+        } else
+          fast_heap = true;
       }
-      assert(is_aligned_properly(os));
       // not valid.
-      if (!os->not_available() || !os->next())
-        return;
-      if (!ignore_skip_marked && is_marked(os))
-        return;
-      // set it as marked.
-      set_mark(os);
-      // if it is atomic we are done here.
-      if (is_atomic(os))
-        return;
-      // recurse to pointers.
-      for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
-        if (*it > heap_begin && *it < heap_end) {
+      if (!fast_heap) {
+        if (!g_gks.is_valid_object_state(os)) {
+          // This is calling during garbage collection, therefore no mutex is needed.
+          CGC1_CONCURRENCY_LOCK_ASSUME(g_gks._mutex());
+          os = g_gks._u_find_valid_object_state(addr);
+          if (!os)
+            return;
+        }
+        assert(is_aligned_properly(os));
+        if (!os->not_available() || !os->next())
+          return;
+        if (!ignore_skip_marked && is_marked(os))
+          return;
+
+        // set it as marked.
+        set_mark(os);
+        // if it is atomic we are done here.
+        if (is_atomic(os))
+          return;
+        // recurse to pointers.
+        for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
+          _mark_addrs(*it, depth + 1, true);
+        }
+
+      } else {
+        auto state = get_state(addr);
+        if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
+          return;
+        state->set_marked(state->get_index(addr));
+        // recurse to pointers.
+        for (void **it = reinterpret_cast<void **>(addr);
+             it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->declared_entry_size()); ++it) {
           _mark_addrs(*it, depth + 1, true);
         }
       }
@@ -254,7 +274,6 @@ namespace cgc1
     }
     void gc_thread_t::_sweep()
     {
-      assert(m_block_begin && m_block_end);
       // Number freed in last collection.
       size_t num_freed = 0;
       // iterate through all blocks

@@ -12,17 +12,19 @@ with open("settings.json") as settings_file:
 
 
 #See https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
-def find_files(directory, pattern):
-    for root, dirs, files in os.walk(directory):
-        for basename in files:
-            if fnmatch.fnmatch(basename, pattern):
-                filename = os.path.join(root, basename)
-                yield filename
+def find_files(directories, patterns):
+    for directory in directories:
+        for pattern in patterns:
+            for root, dirs, files in os.walk(directory):
+                for basename in files:
+                    if fnmatch.fnmatch(basename, pattern):
+                        filename = os.path.join(root, basename)
+                        yield filename
 
 def format(filename):
     printing_system(clang_install_location+"/clang-format -style=file -i " + filename)
 
 pool = Pool()
-files = list(find_files(".","*.hpp")) + list(find_files(".","*.cpp"))
+files = list(find_files(["cgc1","cgc1_test","cgc1_alloc_benchmark"],["*.cpp","*.hpp"]))
 pool.map(format,files)
 sys.exit(0)

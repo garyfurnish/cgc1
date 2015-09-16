@@ -10,10 +10,10 @@ namespace cgc1
 
     static auto os_size_compare = [](auto &&a, auto &&b) { return a->object_size() < b->object_size(); };
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
-                                                                                    size_t length,
-                                                                                    size_t minimum_alloc_length,
-                                                                                    size_t maximum_alloc_length) noexcept
+    CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
+                                                                                  size_t length,
+                                                                                  size_t minimum_alloc_length,
+                                                                                  size_t maximum_alloc_length) noexcept
         : m_next_alloc_ptr(reinterpret_cast<object_state_t *>(start)),
           m_end(reinterpret_cast<uint8_t *>(start) + length),
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
@@ -56,7 +56,7 @@ namespace cgc1
       //  block.clear();
       }*/
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
+    CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
     operator=(allocator_block_t<Allocator, User_Data> &&block) noexcept
     {
       if (m_default_user_data.get() == &s_default_user_data)
@@ -106,12 +106,12 @@ namespace cgc1
       return m_next_alloc_ptr == nullptr && m_free_list.empty();
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::begin() const noexcept
+    CGC1_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator, User_Data>::begin() const noexcept
     {
       return m_start;
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline uint8_t *allocator_block_t<Allocator, User_Data>::end() const noexcept
+    CGC1_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator, User_Data>::end() const noexcept
     {
       return m_end;
     }
@@ -124,7 +124,7 @@ namespace cgc1
         return m_next_alloc_ptr;
     }
     template <typename Allocator, typename User_Data>
-    ALWAYS_INLINE inline object_state_t *allocator_block_t<Allocator, User_Data>::_object_state_begin() const noexcept
+    CGC1_ALWAYS_INLINE object_state_t *allocator_block_t<Allocator, User_Data>::_object_state_begin() const noexcept
     {
       return reinterpret_cast<object_state_t *>(begin());
     }

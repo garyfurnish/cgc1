@@ -154,6 +154,16 @@ namespace cgc1
      * May roll over.
     **/
     size_t num_gc_collections() noexcept;
+    /**
+     * \brief Return if a hidden pointer derived from a packed allocation is marked.
+     * This is not considered a stable API.
+     **/
+    auto _cgc_hidden_packed_marked(uintptr_t loc) -> bool;
+    /**
+     * \brief Return if a hidden pointer derived from a packed allocation is free.
+     * This is not considered a stable API.
+     **/
+    auto _cgc_hidden_packed_free(uintptr_t loc) -> bool;
   }
 }
 #define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(cgc1_builtin_current_stack())

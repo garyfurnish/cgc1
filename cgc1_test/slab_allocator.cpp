@@ -2,74 +2,107 @@
 #include "../cgc1/src/allocator_block.hpp"
 #include "bandit.hpp"
 using namespace bandit;
+using cgc1::align;
 void slab_allocator_bandit_tests()
 {
   describe("Slab Allocator", []() {
-    it("test1", []() {
+    it("sa_test1", []() {
       using cgc1::details::slab_allocator_object_t;
       cgc1::details::slab_allocator_t slab(500000, 5000000);
-      void *alloc1 = slab.allocate_raw(100);
-      AssertThat(alloc1 == slab.begin() + 16, IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->next() == &*slab._u_object_current_end(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->next_valid(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->next()->next_valid(), IsFalse());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->next()->not_available(), IsFalse());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->not_available(), IsTrue());
-      void *alloc2 = slab.allocate_raw(100);
-      AssertThat(alloc2 == slab.begin() + 144, IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc2)->next() == &*slab._u_object_current_end(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc1)->next_valid(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc2)->next_valid(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc2)->next()->next_valid(), IsFalse());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc2)->not_available(), IsTrue());
-      void *alloc3 = slab.allocate_raw(100);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
-      void *alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
+      using slab_type = decltype(slab);
+      uint8_t *alloc1 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(alloc1 == slab.begin() + slab_type::alignment(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->next()->next_valid(), IsFalse());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->next()->not_available(), IsFalse());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->not_available(), IsTrue());
+
+      uint8_t *alloc2 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc2 - slab.begin()),
+                 Equals(2 * slab_type::alignment() + align(100, slab_type::alignment())));
+      AssertThat(slab_allocator_object_t::from_object_start(alloc2, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc1, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc2, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc2, slab_type::alignment())->next()->next_valid(), IsFalse());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc2, slab_type::alignment())->not_available(), IsTrue());
+
+      uint8_t *alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
+                 Equals(3 * slab_type::alignment() + 2 * align(100, slab_type::alignment())));
+
+      uint8_t *alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
+                 Equals(4 * slab_type::alignment() + 3 * align(100, slab_type::alignment())));
       slab.deallocate_raw(alloc4);
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next() == &*slab._u_object_current_end(), IsTrue());
-      alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
-      slab.deallocate_raw(alloc4);
-      slab.deallocate_raw(alloc3);
-      AssertThat(slab_allocator_object_t::from_object_start(alloc2)->next() == &*slab._u_object_current_end(), IsTrue());
-      alloc3 = slab.allocate_raw(100);
-      alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
-      slab.deallocate_raw(alloc3);
-      slab.deallocate_raw(alloc4);
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next() == &*slab._u_object_current_end(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next_valid(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next()->next_valid(), IsFalse());
-      alloc3 = slab.allocate_raw(100);
-      alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc4)->next() == &*slab._u_object_current_end(), IsTrue());
-      void *alloc5 = slab.allocate_raw(100);
-      AssertThat(alloc5 == slab.begin() + 528, IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc5)->next() == &*slab._u_object_current_end(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
+                 Equals(4 * slab_type::alignment() + 3 * align(100, slab_type::alignment())));
       slab.deallocate_raw(alloc4);
       slab.deallocate_raw(alloc3);
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next_valid(), IsTrue());
-      alloc3 = slab.allocate_raw(100);
-      alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc3)->next_valid(), IsTrue());
-      AssertThat(slab_allocator_object_t::from_object_start(alloc4)->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc2, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
+                 Equals(3 * slab_type::alignment() + 2 * align(100, slab_type::alignment())));
+      AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
+                 Equals(4 * slab_type::alignment() + 3 * align(100, slab_type::alignment())));
+      slab.deallocate_raw(alloc3);
+      slab.deallocate_raw(alloc4);
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next()->next_valid(), IsFalse());
+      alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
+                 Equals(3 * slab_type::alignment() + 2 * align(100, slab_type::alignment())));
+      AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
+                 Equals(4 * slab_type::alignment() + 3 * align(100, slab_type::alignment())));
+
+      AssertThat(slab_allocator_object_t::from_object_start(alloc4, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      uint8_t *alloc5 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc5 - slab.begin()),
+                 Equals(5 * slab_type::alignment() + 4 * align(100, slab_type::alignment())));
+      AssertThat(slab_allocator_object_t::from_object_start(alloc5, slab_type::alignment())->next() ==
+                     &*slab._u_object_current_end(),
+                 IsTrue());
+      slab.deallocate_raw(alloc4);
+      slab.deallocate_raw(alloc3);
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
+      alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
+                 Equals(3 * slab_type::alignment() + 2 * align(100, slab_type::alignment())));
+      AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
+                 Equals(4 * slab_type::alignment() + 3 * align(100, slab_type::alignment())));
+
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc4, slab_type::alignment())->next_valid(), IsTrue());
       // Now test coalescing.
       slab.deallocate_raw(alloc3);
       slab.deallocate_raw(alloc4);
-      alloc3 = slab.allocate_raw(239);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
+      alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(239));
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
       // Now test splitting.
       slab.deallocate_raw(alloc3);
-      alloc3 = slab.allocate_raw(100);
-      alloc4 = slab.allocate_raw(100);
-      AssertThat(alloc3 == slab.begin() + 272, IsTrue());
-      AssertThat(alloc4 == slab.begin() + 400, IsTrue());
+      alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
+      AssertThat(slab_allocator_object_t::from_object_start(alloc4, slab_type::alignment())->next_valid(), IsTrue());
+
     });
     it("test2,", []() {
       cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;

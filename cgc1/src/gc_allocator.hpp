@@ -28,51 +28,33 @@ namespace cgc1
     /**
      * \brief Return true if the object state is marked, false otherwise.
     **/
-    inline bool is_marked(const object_state_t *os)
-    {
-      return os->user_flags() & 1;
-    }
+    extern bool is_marked(const object_state_t *os);
     /**
      * \brief Return true if the memory pointed to by the object state is atomic, false otherwise.
     **/
-    inline bool is_atomic(const object_state_t *os)
-    {
-      return 0 != (os->user_flags() & 2);
-    }
+    extern bool is_atomic(const object_state_t *os);
     /**
      * \brief Return true if the memory pointed to by the object state is complicated and needs special handeling.
     **/
-    inline bool is_complex(const object_state_t *os)
-    {
-      return 0 != (os->user_flags() & 4);
-    }
+    extern bool is_complex(const object_state_t *os);
     /**
      * \brief Clear the gc mark for a given object state.
     **/
-    ALWAYS_INLINE inline void clear_mark(object_state_t *os)
-    {
-      os->set_user_flags(os->user_flags() & 6);
-    }
+    extern void clear_mark(object_state_t *os);
     /**
      * \brief Set the gc mark for a given object state.
     **/
-    inline void set_mark(object_state_t *os, bool status = true)
-    {
-      os->set_user_flags((os->user_flags() & 6) | static_cast<size_t>(status));
-    }
+    extern void set_mark(object_state_t *os, bool status = true);
     /**
      * \brief Set the atomic flag for a given object state.
     **/
-    inline void set_atomic(object_state_t *os, bool status)
-    {
-      os->set_user_flags((os->user_flags() & 5) | (static_cast<size_t>(status) << 1));
-    }
+    extern void set_atomic(object_state_t *os, bool status);
     /**
      * \brief Set the complex memory flag for a given object state.
     **/
-    inline void set_complex(object_state_t *os, bool status)
-    {
-      os->set_user_flags((os->user_flags() & 3) | (static_cast<size_t>(status) << 2));
-    }
+    extern void set_complex(object_state_t *os, bool status);
   }
 }
+#ifdef CGC1_INLINES
+#include "gc_allocator_impl.hpp"
+#endif

@@ -164,6 +164,8 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     bool thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy(void *v)
     {
+      // only support slow lab right now.
+      assert(v >= m_allocator.begin() && v <= m_allocator.end());
       // get object state
       object_state_t *os = object_state_t::from_object_start(v);
       // find block set id for object.
