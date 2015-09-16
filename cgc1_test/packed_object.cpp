@@ -293,21 +293,18 @@ static void packed_linked_list_test()
     cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
     foo = reinterpret_cast<void **>(ta.allocate(100));
     {
-      //      void **bar = foo;
-      /*      for (int i = 0; i < 0; ++i) {
-        {
-          CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-          locations.push_back(cgc1::hide_pointer(bar));
-        }
+      void **bar = foo;
+      for (int i = 0; i < 0; ++i) {
+        CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+        locations.push_back(cgc1::hide_pointer(bar));
         cgc1::secure_zero(bar, 100);
         *bar = ta.allocate(100);
         bar = reinterpret_cast<void **>(*bar);
-        }*/
+      }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
         // locations.push_back(cgc1::hide_pointer(bar));
         locations.push_back(cgc1::hide_pointer(foo));
-        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       }
     }
     while (keep_going) {
