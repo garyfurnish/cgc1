@@ -3,6 +3,7 @@
 #include "thread_local_kernel_state.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cstring>
+#include <cgc1/cgc1_dll.hpp>
 namespace cgc1
 {
   namespace details
@@ -208,32 +209,93 @@ namespace cgc1
   }
 }
 extern "C" {
-void *GC_realloc(void *old_object, ::std::size_t new_size)
+CGC1_DLL_PUBLIC void *GC_realloc(void *old_object, ::std::size_t new_size)
 {
   return cgc1::cgc_realloc(old_object, new_size);
 }
-void *GC_malloc(::std::size_t size_in_bytes)
+CGC1_DLL_PUBLIC void *GC_malloc(::std::size_t size_in_bytes)
 {
   return cgc1::cgc_malloc(size_in_bytes);
 }
-void *GC_malloc_atomic(::std::size_t size_in_bytes)
+CGC1_DLL_PUBLIC void *GC_malloc_atomic(::std::size_t size_in_bytes)
 {
   auto ret = cgc1::cgc_malloc(size_in_bytes);
   cgc1::cgc_set_atomic(ret, true);
   return ret;
 }
-void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
+CGC1_DLL_PUBLIC void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
 {
   auto ret = cgc1::cgc_malloc(size_in_bytes);
   cgc1::cgc_set_uncollectable(ret, true);
   return ret;
 }
-void GC_free(void *object_addr)
+CGC1_DLL_PUBLIC void GC_free(void *object_addr)
 {
   cgc1::cgc_free(object_addr);
 }
-void GC_init(void *stack_addr)
+CGC1_DLL_PUBLIC void GC_init(void *stack_addr)
 {
   cgc1::cgc_register_thread(stack_addr);
+}
+CGC1_DLL_PUBLIC void GC_gcollect()
+{
+  cgc1::cgc_force_collect();
+}
+CGC1_DLL_PUBLIC void GC_register_finalizer(void *addr, void (*finalizer)(void *, void *), void *user_data, void *b, void *c)
+{
+  if (b || c) {
+    ::std::cerr << "arguments to register finalizer must be null\n";
+    abort();
+  }
+  auto real_finalizer = [finalizer, user_data](void *ptr) { finalizer(ptr, user_data); };
+  cgc1::cgc_register_finalizer(addr, real_finalizer);
+}
+CGC1_DLL_PUBLIC int GC_get_heap_size()
+{
+  return ::std::numeric_limits<int>::max();
+}
+CGC1_DLL_PUBLIC int GC_get_gc_no()
+{
+  return static_cast<int>(::cgc1::debug::num_gc_collections());
+}
+CGC1_DLL_PUBLIC int GC_get_parallel()
+{
+  return true;
+}
+CGC1_DLL_PUBLIC int GC_get_finalize_on_demand()
+{
+  return false;
+}
+CGC1_DLL_PUBLIC int GC_get_java_finalization()
+{
+  return false;
+}
+CGC1_DLL_PUBLIC int GC_get_dont_expand()
+{
+  return false;
+}
+CGC1_DLL_PUBLIC int GC_get_full_freq()
+{
+  return 0;
+}
+CGC1_DLL_PUBLIC int GC_get_max_retries()
+{
+  return 0;
+}
+CGC1_DLL_PUBLIC unsigned long GC_get_time_limit()
+{
+  return ::std::numeric_limits<unsigned long>::max();
+}
+CGC1_DLL_PUBLIC long GC_get_free_space_divisor()
+{
+  return 1;
+}
+CGC1_DLL_PUBLIC long GC_get_all_interior_pointers()
+{
+  return 0;
+}
+CGC1_DLL_PUBLIC void *GC_base(void *addr)
+{
+  return cgc1::cgc_start(addr);
 }
 }

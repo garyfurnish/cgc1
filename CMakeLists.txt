@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 include (setup.cmake)
-include_directories(cgc1/include)
 add_subdirectory(cgc1)
 add_subdirectory(cgc1_test)
 add_subdirectory(cgc1_alloc_benchmark)

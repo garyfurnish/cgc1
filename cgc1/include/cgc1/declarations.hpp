@@ -20,14 +20,18 @@
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
+#ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
+#endif
 #define _NoInline_ __attribute__((noinline))
 #define likely(x) __builtin_expect(static_cast<bool>(x), 1)
 #define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
+#ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack() _AddressOfReturnAddress()
+#endif
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)

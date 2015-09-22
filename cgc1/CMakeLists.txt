@@ -1,4 +1,4 @@
-#INSTALL(DIRECTORY include/ DESTINATION include)
+include_directories(include)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   add_compile_options(-fno-rtti)
   add_compile_options(-fPIC)
@@ -49,6 +49,19 @@ list (APPEND SRC_FILES ${SRC_FILES} include/cgc1/win32_slab.hpp
   src/win32_slab.cpp)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_library(cgc1 ${SRC_FILES})
+add_library(gc SHARED ${SRC_FILES})
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(cgc1 pthread)
+  target_link_libraries(gc pthread)
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+INSTALL(DIRECTORY "include/cgc1" DESTINATION "include")
+INSTALL(DIRECTORY "include/gc" DESTINATION "include")
+INSTALL(FILES "include/gc.h" DESTINATION "include")
+INSTALL(TARGETS cgc1
+                RUNTIME DESTINATION bin
+                LIBRARY DESTINATION lib
+                ARCHIVE DESTINATION lib)
+INSTALL(TARGETS gc
+                RUNTIME DESTINATION bin
+                LIBRARY DESTINATION lib
+                ARCHIVE DESTINATION lib)

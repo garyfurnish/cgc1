@@ -53,6 +53,7 @@ namespace cgc1
         : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size),
           m_packed_object_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
     {
+      ::std::cout << "Created CGC1\n";
       m_enabled_count = 1;
       details::initialize_tlks();
     }
