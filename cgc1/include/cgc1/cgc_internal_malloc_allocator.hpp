@@ -143,7 +143,7 @@ namespace cgc1
     template <class... Args>
     void construct(pointer p, Args &&... args)
     {
-      ::new (static_cast<void *>(p)) value_type(::std::forward<Args>(args)...);
+      ::new (static_cast<void *>(p)) value_type(::std::forward<Args...>(args)...);
     }
     /**
      * \brief Destroy an object.
@@ -166,6 +166,14 @@ namespace cgc1
       allocator.deallocate(t, 1);
     }
   };
+  template <typename T, typename... Args>
+  ::std::unique_ptr<T, cgc_internal_malloc_deleter_t> make_unique_malloc(Args &&... args)
+  {
+    cgc_internal_malloc_allocator_t<T> allocator;
+    auto ptr = allocator.allocate(1);
+    allocator.construct(ptr, ::std::forward<Args...>(args)...);
+    return ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>(ptr);
+  }
   /**
    * Tag for dispatch of getting deleter.
   **/

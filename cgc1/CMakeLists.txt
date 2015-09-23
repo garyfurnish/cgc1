@@ -49,7 +49,7 @@ list (APPEND SRC_FILES ${SRC_FILES} include/cgc1/win32_slab.hpp
   src/win32_slab.cpp)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_library(cgc1 ${SRC_FILES})
-add_library(gc SHARED ${SRC_FILES})
+add_library(gc SHARED ${SRC_FILES} src/new.cpp)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(cgc1 pthread)
   target_link_libraries(gc pthread)

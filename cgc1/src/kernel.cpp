@@ -298,4 +298,12 @@ CGC1_DLL_PUBLIC void *GC_base(void *addr)
 {
   return cgc1::cgc_start(addr);
 }
+CGC1_DLL_PUBLIC int GC_is_visible(void *)
+{
+  return 1;
+}
+CGC1_DLL_PUBLIC void *GC_check_annotated_obj(void *)
+{
+  return nullptr;
+}
 }

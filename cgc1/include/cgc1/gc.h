@@ -74,6 +74,8 @@ extern "C"
   extern unsigned long GC_get_time_limit();
   extern long GC_get_free_space_divisor();
   extern long GC_get_all_interior_pointers();
+  extern int GC_is_visible(void* addr);
+  extern void *GC_check_annotated_obj(void *);
 #ifdef __cplusplus
 }
 #endif

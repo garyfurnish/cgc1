@@ -2,7 +2,6 @@
 #include "allocator_block.hpp"
 #include "internal_allocator.hpp"
 #include <assert.h>
-#include <iostream>
 namespace cgc1
 {
   namespace details
@@ -23,9 +22,6 @@ namespace cgc1
       // sanity check alignment of start.
       if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
         abort();
-      // sanity check alignment of end.
-      if (unlikely(reinterpret_cast<size_t>(m_end) % c_alignment != 0))
-        abort();
 #endif
       if (maximum_alloc_length == cgc1::details::c_infinite_length) {
         m_maximum_alloc_length = maximum_alloc_length;
@@ -41,20 +37,6 @@ namespace cgc1
       m_default_user_data = unique_ptr_allocated<user_data_type, Allocator>(&s_default_user_data);
       m_default_user_data->m_is_default = true;
     }
-    /*    template <typename Allocator, typename User_Data>
-    allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block) noexcept
-        : m_free_list(std::move(block.m_free_list)),
-          m_next_alloc_ptr(block.m_next_alloc_ptr),
-          m_end(block.m_end),
-          m_minimum_alloc_length(block.m_minimum_alloc_length),
-          m_start(block.m_start),
-          m_default_user_data(std::move(block.m_default_user_data)),
-          m_last_max_alloc_available(block.m_last_max_alloc_available),
-          m_maximum_alloc_length(block.m_maximum_alloc_length)
-    {
-      // invalidate moved from block.
-      //  block.clear();
-      }*/
     template <typename Allocator, typename User_Data>
     CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
     operator=(allocator_block_t<Allocator, User_Data> &&block) noexcept
@@ -142,7 +124,7 @@ namespace cgc1
     template <typename Allocator, typename User_Data>
     void allocator_block_t<Allocator, User_Data>::_verify(const object_state_t *state)
     {
-      if (state) {
+      if (state && state->next_valid()) {
         assert(state->object_size() < static_cast<size_t>(end() - begin()));
         assert(state->next());
       }

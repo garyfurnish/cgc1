@@ -1,3 +1,4 @@
+#include "new.hpp"
 #include "internal_declarations.hpp"
 #include <cgc1/declarations.hpp>
 #include <algorithm>
