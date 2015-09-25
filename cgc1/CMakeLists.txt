@@ -1,6 +1,6 @@
 include_directories(include)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  add_compile_options(-fno-rtti)
+#  add_compile_options(-fno-rtti)
   add_compile_options(-fPIC)
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 list (APPEND SRC_FILES 
