@@ -392,7 +392,7 @@ namespace cgc1
       // add one gc thread.
       // TODO: Multiple gc threads.
       for (size_t i = 0; i < num_gc_threads; ++i)
-        m_gc_threads.emplace_back(::std::make_unique<gc_thread_t>());
+        m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
       m_initialized = true;
     }
 #ifndef _WIN32

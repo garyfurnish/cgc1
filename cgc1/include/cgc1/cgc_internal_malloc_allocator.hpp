@@ -34,6 +34,7 @@ namespace cgc1
       typedef cgc_internal_malloc_allocator_t<Type> other;
     };
     cgc_internal_malloc_allocator_t() = default;
+    cgc_internal_malloc_allocator_t(const cgc_internal_malloc_allocator_t &) noexcept = default;
     template <class _Other>
     cgc_internal_malloc_allocator_t(const cgc_internal_malloc_allocator_t<_Other> &) noexcept
     {
@@ -44,6 +45,8 @@ namespace cgc1
       return *this;
     }
     cgc_internal_malloc_allocator_t(cgc_internal_malloc_allocator_t<void> &&) noexcept = default;
+    cgc_internal_malloc_allocator_t &operator=(const cgc_internal_malloc_allocator_t &) noexcept = default;
+    cgc_internal_malloc_allocator_t &operator=(cgc_internal_malloc_allocator_t &&) noexcept = default;
   };
   /**
   Allocator for use with standard library that uses malloc internally.
@@ -143,7 +146,7 @@ namespace cgc1
     template <class... Args>
     void construct(pointer p, Args &&... args)
     {
-      ::new (static_cast<void *>(p)) value_type(::std::forward<Args...>(args)...);
+      ::new (static_cast<void *>(p)) value_type(::std::forward<Args>(args)...);
     }
     /**
      * \brief Destroy an object.
@@ -171,7 +174,7 @@ namespace cgc1
   {
     cgc_internal_malloc_allocator_t<T> allocator;
     auto ptr = allocator.allocate(1);
-    allocator.construct(ptr, ::std::forward<Args...>(args)...);
+    allocator.construct(ptr, ::std::forward<Args>(args)...);
     return ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>(ptr);
   }
   /**

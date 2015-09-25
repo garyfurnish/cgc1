@@ -228,21 +228,6 @@ namespace cgc1
   };
   template <typename T>
   using cgc_internal_unique_ptr_t = ::std::unique_ptr<T, cgc_internal_deleter_t>;
-  template <typename T, typename Allocator, typename... Ts>
-  ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type> make_unique_allocator(Ts &&... ts)
-  {
-    typename Allocator::template rebind<T>::other allocator;
-    auto ptr = allocator.allocate(1);
-    // cgc doesn't use exceptions, but T could.
-    // if T throws, we don't want to leak.
-    try {
-      allocator.construct(ptr, ::std::forward<Ts>(ts)...);
-    } catch (...) {
-      allocator.deallocate(ptr, 1);
-      throw;
-    }
-    return ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type>(ptr);
-  }
   template <typename T>
   using cgc_internal_vector_t = typename ::std::vector<T, cgc_internal_allocator_t<T>>;
   template <class T>

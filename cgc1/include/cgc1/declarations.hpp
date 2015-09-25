@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <assert.h>
+#include <tuple>
 #ifndef CGC1_NO_INLINES
 #define CGC1_INLINES
 #define CGC1_OPT_INLINE inline
@@ -218,6 +219,23 @@ namespace cgc1
   struct cgc_allocator_deleter_t<T, ::std::allocator<void>> {
     using type = ::std::default_delete<T>;
   };
+  template <typename T, typename Allocator>
+  using allocator_unique_ptr = ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type>;
+  template <typename T, typename Allocator, typename... Ts>
+  allocator_unique_ptr<T, Allocator> make_unique_allocator(Ts &&... ts)
+  {
+    typename Allocator::template rebind<T>::other allocator;
+    auto ptr = allocator.allocate(1);
+    // if T throws, we don't want to leak.
+    try {
+      allocator.construct(ptr, ::std::forward<Ts>(ts)...);
+    } catch (...) {
+      allocator.deallocate(ptr, 1);
+      throw;
+    }
+    return ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type>(ptr);
+  }
+
   /**
    * \brief Make a reverse iterator from an iterator.
    **/
@@ -323,4 +341,19 @@ namespace cgc1
 
   template <size_t bytes = 5000>
   extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
+}
+namespace std
+{
+  template <typename F, typename Tuple, size_t... I>
+  CGC1_ALWAYS_INLINE auto apply_impl(F &&f, Tuple &&t, integer_sequence<size_t, I...>)
+      -> decltype(::std::forward<F>(f)(::std::get<I>(::std::forward<Tuple>(t))...))
+  {
+    return t, ::std::forward<F>(f)(::std::get<I>(::std::forward<Tuple>(t))...);
+  }
+  template <typename F, typename Tuple>
+  CGC1_ALWAYS_INLINE auto apply(F &&f, Tuple &&t)
+  {
+    return apply_impl(::std::forward<F>(f), ::std::forward<Tuple>(t),
+                      make_index_sequence<::std::tuple_size<typename ::std::decay<Tuple>::type>::value>());
+  }
 }

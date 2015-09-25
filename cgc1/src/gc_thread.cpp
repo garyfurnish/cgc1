@@ -6,6 +6,7 @@
 #else
 #include <string.h>
 #endif
+
 namespace cgc1
 {
   namespace details
@@ -19,10 +20,12 @@ namespace cgc1
       // this thread is trivially done not doing anything.
       m_finalization_done = true;
       // start thread.
-      m_thread = ::std::thread([this]() {
+      using thread_type = decltype(m_thread);
+      m_thread = thread_type(thread_type::allocator{}, [this]() -> void * {
         _run();
         // make sure to destroy internal allocator if used.
         g_gks._internal_allocator().destroy_thread();
+        return nullptr;
       });
     }
     gc_thread_t::~gc_thread_t()

@@ -306,7 +306,8 @@ namespace cgc1
        *
        * Not necesarily a one to one map.
       **/
-      rebind_vector_t<::std::unique_ptr<gc_thread_t>, cgc_internal_malloc_allocator_t<void>> m_gc_threads;
+      rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>, cgc_internal_malloc_allocator_t<void>>
+          m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.
        *
