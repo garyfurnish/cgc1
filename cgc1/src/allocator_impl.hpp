@@ -66,6 +66,7 @@ namespace cgc1
     auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz) -> memory_pair_t
     {
       _ud_verify();
+      sz = align(sz, c_alignment);
       // do worst fit memory vector lookup
       typename memory_pair_vector_t::iterator worst = m_free_list.end();
       for (auto it = m_free_list.begin(); it != m_free_list.end(); ++it) {
@@ -89,6 +90,8 @@ namespace cgc1
           // request for all memory, just erase the interval.
           m_free_list.erase(worst);
         }
+        assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
         return ret;
       }
       // no space available in free list.
@@ -103,6 +106,8 @@ namespace cgc1
         auto ret = ::std::make_pair(m_current_end, new_end);
         assert(new_end < m_slab.end());
         m_current_end = new_end;
+        assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
         return ret;
       }
       // we need to expand the heap.
@@ -120,6 +125,8 @@ namespace cgc1
       auto ret = ::std::make_pair(m_current_end, new_end);
       m_current_end = new_end;
       _ud_verify();
+      assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
+      assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
       return ret;
     }
     template <typename Allocator, typename Traits>

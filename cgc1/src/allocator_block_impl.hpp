@@ -22,6 +22,8 @@ namespace cgc1
       // sanity check alignment of start.
       if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
         abort();
+      if (unlikely(reinterpret_cast<size_t>(m_end) % c_alignment != 0))
+        abort();
 #endif
       if (maximum_alloc_length == cgc1::details::c_infinite_length) {
         m_maximum_alloc_length = maximum_alloc_length;
@@ -224,9 +226,11 @@ namespace cgc1
         // memory left over would be smaller then minimum allocation.
         // take all the memory.
         m_next_alloc_ptr->set_all(reinterpret_cast<object_state_t *>(end()), true, false);
+        assert(m_next_alloc_ptr->next() == reinterpret_cast<object_state_t *>(end()));
         m_next_alloc_ptr->set_user_data(m_default_user_data.get());
         auto ret = m_next_alloc_ptr->object_start();
         assert(m_next_alloc_ptr->object_size() >= original_size);
+        assert(m_next_alloc_ptr->next() == reinterpret_cast<object_state_t *>(end()));
         _verify(m_next_alloc_ptr);
         m_next_alloc_ptr = nullptr;
         _verify(m_next_alloc_ptr);
