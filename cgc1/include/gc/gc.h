@@ -6,5 +6,5 @@
 #include "gc_version.h"
 static inline unsigned GC_get_version()
   {
-    return (unsigned)((GC_VERSION_MAJOR<16) | (GC_VERSION_MINOR<<8));
+    return (unsigned)((GC_VERSION_MAJOR<<16) | (GC_VERSION_MINOR<<8));
   }

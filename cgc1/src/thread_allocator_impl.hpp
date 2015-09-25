@@ -243,7 +243,7 @@ namespace cgc1
                                                  });
         m_allocator._u_register_allocator_block(*this, inserted_block_ref);
       } catch (out_of_memory_exception_t) {
-	::std::cerr << "Out of memory, aborting" << ::std::endl;
+        ::std::cerr << "Out of memory, aborting" << ::std::endl;
         abort();
         // we aren't going to try to handle out of memory at this point.
       }

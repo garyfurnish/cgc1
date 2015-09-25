@@ -65,7 +65,7 @@ namespace cgc1
   void *cgc_realloc(void *v, size_t sz)
   {
     void *ret = cgc_malloc(sz);
-    if(v)
+    if (v)
       ::memcpy(ret, v, sz);
     return ret;
   }

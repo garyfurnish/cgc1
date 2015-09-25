@@ -168,8 +168,8 @@ namespace cgc1
       auto memory = _u_get_memory(sz);
       if (!memory.first) {
         ::std::cerr << "out of memory\n";
-	abort();
-	//throw out_of_memory_exception_t();
+        abort();
+        // throw out_of_memory_exception_t();
       }
       // get actual size of memory.
       auto memory_size = size(memory);
