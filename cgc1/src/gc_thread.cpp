@@ -166,7 +166,7 @@ namespace cgc1
       // this is during GC so the slab will not be changed so no locks for gks needed.
       CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
       // add potential roots (ex: registers).
-      m_addresses_to_mark.insert(m_addresses_to_mark.end(), tlks->_potential_roots().begin(), tlks->_potential_roots().end());
+      m_addresses_to_mark.insert(tlks->_potential_roots().begin(), tlks->_potential_roots().end());
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
@@ -247,8 +247,7 @@ namespace cgc1
         }
         if (depth > 300) {
           // if recursion depth too big, put it on addresses to mark.
-          if (m_addresses_to_mark.end() == ::std::find(m_addresses_to_mark.begin(), m_addresses_to_mark.end(), addr))
-            m_addresses_to_mark.push_back(addr);
+          m_addresses_to_mark.insert(addr);
           return;
         } else {
           // set it as marked.
@@ -263,8 +262,7 @@ namespace cgc1
       } else {
         if (depth > 300) {
           // if recursion depth too big, put it on addresses to mark.
-          if (m_addresses_to_mark.end() == ::std::find(m_addresses_to_mark.begin(), m_addresses_to_mark.end(), addr))
-            m_addresses_to_mark.push_back(addr);
+          m_addresses_to_mark.insert(addr);
           return;
         }
 
@@ -283,8 +281,9 @@ namespace cgc1
     {
       // note we go from back to front because elements may be added during marking.
       while (!m_addresses_to_mark.empty()) {
-        void *addr = m_addresses_to_mark.back();
-        m_addresses_to_mark.pop_back();
+        auto it = m_addresses_to_mark.rbegin();
+        void *addr = *it;
+        m_addresses_to_mark.erase(it.base() - 1);
         _mark_addrs(addr, 0);
       }
     }
