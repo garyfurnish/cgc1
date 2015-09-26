@@ -7,7 +7,6 @@ namespace cgc1
   namespace details
   {
 
-    static auto os_size_compare = [](auto &&a, auto &&b) { return a->object_size() < b->object_size(); };
     template <typename Allocator, typename User_Data>
     CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data>::allocator_block_t(void *start,
                                                                                   size_t length,
@@ -38,6 +37,18 @@ namespace cgc1
       // setup default user data.
       m_default_user_data = unique_ptr_allocated<user_data_type, Allocator>(&s_default_user_data);
       m_default_user_data->m_is_default = true;
+    }
+    template <typename Allocator, typename User_Data>
+    CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data>::allocator_block_t(allocator_block_t &&block) noexcept
+        : m_free_list(::std::move(block.m_free_list)),
+          m_next_alloc_ptr(::std::move(block.m_next_alloc_ptr)),
+          m_end(::std::move(block.m_end)),
+          m_minimum_alloc_length(::std::move(block.m_minimum_alloc_length)),
+          m_start(::std::move(block.m_start)),
+          m_default_user_data(::std::move(block.m_default_user_data)),
+          m_last_max_alloc_available(::std::move(block.m_last_max_alloc_available)),
+          m_maximum_alloc_length(::std::move(block.m_maximum_alloc_length))
+    {
     }
     template <typename Allocator, typename User_Data>
     CGC1_ALWAYS_INLINE allocator_block_t<Allocator, User_Data> &allocator_block_t<Allocator, User_Data>::
@@ -185,9 +196,7 @@ namespace cgc1
             state->set_next_valid(true);
             _verify(next);
             _verify(state);
-            auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), next, os_size_compare);
-            m_free_list.emplace(ub, next);
-            //            m_free_list.push_back(next);
+            m_free_list.insert(next);
           }
           // take all of the memory.
           state->set_in_use(true);
@@ -274,8 +283,7 @@ namespace cgc1
       if (state->next_valid()) {
         // if the next state is valid, then there are states after
         // so add it to free list.
-        auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), state, os_size_compare);
-        m_free_list.emplace(ub, state);
+        m_free_list.insert(state);
         last_collapsed_size = state->object_size();
       } else {
         // if here the next state is invalid, so this is at tail
@@ -298,7 +306,7 @@ namespace cgc1
         max_alloc = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) - align(sizeof(object_state_t));
       // then check size of all objects in free list.
       if (!m_free_list.empty())
-        max_alloc = ::std::max(max_alloc, m_free_list.back()->object_size());
+        max_alloc = ::std::max(max_alloc, (*m_free_list.rbegin())->object_size());
       m_last_max_alloc_available = max_alloc;
       return max_alloc;
     }
@@ -318,8 +326,8 @@ namespace cgc1
         if (!did_merge && !state->in_use()) {
           // update max alloca available.
           m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
-          // put in free list.
-          m_free_list.emplace_back(state);
+          // put in free list
+          m_free_list.insert(state);
         }
         // if it has been marked to be freed
         if (!did_merge && state->quasi_freed()) {
@@ -328,7 +336,7 @@ namespace cgc1
           // update max alloca available.
           m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
           // put in free list.
-          m_free_list.emplace_back(state);
+          m_free_list.insert(state);
           assert(!state->quasi_freed());
         }
         // note only check in use for next, it may be quasifree.
@@ -338,9 +346,10 @@ namespace cgc1
           // perform merge.
           state->set_next(next->next());
           state->set_next_valid(next->next_valid());
-          if (state->next_valid())
+          if (state->next_valid()) {
             _verify(state);
-          m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
+            m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
+          }
           did_merge = true;
         } else {
           // move onto next state since can't merge.
@@ -354,8 +363,9 @@ namespace cgc1
         // ok at end of list, if its available.
         // try to find it in free list.
         if (!m_free_list.empty()) {
-          if (*m_free_list.rbegin() == state)
-            m_free_list.pop_back();
+          auto rbegin = m_free_list.rbegin();
+          if (*rbegin == state)
+            m_free_list.erase((rbegin + 1).base());
         }
         // adjust pointer
         m_next_alloc_ptr = state;

@@ -123,6 +123,12 @@ namespace cgc1
     };
     static_assert(sizeof(object_state_t) == c_alignment, "object_state_t too large");
     static_assert(::std::is_pod<object_state_t>::value, "object_state_t is not POD");
+    struct os_size_compare {
+      inline auto operator()(const object_state_t *a, const object_state_t *b) const noexcept -> bool
+      {
+        return ::std::make_tuple(a->object_size(), a) < ::std::make_tuple(b->object_size(), b);
+      }
+    };
   }
 }
 #ifdef CGC1_INLINES

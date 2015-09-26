@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <boost/container/flat_set.hpp>
 #include "allocator_block.hpp"
 #include "object_state.hpp"
 namespace cgc1
@@ -44,7 +45,7 @@ namespace cgc1
       CGC1_ALWAYS_INLINE
       allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
       allocator_block_t(const allocator_block_t &) = delete;
-      CGC1_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept = default;
+      CGC1_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept;
       allocator_block_t &operator=(const allocator_block_t &) = delete;
       CGC1_ALWAYS_INLINE allocator_block_t &operator=(allocator_block_t &&) noexcept;
       ~allocator_block_t();
@@ -149,7 +150,10 @@ namespace cgc1
        *
        * Uses control allocator for control data.
        **/
-      rebind_vector_t<object_state_t *, allocator> m_free_list;
+      //      rebind_vector_t<object_state_t *, allocator> m_free_list;
+      ::boost::container::flat_set<object_state_t *,
+                                   os_size_compare,
+                                   typename allocator::template rebind<object_state_t *>::other> m_free_list;
       /**
        * \brief Next allocator pointer if whole block has not yet been used.
       **/

@@ -24,9 +24,9 @@ namespace cgc1
 
       explicit allocator_block_set_t() = default;
       allocator_block_set_t(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
-      allocator_block_set_t(allocator_block_set_t<allocator, allocator_block_user_data_type> &&abs) = default;
+      allocator_block_set_t(allocator_block_set_t<allocator, allocator_block_user_data_type> &&abs) = delete;
       allocator_block_set_t &operator=(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
-      allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
+      allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = delete;
       /**
        * \brief Constructor
        *
