@@ -151,18 +151,20 @@ namespace cgc1
        * \brief Get an interval of memory.
        *
        * This does not throw an exception on error but instead returns a special value.
+       * @param try_expand Attempt to expand underlying slab if necessary
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t get_memory(size_t sz) REQUIRES(!m_mutex);
+      memory_pair_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
 
       /**
        * \brief Get an interval of memory.
        *
        * Requires holding lock.
        * This does not throw an exception on error but instead returns a special value.
+       * @param try_expand Try to expand underlying slab if true.
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t _u_get_memory(size_t sz) REQUIRES(m_mutex);
+      memory_pair_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
       /**
        * \brief Create or reuse an allocator block in destination by reference.
        *
@@ -172,13 +174,16 @@ namespace cgc1
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param destination Returned allocator block.
+       * @param try_expand Attempt to expand underlying slab if necessary
+       * @return True on success, false on failure.
       **/
-      void _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
+      bool _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                                size_t create_sz,
                                                size_t minimum_alloc_length,
                                                size_t maximum_alloc_length,
                                                size_t allocate_size,
-                                               block_type &destination) REQUIRES(m_mutex);
+                                               block_type &destination,
+                                               bool try_expand) REQUIRES(m_mutex);
 
       /**
        * \brief Release an interval of memory.
@@ -409,10 +414,15 @@ namespace cgc1
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param block Return block by reference.
+       * @param try_expand Attempt to expand underlying slab if necessary
       **/
       REQUIRES(m_mutex)
-      void _u_create_allocator_block(
-          this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block);
+      bool _u_create_allocator_block(this_thread_allocator_t &ta,
+                                     size_t sz,
+                                     size_t minimum_alloc_length,
+                                     size_t maximum_alloc_length,
+                                     block_type &block,
+                                     bool try_expand);
       /**
        * \brief Find a global allocator block that has sz free for allocation.
        *

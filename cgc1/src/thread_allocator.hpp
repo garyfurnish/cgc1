@@ -106,7 +106,7 @@ namespace cgc1
       *
       * @return nullptr on error.
       **/
-      void *allocate(size_t size) NO_THREAD_SAFETY_ANALYSIS;
+      void *allocate(size_t size);
       /**
       * \brief Destroy a pointer allocated by this allocator.
       *
@@ -157,6 +157,14 @@ namespace cgc1
       void _do_maintenance();
 
     private:
+      /**
+       * \brief Attempt to add an allocator block with a given id.
+       * @param id Id to try to add.
+       * @param sz Request size.
+       * @param try_expand Attempt to expand underlying slab if necessary
+       * @return True on success, false on failure.
+       **/
+      bool _add_allocator_block(size_t id, size_t sz, bool try_expand);
       /**
        * \brief Allocators used to allocate various sizes of memory.
       **/

@@ -210,47 +210,54 @@ namespace cgc1
       // if successful returned.
       if (ret)
         return ret;
-      // if not succesful, that allocator needs more memory.
-      // figre out how much memory to request.
-      size_t memory_request = get_allocator_block_size(id);
-      if (memory_request < sz * 3)
-        memory_request = sz * 3;
-      try {
-        // Get the allocator for the size requested.
-        auto &abs = m_allocators[id];
-        CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
-        // see if safe to add a block
-        if (!abs.add_block_is_safe()) {
-          // if not safe to move a block, expand that allocator block set.
-          //          m_allocator._mutex().lock();
-          m_allocator._ud_verify();
-          abs._verify();
-          ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
-          abs._verify();
-          m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
-          //          m_allocator._mutex().unlock();
-        }
-        typename global_allocator::block_type block;
-        // fill the empty block.
-        m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
-                                                        m_allocators[id].allocator_max_size(), sz, block);
-
-        // gcreate and grab the empty block.
-        auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
-                                                 [this](auto begin, auto end, auto offset) {
-                                                   CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
-                                                   m_allocator._u_move_registered_blocks(begin, end, offset);
-                                                 });
-        m_allocator._u_register_allocator_block(*this, inserted_block_ref);
-      } catch (out_of_memory_exception_t) {
-        ::std::cerr << "Out of memory, aborting" << ::std::endl;
+      if (unlikely(!_add_allocator_block(id, sz, true)))
         abort();
-        // we aren't going to try to handle out of memory at this point.
-      }
+
       ret = m_allocators[id].allocate(sz);
       if (unlikely(!ret)) // should be impossible.
         abort();
       return ret;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    bool
+    thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_add_allocator_block(size_t id, size_t sz, bool try_expand)
+    {
+      // if not succesful, that allocator needs more memory.
+      // figre out how much memory to request.
+
+      size_t memory_request = get_allocator_block_size(id);
+      if (memory_request < sz * 3)
+        memory_request = sz * 3;
+      // Get the allocator for the size requested.
+      auto &abs = m_allocators[id];
+      CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+      // see if safe to add a block
+      if (!abs.add_block_is_safe()) {
+        // if not safe to move a block, expand that allocator block set.
+        m_allocator._ud_verify();
+        abs._verify();
+        ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
+        abs._verify();
+        m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
+      }
+      typename global_allocator::block_type block;
+      // fill the empty block.
+      bool success =
+          m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                                          m_allocators[id].allocator_max_size(), sz, block, try_expand);
+
+      if (unlikely(!success)) {
+        ::std::cerr << "Out of memory, aborting" << ::std::endl;
+        abort();
+      }
+      // gcreate and grab the empty block.
+      auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
+                                               [this](auto begin, auto end, auto offset) {
+                                                 CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                                                 m_allocator._u_move_registered_blocks(begin, end, offset);
+                                               });
+      m_allocator._u_register_allocator_block(*this, inserted_block_ref);
+      return true;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy_threshold() const noexcept

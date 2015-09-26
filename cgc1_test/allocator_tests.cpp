@@ -35,20 +35,20 @@ void allocator_tests()
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());
       AssertThat(allocator->initialize(200000, 100000000), IsTrue());
       // test worst free list.
-      auto memory1 = allocator->get_memory(10000);
-      auto memory2 = allocator->get_memory(20000);
-      auto memory3 = allocator->get_memory(10000);
+      auto memory1 = allocator->get_memory(10000, false);
+      auto memory2 = allocator->get_memory(20000, false);
+      auto memory3 = allocator->get_memory(10000, false);
       AssertThat(memory1.first != nullptr, IsTrue());
       allocator->release_memory(memory1);
       allocator->release_memory(memory2);
       AssertThat(allocator->_d_free_list(), HasLength(2));
-      auto memory2_new = allocator->get_memory(10000);
+      auto memory2_new = allocator->get_memory(10000, false);
       AssertThat(memory2_new.first, Equals(memory2.first));
       AssertThat(memory2_new.second, Equals(memory2.first + 10000));
-      auto memory4 = allocator->get_memory(10000);
+      auto memory4 = allocator->get_memory(10000, false);
       AssertThat(memory4.first, Equals(memory2_new.second));
       AssertThat(memory4.second, Equals(memory2.second));
-      AssertThat(allocator->get_memory(10000), Equals(memory1));
+      AssertThat(allocator->get_memory(10000, false), Equals(memory1));
       AssertThat(allocator->_d_free_list(), HasLength(0));
       allocator->release_memory(memory3);
       allocator->release_memory(memory2_new);

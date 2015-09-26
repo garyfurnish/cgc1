@@ -56,14 +56,14 @@ namespace cgc1
       return true;
     }
     template <typename Allocator, typename Traits>
-    auto allocator_t<Allocator, Traits>::get_memory(size_t sz) -> memory_pair_t
+    auto allocator_t<Allocator, Traits>::get_memory(size_t sz, bool try_expand) -> memory_pair_t
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      return _u_get_memory(sz);
+      return _u_get_memory(sz, try_expand);
     }
 
     template <typename Allocator, typename Traits>
-    auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz) -> memory_pair_t
+    auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz, bool try_expand) -> memory_pair_t
     {
       _ud_verify();
       sz = align(sz, c_alignment);
@@ -113,6 +113,8 @@ namespace cgc1
       // we need to expand the heap.
       assert(m_current_end <= m_slab.end());
       size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
+      if (!try_expand)
+        return ::std::make_pair(nullptr, nullptr);
       if (!m_slab.expand(expansion_size)) {
         ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
         // unable to expand heap so return error condition.
@@ -130,12 +132,13 @@ namespace cgc1
       return ret;
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
+    bool allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                                                              size_t create_sz,
                                                                              size_t minimum_alloc_length,
                                                                              size_t maximum_alloc_length,
                                                                              size_t allocate_sz,
-                                                                             block_type &block)
+                                                                             block_type &block,
+                                                                             bool try_expand)
     {
       // first check to see if we can find a partially used block that fits parameters.
       auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
@@ -155,34 +158,39 @@ namespace cgc1
         for (size_t i = location; i < m_global_blocks.size(); ++i) {
           _u_move_registered_block(&m_global_blocks[i + 1], &m_global_blocks[i]);
         }
-        return;
+        return true;
       }
       // otherwise just create a new block
-      _u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
+      return _u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block, try_expand);
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_create_allocator_block(
-        this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block)
+    bool allocator_t<Allocator, Traits>::_u_create_allocator_block(this_thread_allocator_t &ta,
+                                                                   size_t sz,
+                                                                   size_t minimum_alloc_length,
+                                                                   size_t maximum_alloc_length,
+                                                                   block_type &block,
+                                                                   bool try_expand)
     {
       // try to allocate memory.
-      auto memory = _u_get_memory(sz);
+      auto memory = _u_get_memory(sz, true);
       if (!memory.first) {
-        ::std::cerr << "Error in " << typeid(typename ::std::decay<decltype(*this)>::type).name() << "::_u_create_allocator_block"
-                    << ::std::endl;
-        ::std::cerr << "Request size is " << sz << ::std::endl;
-        ::std::cerr << "out of memory\n";
-        abort();
-        // throw out_of_memory_exception_t();
+        if (try_expand) {
+          ::std::cerr << "Error in " << typeid(typename ::std::decay<decltype(*this)>::type).name()
+                      << "::_u_create_allocator_block" << ::std::endl;
+          ::std::cerr << "Request size is " << sz << ::std::endl;
+          ::std::cerr << "out of memory\n";
+        }
+        return false;
       }
       // get actual size of memory.
       auto memory_size = size(memory);
       assert(memory_size > 0);
       // create block.
-      //      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       block.~block_type();
       new (&block) block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       // call traits function that gets called when block is created.
       m_traits.on_create_allocator_block(ta, block);
+      return true;
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
