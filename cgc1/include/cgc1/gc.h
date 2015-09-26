@@ -1,6 +1,7 @@
 #pragma once
 #include "cgc1_dll.hpp"
 #include <stdint.h>
+#define USE_CGC1
 #ifndef _WIN32
 #ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack() __builtin_frame_address(0)

@@ -167,6 +167,8 @@ namespace cgc1
       // try to allocate memory.
       auto memory = _u_get_memory(sz);
       if (!memory.first) {
+	::std::cerr << "Error in " << typeid(typename ::std::decay<decltype(*this)>::type).name() << "::_u_create_allocator_block" << ::std::endl;
+	::std::cerr << "Request size is " << sz << ::std::endl;
         ::std::cerr << "out of memory\n";
         abort();
         // throw out_of_memory_exception_t();

@@ -193,6 +193,11 @@ namespace cgc1
     }
     void global_kernel_state_t::force_collect()
     {
+      if(unlikely(!get_tlks()))
+	{
+	  ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
+	  abort();
+	}
       // wait until safe to collect.
       wait_for_finalization();
       // we need to maintain global allocator at some point so do it here.

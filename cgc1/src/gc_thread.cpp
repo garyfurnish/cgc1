@@ -208,11 +208,6 @@ namespace cgc1
     }
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
-      if (depth > 300) {
-        // if recursion depth too big, put it on addresses to mark.
-        m_addresses_to_mark.push_back(addr);
-        return;
-      }
       // This is calling during garbage collection, therefore no mutex is needed.
       CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
       // Find heap begin and end.
@@ -229,6 +224,7 @@ namespace cgc1
         } else
           fast_heap = true;
       }
+
       // not valid.
       if (!fast_heap) {
         if (!g_gks.is_valid_object_state(os)) {
@@ -244,17 +240,36 @@ namespace cgc1
         if (!ignore_skip_marked && is_marked(os))
           return;
 
-        // set it as marked.
-        set_mark(os);
         // if it is atomic we are done here.
         if (is_atomic(os))
-          return;
-        // recurse to pointers.
-        for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
-          _mark_addrs(*it, depth + 1, true);
-        }
+	  {
+	    set_mark(os);
+	    return;
+	  }
+	if (depth > 300) {
+        // if recursion depth too big, put it on addresses to mark.
+	  if(m_addresses_to_mark.end()==::std::find(m_addresses_to_mark.begin(),m_addresses_to_mark.end(),addr))
+	    m_addresses_to_mark.push_back(addr);
+	  return;
+	}
+	else
+	  {
+	    // set it as marked.
+	    set_mark(os);
+	    // recurse to pointers.
+	    for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
+	      _mark_addrs(*it, depth + 1);
+	    }
+	  }
 
       } else {
+	if (depth > 300) {
+	  // if recursion depth too big, put it on addresses to mark.
+	  if(m_addresses_to_mark.end()==::std::find(m_addresses_to_mark.begin(),m_addresses_to_mark.end(),addr))
+	    m_addresses_to_mark.push_back(addr);
+	  return;
+	}
+
         auto state = get_state(addr);
         if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
           return;
