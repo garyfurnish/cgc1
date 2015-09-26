@@ -283,7 +283,7 @@ namespace cgc1
       while (!m_addresses_to_mark.empty()) {
         auto it = m_addresses_to_mark.rbegin();
         void *addr = *it;
-        m_addresses_to_mark.erase(it.base() - 1);
+        m_addresses_to_mark.erase((it + 1).base());
         _mark_addrs(addr, 0);
       }
     }
