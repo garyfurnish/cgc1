@@ -210,9 +210,19 @@ namespace cgc1
       // if successful returned.
       if (ret)
         return ret;
-      if (unlikely(!_add_allocator_block(id, sz, true)))
+      size_t attempts = 1;
+      bool success;
+      bool try_expand = true;
+      while (unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+        auto action = m_allocator.traits().on_allocation_failure({attempts});
+        if (!action.m_repeat)
+          break;
+        try_expand = action.m_attempt_expand;
+      }
+      if (!success) {
+        ::std::cerr << "Out of memory, aborting" << ::std::endl;
         abort();
-
+      }
       ret = m_allocators[id].allocate(sz);
       if (unlikely(!ret)) // should be impossible.
         abort();
@@ -247,8 +257,7 @@ namespace cgc1
                                                           m_allocators[id].allocator_max_size(), sz, block, try_expand);
 
       if (unlikely(!success)) {
-        ::std::cerr << "Out of memory, aborting" << ::std::endl;
-        abort();
+        return false;
       }
       // gcreate and grab the empty block.
       auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},

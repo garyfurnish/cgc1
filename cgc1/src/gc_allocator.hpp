@@ -14,6 +14,11 @@ namespace cgc1
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;
+      allocation_failure_action_t on_allocation_failure(const allocation_failure_t &)
+      {
+        return allocation_failure_action_t{false, false};
+      }
+
       using allocator_block_user_data_type = gc_user_data_t;
     };
 

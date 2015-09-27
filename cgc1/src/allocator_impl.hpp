@@ -625,6 +625,17 @@ namespace cgc1
       container.clear();
     }
     template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::traits() noexcept -> allocator_traits &
+    {
+      return m_traits;
+    }
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::traits() const noexcept -> const allocator_traits &
+    {
+      return m_traits;
+    }
+
+    template <typename Allocator, typename Traits>
     size_t allocator_t<Allocator, Traits>::num_global_blocks()
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);

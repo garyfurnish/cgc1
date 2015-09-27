@@ -27,6 +27,10 @@ namespace cgc1
       {
         a.initialize(pow2(31), pow2(33));
       }
+      allocation_failure_action_t on_allocation_failure(const allocation_failure_t &)
+      {
+        return allocation_failure_action_t{false, false};
+      }
       using allocator_block_user_data_type = user_data_base_t;
     };
     class global_kernel_state_t

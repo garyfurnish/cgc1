@@ -22,6 +22,13 @@ namespace cgc1
       {
       }
     };
+    struct allocation_failure_t {
+      size_t m_failures;
+    };
+    struct allocation_failure_action_t {
+      bool m_attempt_expand;
+      bool m_repeat;
+    };
     /**
      * \brief Default allocator traits.
      *
@@ -31,17 +38,11 @@ namespace cgc1
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;
-      using allocator_block_user_data_type = user_data_base_t;
-    };
-    /**
-     * \brief Exception for out of memory error.
-     **/
-    class out_of_memory_exception_t : public ::std::runtime_error
-    {
-    public:
-      out_of_memory_exception_t() : ::std::runtime_error("Allocator out of available memory")
+      allocation_failure_action_t on_allocation_failure(const allocation_failure_t &)
       {
+        return allocation_failure_action_t{false, false};
       }
+      using allocator_block_user_data_type = user_data_base_t;
     };
     /**
      * \brief Global slab interval allocator, used by thread allocators.
@@ -368,7 +369,14 @@ namespace cgc1
        * \brief Return true if the destructor has been called.
        **/
       bool is_shutdown() const;
-
+      /**
+       * \brief Return reference to allocator traits.
+       **/
+      auto traits() noexcept -> allocator_traits &;
+      /**
+       * \brief Return reference to allocator traits.
+       **/
+      auto traits() const noexcept -> const allocator_traits &;
       /**
        * \brief Return number of global blocks.
       **/
