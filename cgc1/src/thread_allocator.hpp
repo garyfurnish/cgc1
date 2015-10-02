@@ -108,6 +108,12 @@ namespace cgc1
       **/
       void *allocate(size_t size);
       /**
+       * \brief Attempt to allocate once.
+       *
+       * @return nullptr on error.
+       **/
+      void *_allocate_once(size_t size);
+      /**
       * \brief Destroy a pointer allocated by this allocator.
       *
       * The common reason for failure is if this allocator did not make the pointer.

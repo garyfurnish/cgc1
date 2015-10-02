@@ -205,6 +205,8 @@ namespace cgc1
     {
       // find allocation set for allocation size.
       size_t id = find_block_set_id(sz);
+      if (unlikely(sz < c_alignment))
+        sz = c_alignment;
       // try allocation.
       void *ret = m_allocators[id].allocate(sz);
       // if successful returned.
