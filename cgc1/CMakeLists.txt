@@ -23,7 +23,9 @@ src/gc_thread.cpp
 src/gc_thread.hpp
 src/global_kernel_state.cpp
 src/global_kernel_state.hpp
-src/global_kernel_state_impl.hpp  
+src/global_kernel_state_impl.hpp
+src/global_kernel_state_param.cpp
+src/global_kernel_state_param.hpp
 src/internal_allocator.hpp
 src/internal_declarations.hpp
 src/kernel.cpp

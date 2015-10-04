@@ -7,15 +7,9 @@ namespace cgc1
 {
   namespace details
   {
-    /**
-     * \brief Return 2^n.
-    **/
-    inline constexpr size_t pow2(int n)
-    {
-      return static_cast<size_t>(2) << (n - 1);
-    }
     template <typename Allocator, typename Traits>
-    inline allocator_t<Allocator, Traits>::allocator_t() : m_shutdown(false)
+    inline allocator_t<Allocator, Traits>::allocator_t()
+        : m_shutdown(false)
     {
       // notify traits that the allocator was created.
       m_traits.on_creation(*this);
@@ -73,7 +67,7 @@ namespace cgc1
         if (size_pos(*it) >= sz) {
           if (worst == m_free_list.end())
             worst = it;
-          else if (size(*worst) <= size(*it))
+          else if (details::size(*worst) <= details::size(*it))
             worst = it;
         }
       }
@@ -83,7 +77,7 @@ namespace cgc1
         // calculate part not used.
         memory_pair_t free_pair = ::std::make_pair(worst->first + sz, worst->second);
         ret.second = free_pair.first;
-        if (size(free_pair)) {
+        if (details::size(free_pair)) {
           // positive size of free pair, so just swap it into the list in the same place.
           ::std::swap(*worst, free_pair);
         } else {
@@ -183,7 +177,7 @@ namespace cgc1
         return false;
       }
       // get actual size of memory.
-      auto memory_size = size(memory);
+      auto memory_size = details::size(memory);
       assert(memory_size > 0);
       // create block.
       block.~block_type();
@@ -517,6 +511,29 @@ namespace cgc1
       return m_current_end;
     }
     template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::size() const noexcept -> size_t
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::current_size() const noexcept -> size_t
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_current_size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_u_size() const noexcept -> size_t
+    {
+      return m_slab.size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_u_current_size() const noexcept -> size_t
+    {
+      return static_cast<size_t>(_u_current_end() - _u_begin());
+    }
+
+    template <typename Allocator, typename Traits>
     inline void allocator_t<Allocator, Traits>::collapse()
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
@@ -694,6 +711,25 @@ namespace cgc1
                block.maximum_allocation_length() == maximum_alloc_length && block.max_alloc_available() >= sz;
       });
       return it;
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      {
+        ::boost::property_tree::ptree slab;
+        slab.put("size", ::std::to_string(m_slab.size()));
+        ptree.put_child("slab", slab);
+      }
+      ptree.put("size", ::std::to_string(_u_size()));
+      ptree.put("current_size", ::std::to_string(_u_current_size()));
+      ptree.put("num_blocks", ::std::to_string(m_blocks.size()));
+      ptree.put("num_global_blocks", ::std::to_string(m_global_blocks.size()));
+      ptree.put("num_thread_allocators", ::std::to_string(m_thread_allocators.size()));
+      ptree.put("free_list_size", ::std::to_string(m_free_list.size()));
+      ptree.put("initial_heap_size", ::std::to_string(m_initial_gc_heap_size));
+      ptree.put("minimum_expansion_size", ::std::to_string(m_minimum_expansion_size));
     }
   }
 }

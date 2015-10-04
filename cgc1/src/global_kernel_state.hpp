@@ -11,36 +11,28 @@
 #include "gc_thread.hpp"
 #include "slab_allocator.hpp"
 #include "packed_object_allocator.hpp"
+#include "global_kernel_state_param.hpp"
+
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
   {
     class thread_local_kernel_state_t;
     /**
-     * \brief CGC allocator traits.
+     * \brief Class that encapsulates all garbage collection state.
      **/
-    struct cgc_allocator_traits {
-      do_nothing_t on_create_allocator_block;
-      do_nothing_t on_destroy_allocator_block;
-      template <typename Allocator>
-      inline void on_creation(Allocator &a)
-      {
-        a.initialize(pow2(31), pow2(33));
-      }
-      allocation_failure_action_t on_allocation_failure(const allocation_failure_t &)
-      {
-        return allocation_failure_action_t{false, false};
-      }
-      using allocator_block_user_data_type = user_data_base_t;
-    };
     class global_kernel_state_t
     {
     public:
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
-      using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, cgc_allocator_traits>;
+      using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, allocator_no_traits_t>;
       using duration_type = ::std::chrono::duration<double>;
-
-      global_kernel_state_t();
+      /**
+       * \brief Constructor
+       * @param param Initialization Parameters.
+       **/
+      global_kernel_state_t(const global_kernel_state_param_t &param);
       global_kernel_state_t(const global_kernel_state_t &) = delete;
       global_kernel_state_t(global_kernel_state_t &&) = delete;
       global_kernel_state_t &operator=(const global_kernel_state_t &) = delete;
@@ -214,6 +206,20 @@ namespace cgc1
       auto slow_slab_end() const noexcept -> uint8_t *;
       auto fast_slab_begin() const noexcept -> uint8_t *;
       auto fast_slab_end() const noexcept -> uint8_t *;
+      /**
+       * \brief Return reference to cached initialization parameters.
+       **/
+      auto initialization_parameters_ref() const noexcept -> const global_kernel_state_param_t &;
+      /**
+       * \brief Put information about global kernel state into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
+      /**
+       * \brief Put information about global kernel state into a json string.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      auto to_json(int level) const -> ::std::string;
 
     private:
       /**
@@ -343,28 +349,27 @@ namespace cgc1
       /**
        * \brief Time for clear phase of gc.
        **/
-      duration_type m_clear_mark_time_span = duration_type::min();
+      duration_type m_clear_mark_time_span = duration_type::zero();
       /**
        * \brief Time for mark phase of gc.
        **/
-      duration_type m_mark_time_span = duration_type::min();
+      duration_type m_mark_time_span = duration_type::zero();
       /**
        * \brief Time for sweep phase of gc.
        **/
-      duration_type m_sweep_time_span = duration_type::min();
+      duration_type m_sweep_time_span = duration_type::zero();
       /**
        * \brief Time for notify phase of gc.
        **/
-      duration_type m_notify_time_span = duration_type::min();
+      duration_type m_notify_time_span = duration_type::zero();
       /**
        * \brief Total gc collect time.
        **/
-      duration_type m_total_collect_time_span = duration_type::min();
-
-      /*
-       * \brief Size of slab allocator at start.
-      */
-      static const size_t m_slab_allocator_start_size = 50000000;
+      duration_type m_total_collect_time_span = duration_type::zero();
+      /**
+       * \brief Saved initialization parameters.
+       **/
+      const global_kernel_state_param_t m_initialization_parameters;
     };
     extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
   }

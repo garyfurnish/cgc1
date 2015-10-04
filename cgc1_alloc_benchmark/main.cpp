@@ -49,10 +49,10 @@ int main()
   ::std::cout << "Using cgc1 sparse\n";
   CGC1_INITIALIZE_THREAD();
   auto &allocator = cgc1::details::g_gks->gc_allocator();
+  ::std::cout << cgc1::details::g_gks->to_json(2) << ::std::endl;
 
   auto &ts = allocator.initialize_thread();
-  ::std::cout << "Primary memory used " << ts.primary_memory_used() << ::std::endl;
-  ::std::cout << "Secondary memory used " << ts.secondary_memory_used() << ::std::endl;
+  ::std::cout << ts.to_json(2) << ::std::endl;
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
     if (!ret)
@@ -93,25 +93,15 @@ int main()
 #elif defined(CGC1_SPARSE)
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
-  ::std::cout << "Primary memory used " << ts.primary_memory_used() << ::std::endl;
-  ::std::cout << "Secondary memory used " << ts.secondary_memory_used() << ::std::endl;
+  ::std::cout << ts.to_json(2) << ::std::endl;
   ts.shrink_secondary_memory_usage_to_fit();
-  ::std::cout << "Secondary memory used " << ts.secondary_memory_used() << ::std::endl;
-  ::std::cout << "Clear: " << gks->clear_mark_time_span().count() << ::std::endl;
-  ::std::cout << "Mark: " << gks->mark_time_span().count() << ::std::endl;
-  ::std::cout << "Sweep: " << gks->sweep_time_span().count() << ::std::endl;
-  ::std::cout << "Notify: " << gks->notify_time_span().count() << ::std::endl;
-  ::std::cout << gks->total_collect_time_span().count() << ::std::endl;
+  ::std::cout << ts.to_json(2) << ::std::endl;
+  ::std::cout << gks->to_json(2) << ::std::endl;
 
 #else
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
-  ::std::cout << "Clear: " << gks->clear_mark_time_span().count() << ::std::endl;
-  ::std::cout << "Mark: " << gks->mark_time_span().count() << ::std::endl;
-  ::std::cout << "Sweep: " << gks->sweep_time_span().count() << ::std::endl;
-  ::std::cout << "Notify: " << gks->notify_time_span().count() << ::std::endl;
-  ::std::cout << gks->total_collect_time_span().count() << ::std::endl;
-
+  ::std::cout << gks->to_json(2) << ::std::endl;
 #endif
   hrc::time_point t3 = hrc::now();
   ::std::chrono::duration<double> setup = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);

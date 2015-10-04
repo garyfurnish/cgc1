@@ -341,6 +341,16 @@ namespace cgc1
 
   template <size_t bytes = 5000>
   extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
+  namespace details
+  {
+    /**
+     * \brief Return 2^n.
+    **/
+    inline constexpr size_t pow2(int n)
+    {
+      return static_cast<size_t>(2) << (n - 1);
+    }
+  }
 }
 namespace std
 {

@@ -2,6 +2,7 @@
 #include "allocator_block_set.hpp"
 #include <assert.h>
 #include <iostream>
+#include <boost/property_tree/ptree.hpp>
 namespace cgc1
 {
   namespace details
@@ -441,6 +442,21 @@ namespace cgc1
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::num_destroyed_since_last_free() const noexcept -> size_t
     {
       return m_num_destroyed_since_free;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::to_ptree(::boost::property_tree::ptree &ptree,
+                                                                               int level) const
+    {
+      (void)level;
+      ptree.put("primary_memory_used", ::std::to_string(primary_memory_used()));
+      ptree.put("secondary_memory_used_self", ::std::to_string(secondary_memory_used_self()));
+      ptree.put("secondary_memory_used", ::std::to_string(secondary_memory_used()));
+      ptree.put("allocator_min_size", ::std::to_string(allocator_min_size()));
+      ptree.put("allocator_max_size", ::std::to_string(allocator_max_size()));
+      ptree.put("num_destroyed_since_free", ::std::to_string(num_destroyed_since_last_free()));
+      ptree.put("num_blocks", ::std::to_string(m_blocks.size()));
+      ptree.put("num_available_blocks", ::std::to_string(m_available_blocks.size()));
+      ptree.put("last_block_null", ::std::to_string(m_last_block == nullptr));
     }
   }
 }

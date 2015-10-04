@@ -1,4 +1,7 @@
 #pragma once
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 namespace cgc1
 {
   namespace details
@@ -190,7 +193,7 @@ namespace cgc1
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const
-        -> const ::std::array<size_t, c_bins> &
+        -> const ::std::array<thread_allocator_abs_data_t, c_bins> &
     {
       return m_allocator_multiples;
     }
@@ -336,22 +339,47 @@ namespace cgc1
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::shrink_secondary_memory_usage_to_fit_self()
     {
     }
-
-    template <typename charT, typename Traits, typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
-                                                    const thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits> &ta)
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::to_ptree(::boost::property_tree::ptree &ptree,
+                                                                                     int level) const
     {
-      os << "thread_allocator_t = (" << &ta << "\n";
-      os << "multiples = { ";
-      for (auto multiple : ta.allocator_multiples())
-        os << multiple << ",";
-      os << " }\n";
-      os << "block sz  = { ";
-      for (auto sz : ta.allocator_block_sizes())
-        os << sz << ",";
-      os << " }\n";
-      os << ")";
-      return os;
+      {
+        ::std::stringstream ss_multiples, ss_recycle;
+        for (auto &&multiple : allocator_multiples()) {
+          ss_multiples << multiple.allocator_multiple() << ",";
+          ss_recycle << multiple.max_blocks_before_recycle() << ",";
+        }
+        ptree.put("multiples", ss_multiples.str());
+        ptree.put("max_blocks_before_recycle", ss_recycle.str());
+      }
+      {
+        ::std::stringstream ss;
+        for (auto sz : allocator_block_sizes())
+          ss << sz << ",";
+        ptree.put("block_sizes", ss.str());
+      }
+      ptree.put("primary_memory_used", ::std::to_string(primary_memory_used()));
+      ptree.put("secondary_memory_used_self", ::std::to_string(secondary_memory_used_self()));
+      ptree.put("secondary_memory_used", ::std::to_string(secondary_memory_used()));
+      if (level > 0) {
+        ::boost::property_tree::ptree abs_array;
+        for (size_t i = 0; i < m_allocators.size(); ++i) {
+          ::boost::property_tree::ptree abs;
+          abs.put("id", ::std::to_string(i));
+          m_allocators[i].to_ptree(abs, level);
+          abs_array.add_child("allocator", abs);
+        }
+        ptree.put_child("abs_array", abs_array);
+      }
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::to_json(int level) const -> ::std::string
+    {
+      ::std::stringstream ss;
+      ::boost::property_tree::ptree ptree;
+      to_ptree(ptree, level);
+      ::boost::property_tree::json_parser::write_json(ss, ptree);
+      return ss.str();
     }
   }
 }

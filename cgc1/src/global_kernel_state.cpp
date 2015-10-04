@@ -12,6 +12,9 @@
 #include "allocator.hpp"
 #include <chrono>
 #include <iostream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -50,10 +53,12 @@ namespace cgc1
     {
       g_gks->_internal_slab_allocator().deallocate_raw(p);
     }
-    global_kernel_state_t::global_kernel_state_t()
-        : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size),
-          m_packed_object_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
+    global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
+        : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
+          m_packed_object_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
+          m_num_collections(0), m_initialization_parameters(param)
     {
+      m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
       ::std::cout << "Created CGC1\n";
       m_enabled_count = 1;
       details::initialize_tlks();
@@ -75,6 +80,10 @@ namespace cgc1
     {
       return m_enabled_count > 0;
     }
+    auto global_kernel_state_t::initialization_parameters_ref() const noexcept -> const global_kernel_state_param_t &
+    {
+      return m_initialization_parameters;
+    }
     auto global_kernel_state_t::clear_mark_time_span() const -> duration_type
     {
       return m_clear_mark_time_span;
@@ -94,6 +103,48 @@ namespace cgc1
     auto global_kernel_state_t::total_collect_time_span() const -> duration_type
     {
       return m_total_collect_time_span;
+    }
+
+    void global_kernel_state_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      {
+        ::boost::property_tree::ptree init;
+        initialization_parameters_ref().to_ptree(init);
+        ptree.put_child("initialization", init);
+      }
+      {
+        ::boost::property_tree::ptree last_collect;
+        last_collect.put("clear_mark_time", ::std::to_string(clear_mark_time_span().count()));
+        last_collect.put("mark_time", ::std::to_string(mark_time_span().count()));
+        last_collect.put("sweep_time", ::std::to_string(sweep_time_span().count()));
+        last_collect.put("notify_time", ::std::to_string(notify_time_span().count()));
+        last_collect.put("total_time", ::std::to_string(total_collect_time_span().count()));
+        ptree.put_child("last_collect", last_collect);
+      }
+      {
+        ::boost::property_tree::ptree slab_allocator;
+        m_slab_allocator.to_ptree(slab_allocator, level);
+        ptree.put_child("slab_allocator", slab_allocator);
+      }
+      {
+        ::boost::property_tree::ptree cgc_allocator;
+        m_cgc_allocator.to_ptree(cgc_allocator, level);
+        ptree.put_child("cgc_allocator", cgc_allocator);
+      }
+      {
+        ::boost::property_tree::ptree gc_allocator;
+        m_gc_allocator.to_ptree(gc_allocator, level);
+        ptree.put_child("gc_allocator", gc_allocator);
+      }
+    }
+    auto global_kernel_state_t::to_json(int level) const -> ::std::string
+    {
+      ::std::stringstream ss;
+      ::boost::property_tree::ptree ptree;
+      to_ptree(ptree, level);
+      ::boost::property_tree::json_parser::write_json(ss, ptree);
+      return ss.str();
     }
 
     object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const

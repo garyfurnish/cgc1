@@ -147,8 +147,10 @@ namespace cgc1
   }
   void cgc_register_thread(void *top_of_stack)
   {
-    if (!details::g_gks)
-      details::g_gks = make_unique_malloc<details::global_kernel_state_t>();
+    if (!details::g_gks) {
+      global_kernel_state_param_t param;
+      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
+    }
     details::g_gks->initialize_current_thread(top_of_stack);
   }
   void cgc_collect()

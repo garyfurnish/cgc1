@@ -318,6 +318,23 @@ namespace cgc1
       **/
       uint8_t *current_end() const REQUIRES(!m_mutex);
       /**
+       * \brief Return the size of the slab.
+       **/
+      REQUIRES(!m_mutex) auto size() const noexcept -> size_t;
+      /**
+       * \brief Return the currently used size of slab.
+       **/
+      REQUIRES(!m_mutex) auto current_size() const noexcept -> size_t;
+      /**
+       * \brief Return the size of the slab.
+       **/
+      REQUIRES(m_mutex) auto _u_size() const noexcept -> size_t;
+      /**
+       * \brief Return the currently used size of slab.
+       **/
+      REQUIRES(m_mutex) auto _u_current_size() const noexcept -> size_t;
+
+      /**
        * \brief Collapse the free list.
       **/
       void collapse() REQUIRES(!m_mutex);
@@ -407,6 +424,11 @@ namespace cgc1
        * @param block Block to register.
       **/
       void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+      /**
+       * \brief Put information about allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
 
     private:
       /**

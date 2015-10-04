@@ -5,6 +5,7 @@
 #include "thread_allocator_abs_data.hpp"
 #include <cgc1/posix_slab.hpp>
 #include <array>
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
@@ -124,7 +125,7 @@ namespace cgc1
       /**
        * \brief  Return the array of multiples for debugging purposes.
       **/
-      auto allocator_multiples() const -> const ::std::array<size_t, c_bins> &;
+      auto allocator_multiples() const -> const ::std::array<thread_allocator_abs_data_t, c_bins> &;
       /**
        * \brief Return the array of allocators for debugging purposes.
       **/
@@ -182,6 +183,17 @@ namespace cgc1
        * \brief Shrink secondary data structures to fit for self only.
        **/
       void shrink_secondary_memory_usage_to_fit_self();
+
+      /**
+       * \brief Put information about thread allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
+      /**
+       * \brief Put information about thread allocator into a json string.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      auto to_json(int level) const -> ::std::string;
 
     private:
       /**

@@ -157,5 +157,15 @@ namespace cgc1
     {
       return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
     }
+    CGC1_OPT_INLINE auto slab_allocator_t::current_size() const noexcept -> size_t
+    {
+      return static_cast<size_t>(reinterpret_cast<uint8_t *>(m_end) - m_slab.begin());
+    }
+    CGC1_OPT_INLINE void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      ptree.put("size", ::std::to_string(m_slab.size()));
+      ptree.put("current_size", ::std::to_string(current_size()));
+    }
   }
 }

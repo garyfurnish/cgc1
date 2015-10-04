@@ -1,6 +1,7 @@
 #pragma once
 #include "object_state.hpp"
 #include "allocator_block.hpp"
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
@@ -180,6 +181,11 @@ namespace cgc1
        * \brief Shrink secondary data structures to fit for self only.
        **/
       void shrink_secondary_memory_usage_to_fit_self();
+      /**
+       * \brief Put information about abs into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
     private:
       allocator_block_type *m_last_block = nullptr;
