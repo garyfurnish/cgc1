@@ -67,14 +67,14 @@ void thread_main()
   GC_unregister_my_thread();
 #else
 #ifdef CGC1_SPARSE
-  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = cgc1::details::g_gks->gc_allocator();
   auto &ts = allocator.initialize_thread();
 
   using ts_type = typename ::std::decay<decltype(ts)>::type;
   for (size_t i = 0; i < ts_type::c_bins; ++i)
     ts.set_allocator_multiple(i, ts.get_allocator_multiple(i) * 256);
 #else
-  auto &ts = cgc1::details::g_gks._packed_object_allocator().initialize_thread();
+  auto &ts = cgc1::details::g_gks->_packed_object_allocator().initialize_thread();
 #endif
   ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   start_cv.wait(go_lk, []() { return go.load(); });

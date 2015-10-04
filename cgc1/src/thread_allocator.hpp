@@ -47,6 +47,7 @@ namespace cgc1
        * \brief Allocator traits for global allocator.
       **/
       using allocator_traits = Allocator_Traits;
+      using size_type = size_t;
       /**
        * \brief Allocator block set for this thread allocator.
       **/
@@ -161,6 +162,26 @@ namespace cgc1
        * This incldues coalescing, etc.
       **/
       void _do_maintenance();
+      /**
+       * \brief Return the bytes of primary memory used.
+       **/
+      auto primary_memory_used() const noexcept -> size_type;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      auto secondary_memory_used() const noexcept -> size_type;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      auto secondary_memory_used_self() const noexcept -> size_type;
+      /**
+       * \brief Shrink secondary data structures to fit.
+       **/
+      void shrink_secondary_memory_usage_to_fit();
+      /**
+       * \brief Shrink secondary data structures to fit for self only.
+       **/
+      void shrink_secondary_memory_usage_to_fit_self();
 
     private:
       /**

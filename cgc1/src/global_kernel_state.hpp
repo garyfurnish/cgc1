@@ -366,7 +366,7 @@ namespace cgc1
       */
       static const size_t m_slab_allocator_start_size = 50000000;
     };
-    extern global_kernel_state_t g_gks;
+    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
   }
 }
 #include "global_kernel_state_impl.hpp"

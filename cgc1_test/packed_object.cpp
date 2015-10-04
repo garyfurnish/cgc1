@@ -12,7 +12,7 @@ using namespace ::cgc1::literals;
 static void packed_object_state_test0()
 {
   using cgc1::details::c_packed_object_block_size;
-  auto &fast_slab = gks._packed_object_allocator()._slab();
+  auto &fast_slab = gks->_packed_object_allocator()._slab();
   fast_slab.align_next(c_packed_object_block_size);
   constexpr const size_t packed_size = 4096 * 8 - 32;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
@@ -128,7 +128,7 @@ static void packed_object_state_test0()
 
 static void multiple_slab_test0()
 {
-  auto &fast_slab = gks._packed_object_allocator()._slab();
+  auto &fast_slab = gks->_packed_object_allocator()._slab();
   constexpr const size_t packed_size = 4096 * 16;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
@@ -152,7 +152,7 @@ static void multiple_slab_test0()
 
 static void multiple_slab_test0b()
 {
-  auto &fast_slab = gks._packed_object_allocator()._slab();
+  auto &fast_slab = gks->_packed_object_allocator()._slab();
   constexpr const size_t packed_size = 4096 * 32;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
@@ -189,7 +189,7 @@ static void multiple_slab_test1()
   AssertThat(info1.m_num_blocks, Equals(::cgc1::details::packed_object_package_t::cs_total_size / 512 / 64));
   AssertThat(info1.m_data_entry_sz, Equals(64_sz));
 
-  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks._packed_object_allocator();
+  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
 
   cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
   {
@@ -234,7 +234,7 @@ static void multiple_slab_test1()
  **/
 static _NoInline_ void packed_root_test__setup(void *&memory, size_t &old_memory)
 {
-  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks._packed_object_allocator();
+  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
   cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
   memory = ta.allocate(50);
   // hide a pointer away for comparison testing.
@@ -254,7 +254,7 @@ static void packed_root_test()
   AssertThat(state->has_valid_magic_numbers(), IsTrue());
   // force collection
   cgc1::cgc_force_collect();
-  gks.wait_for_finalization();
+  gks->wait_for_finalization();
   // verify that nothing was collected.
   state = cgc1::details::get_state(memory);
   auto index = state->get_index(memory);
@@ -268,7 +268,7 @@ static void packed_root_test()
   auto num_collections = cgc1::debug::num_gc_collections();
   // force collection.
   cgc1::cgc_force_collect();
-  gks.wait_for_finalization();
+  gks->wait_for_finalization();
   index = state->get_index(cgc1::unhide_pointer(old_memory));
   AssertThat(state->is_marked(index), IsFalse());
   AssertThat(state->is_free(index), IsTrue());
@@ -281,7 +281,7 @@ static void packed_linked_list_test()
   ::std::vector<uintptr_t> locations;
   cgc1::mutex_t debug_mutex;
   cgc1::cgc_force_collect();
-  gks.wait_for_finalization();
+  gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
   // this SHOULD NOT NEED TO BE HERE>
   void **foo;
@@ -289,7 +289,7 @@ static void packed_linked_list_test()
   auto test_thread = [&keep_going, &debug_mutex, &locations, &foo]() {
     CGC1_INITIALIZE_THREAD();
     //    void** foo;
-    cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks._packed_object_allocator();
+    cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
     cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
     foo = reinterpret_cast<void **>(ta.allocate(100));
     {
@@ -319,7 +319,7 @@ static void packed_linked_list_test()
   for (int i = 0; i < 100; ++i) {
     //    CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
     cgc1::cgc_force_collect();
-    gks.wait_for_finalization();
+    gks->wait_for_finalization();
     CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
     for (auto &&loc : locations) {
       if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
@@ -338,7 +338,7 @@ static void packed_linked_list_test()
   cgc1::cgc_remove_root(reinterpret_cast<void **>(&foo));
   cgc1::secure_zero(&foo, sizeof(foo));
   cgc1::cgc_force_collect();
-  gks.wait_for_finalization();
+  gks->wait_for_finalization();
   for (auto &&loc : locations) {
     auto state = cgc1::details::get_state(cgc1::unhide_pointer(loc));
     auto index = state->get_index(cgc1::unhide_pointer(loc));

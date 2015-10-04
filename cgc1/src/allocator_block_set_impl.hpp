@@ -343,6 +343,46 @@ namespace cgc1
       }
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::primary_memory_used() const noexcept -> size_t
+    {
+      size_type sz = 0;
+      for (auto &&block : m_blocks)
+        sz += block.memory_size();
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::secondary_memory_used() const noexcept -> size_t
+    {
+      size_t sz = 0;
+      for (auto &&block : m_blocks)
+        sz += block.secondary_memory_used();
+      sz += secondary_memory_used_self();
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::secondary_memory_used_self() const noexcept -> size_t
+    {
+      size_t sz = 0;
+      sz += m_available_blocks.capacity() * sizeof(typename allocator_block_reference_vector_t::value_type);
+      sz += m_blocks.capacity() * sizeof(typename allocator_block_vector_t::value_type);
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::shrink_secondary_memory_usage_to_fit()
+    {
+      shrink_secondary_memory_usage_to_fit_self();
+      for (auto &&block : m_blocks)
+        block.shrink_secondary_memory_usage_to_fit();
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::shrink_secondary_memory_usage_to_fit_self()
+    {
+      m_available_blocks.shrink_to_fit();
+      // this might not be safe.
+      //      m_blocks.shrink_to_fit();
+    }
+
+    template <typename Allocator, typename Allocator_Block_User_Data>
     CGC1_ALWAYS_INLINE auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept
         -> allocator_block_type &
     {

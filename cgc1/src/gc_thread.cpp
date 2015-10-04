@@ -24,7 +24,7 @@ namespace cgc1
       m_thread = thread_type(thread_type::allocator{}, [this]() -> void * {
         _run();
         // make sure to destroy internal allocator if used.
-        g_gks._internal_allocator().destroy_thread();
+        g_gks->_internal_allocator().destroy_thread();
         return nullptr;
       });
     }
@@ -159,19 +159,19 @@ namespace cgc1
     }
     bool gc_thread_t::handle_thread(::std::thread::id id)
     {
-      thread_local_kernel_state_t *tlks = g_gks.tlks(id);
+      thread_local_kernel_state_t *tlks = g_gks->tlks(id);
       if (!tlks) {
         return false;
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
+      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // add potential roots (ex: registers).
       m_addresses_to_mark.insert(tlks->_potential_roots().begin(), tlks->_potential_roots().end());
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
-      tlks->scan_stack(m_stack_roots, g_gks.gc_allocator()._u_begin(), g_gks.gc_allocator()._u_current_end(),
-                       g_gks._packed_object_allocator().begin(), g_gks._packed_object_allocator().end());
+      tlks->scan_stack(m_stack_roots, g_gks->gc_allocator()._u_begin(), g_gks->gc_allocator()._u_current_end(),
+                       g_gks->_packed_object_allocator().begin(), g_gks->_packed_object_allocator().end());
       return true;
     }
     void gc_thread_t::_clear_marks()
@@ -209,12 +209,12 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
       // This is calling during garbage collection, therefore no mutex is needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks.gc_allocator()._mutex());
+      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // Find heap begin and end.
-      void *heap_begin = g_gks.gc_allocator()._u_begin();
-      void *heap_end = g_gks.gc_allocator()._u_current_end();
-      void *fast_heap_begin = g_gks.fast_slab_begin();
-      void *fast_heap_end = g_gks.fast_slab_end();
+      void *heap_begin = g_gks->gc_allocator()._u_begin();
+      void *heap_end = g_gks->gc_allocator()._u_current_end();
+      void *fast_heap_begin = g_gks->fast_slab_begin();
+      void *fast_heap_end = g_gks->fast_slab_end();
       bool fast_heap = false;
       object_state_t *os = object_state_t::from_object_start(addr);
       // if outside heap, definitely not valid object state.
@@ -227,10 +227,10 @@ namespace cgc1
 
       // not valid.
       if (!fast_heap) {
-        if (!g_gks.is_valid_object_state(os)) {
+        if (!g_gks->is_valid_object_state(os)) {
           // This is calling during garbage collection, therefore no mutex is needed.
-          CGC1_CONCURRENCY_LOCK_ASSUME(g_gks._mutex());
-          os = g_gks._u_find_valid_object_state(addr);
+          CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
+          os = g_gks->_u_find_valid_object_state(addr);
           if (!os)
             return;
         }
@@ -332,7 +332,7 @@ namespace cgc1
           }
         }
       }
-      g_gks._add_num_freed_in_last_collection(num_freed);
+      g_gks->_add_num_freed_in_last_collection(num_freed);
     }
     void gc_thread_t::_finalize()
     {
@@ -352,7 +352,7 @@ namespace cgc1
             // delete user data if not owned by block.
           }
         }
-        assert(os->object_end() < g_gks.gc_allocator().end());
+        assert(os->object_end() < g_gks->gc_allocator().end());
 #ifdef _WIN32
         SecureZeroMemory(os->object_start(), os->object_size());
 #else
@@ -362,9 +362,9 @@ namespace cgc1
         to_be_freed.push_back(hide_pointer(os->object_start()));
       }
       // notify kernel that the memory was freed.
-      g_gks._add_freed_in_last_collection(to_be_freed);
+      g_gks->_add_freed_in_last_collection(to_be_freed);
       // destroy the memory in allocator.
-      g_gks.gc_allocator().bulk_destroy_memory(m_to_be_freed);
+      g_gks->gc_allocator().bulk_destroy_memory(m_to_be_freed);
     }
   }
 }

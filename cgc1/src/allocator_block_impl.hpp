@@ -111,6 +111,11 @@ namespace cgc1
       return m_end;
     }
     template <typename Allocator, typename User_Data>
+    auto allocator_block_t<Allocator, User_Data>::memory_size() const noexcept -> size_type
+    {
+      return static_cast<size_type>(end() - begin());
+    }
+    template <typename Allocator, typename User_Data>
     inline object_state_t *allocator_block_t<Allocator, User_Data>::current_end() const noexcept
     {
       if (!m_next_alloc_ptr)
@@ -394,6 +399,18 @@ namespace cgc1
     {
       return m_last_max_alloc_available;
     }
+    template <typename Allocator, typename User_Data>
+    size_t allocator_block_t<Allocator, User_Data>::secondary_memory_used() const noexcept
+    {
+      using free_list_type = decltype(m_free_list);
+      return sizeof(typename free_list_type::value_type) * m_free_list.capacity();
+    }
+    template <typename Allocator, typename User_Data>
+    void allocator_block_t<Allocator, User_Data>::shrink_secondary_memory_usage_to_fit()
+    {
+      m_free_list.shrink_to_fit();
+    }
+
     bool
     is_valid_object_state(const object_state_t *state, const uint8_t *user_data_range_begin, const uint8_t *user_data_range_end)
     {

@@ -169,8 +169,10 @@ namespace cgc1
       allocator.deallocate(t, 1);
     }
   };
+  template <typename T>
+  using unique_ptr_malloc_t = ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>;
   template <typename T, typename... Args>
-  ::std::unique_ptr<T, cgc_internal_malloc_deleter_t> make_unique_malloc(Args &&... args)
+  auto make_unique_malloc(Args &&... args) -> unique_ptr_malloc_t<T>
   {
     cgc_internal_malloc_allocator_t<T> allocator;
     auto ptr = allocator.allocate(1);

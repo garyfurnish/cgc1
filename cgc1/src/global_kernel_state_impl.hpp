@@ -5,7 +5,7 @@ namespace cgc1
 {
   namespace details
   {
-    extern global_kernel_state_t g_gks;
+    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
     inline auto global_kernel_state_t::gc_allocator() const noexcept -> gc_allocator_t &
     {
       return m_gc_allocator;

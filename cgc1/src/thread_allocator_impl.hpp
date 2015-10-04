@@ -304,6 +304,39 @@ namespace cgc1
         allocator._do_maintenance();
       }
     }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::primary_memory_used() const noexcept -> size_type
+    {
+      size_type sz = 0;
+      for (auto &&allocator : m_allocators)
+        sz += allocator.primary_memory_used();
+      return sz;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::secondary_memory_used() const noexcept -> size_type
+    {
+      size_type sz = secondary_memory_used_self();
+      for (auto &&allocator : m_allocators)
+        sz += allocator.secondary_memory_used();
+      return sz;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::secondary_memory_used_self() const noexcept
+        -> size_type
+    {
+      return 0;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::shrink_secondary_memory_usage_to_fit()
+    {
+      for (auto &&allocator : m_allocators)
+        allocator.shrink_secondary_memory_usage_to_fit();
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::shrink_secondary_memory_usage_to_fit_self()
+    {
+    }
+
     template <typename charT, typename Traits, typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
                                                     const thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits> &ta)

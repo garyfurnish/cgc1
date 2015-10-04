@@ -33,6 +33,7 @@ namespace cgc1
     public:
       using allocator = Allocator;
       using user_data_type = User_Data;
+      using size_type = size_t;
       static user_data_type s_default_user_data;
       allocator_block_t() = default;
       /**
@@ -69,6 +70,10 @@ namespace cgc1
        * \brief End iterator to allow bytewise iteration over memory block.
       **/
       uint8_t *end() const noexcept;
+      /**
+       * \brief Return size of memory.
+       **/
+      auto memory_size() const noexcept -> size_type;
       /**
        * \brief End iterator for object_states
       **/
@@ -143,6 +148,14 @@ namespace cgc1
        * \brief Return updated last max alloc available.
        **/
       size_t last_max_alloc_available() const noexcept;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      size_t secondary_memory_used() const noexcept;
+      /**
+       * \brief Shrink secondary data structures to fit.
+       **/
+      void shrink_secondary_memory_usage_to_fit();
 
     public:
       /**
@@ -150,7 +163,6 @@ namespace cgc1
        *
        * Uses control allocator for control data.
        **/
-      //      rebind_vector_t<object_state_t *, allocator> m_free_list;
       ::boost::container::flat_set<object_state_t *,
                                    os_size_compare,
                                    typename allocator::template rebind<object_state_t *>::other> m_free_list;

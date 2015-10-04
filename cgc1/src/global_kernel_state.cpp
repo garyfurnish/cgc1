@@ -36,19 +36,19 @@ namespace cgc1
   {
     void *internal_allocate(size_t n)
     {
-      return g_gks._internal_allocator().initialize_thread().allocate(n);
+      return g_gks->_internal_allocator().initialize_thread().allocate(n);
     }
     void internal_deallocate(void *p)
     {
-      g_gks._internal_allocator().initialize_thread().destroy(p);
+      g_gks->_internal_allocator().initialize_thread().destroy(p);
     }
     void *internal_slab_allocate(size_t n)
     {
-      return g_gks._internal_slab_allocator().allocate_raw(n);
+      return g_gks->_internal_slab_allocator().allocate_raw(n);
     }
     void internal_slab_deallocate(void *p)
     {
-      g_gks._internal_slab_allocator().deallocate_raw(p);
+      g_gks->_internal_slab_allocator().deallocate_raw(p);
     }
     global_kernel_state_t::global_kernel_state_t()
         : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size),
