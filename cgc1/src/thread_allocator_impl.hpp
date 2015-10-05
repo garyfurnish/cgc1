@@ -183,13 +183,7 @@ namespace cgc1
         allocator = &m_allocators[block_id - 1];
         ret = allocator->destroy(v);
       }
-      // do book keeping for returning memory to global.
-      // do this if we exceed the destroy threshold or externally forced.
-      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
-
-      if (should_force_free || allocator->num_destroyed_since_last_free() > destroy_threshold()) {
-        _do_free_empty_blocks();
-      }
+      _check_do_free_empty_blocks(*allocator);
       return ret;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
@@ -199,7 +193,19 @@ namespace cgc1
       // do this if we exceed the destroy threshold or externally forced.
       bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
 
-      if (should_force_free) {
+      if (unlikely(should_force_free)) {
+        _do_free_empty_blocks();
+      }
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_check_do_free_empty_blocks(
+        this_allocator_block_set_t &allocator)
+    {
+      // do book keeping for returning memory to global.
+      // do this if we exceed the destroy threshold or externally forced.
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+
+      if (should_force_free || allocator.num_destroyed_since_last_free() > destroy_threshold()) {
         _do_free_empty_blocks();
       }
     }
@@ -224,6 +230,7 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void *thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocate(size_t sz)
     {
+      _check_do_free_empty_blocks();
       // find allocation set for allocation size.
       size_t id = find_block_set_id(sz);
       if (unlikely(sz < c_alignment))

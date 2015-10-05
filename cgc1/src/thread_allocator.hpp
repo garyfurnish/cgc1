@@ -201,6 +201,12 @@ namespace cgc1
        **/
       void _check_do_free_empty_blocks();
       /**
+       * \brief Free empty blocks, but only if necessary.
+       * @param allocator Allocator to condition on.
+       **/
+      void _check_do_free_empty_blocks(this_allocator_block_set_t &allocator);
+
+      /**
        * \brief Execute free empty blocks.
        **/
       void _do_free_empty_blocks();
