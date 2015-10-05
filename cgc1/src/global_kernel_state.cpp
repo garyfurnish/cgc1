@@ -272,6 +272,7 @@ namespace cgc1
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
       m_gc_allocator._u_set_force_free_empty_blocks();
+      m_cgc_allocator._u_set_force_free_empty_blocks();
       // release allocator locks so they can be used.
       m_packed_object_allocator._mutex().unlock();
       m_gc_allocator._mutex().unlock();

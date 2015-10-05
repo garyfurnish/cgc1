@@ -328,7 +328,6 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
     {
-      ::std::cout << "_do_maintenance()\n";
       _check_do_free_empty_blocks();
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>

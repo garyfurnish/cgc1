@@ -716,8 +716,8 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
     {
-      (void)level;
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      ptree.put("name", typeid(*this).name());
       {
         ::boost::property_tree::ptree slab;
         slab.put("size", ::std::to_string(m_slab.size()));
@@ -731,6 +731,14 @@ namespace cgc1
       ptree.put("free_list_size", ::std::to_string(m_free_list.size()));
       ptree.put("initial_heap_size", ::std::to_string(m_initial_gc_heap_size));
       ptree.put("minimum_expansion_size", ::std::to_string(m_minimum_expansion_size));
+      ::boost::property_tree::ptree thread_ptree;
+      for (auto &&thread_pair : m_thread_allocators) {
+        ::boost::property_tree::ptree local_ptree;
+        auto &&thread = thread_pair.second;
+        thread->to_ptree(local_ptree, level);
+        thread_ptree.add_child("thread_allocator", local_ptree);
+      }
+      ptree.put_child("thread_allocators", thread_ptree);
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_set_force_free_empty_blocks()

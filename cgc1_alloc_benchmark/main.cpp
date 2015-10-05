@@ -94,10 +94,11 @@ int main()
 #elif defined(CGC1_SPARSE)
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
-  ::std::cout << ts.to_json(2) << ::std::endl;
+  ::std::cout << gks->to_json(2) << ::std::endl;
+  auto &int_ts = cgc1::details::g_gks->_internal_allocator().initialize_thread();
   ts._do_maintenance();
+  int_ts._do_maintenance();
   ts.shrink_secondary_memory_usage_to_fit();
-  ::std::cout << ts.to_json(2) << ::std::endl;
   ::std::cout << gks->to_json(2) << ::std::endl;
 
 #else
