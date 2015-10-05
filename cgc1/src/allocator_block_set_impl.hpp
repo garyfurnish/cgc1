@@ -68,7 +68,7 @@ namespace cgc1
     {
       // collect all blocks.
       for (auto &block : m_blocks) {
-        block.collect();
+        block.collect(m_num_destroyed_since_free);
       }
       // some blocks may have become available so regenerate available blocks.
       regenerate_available_blocks();
@@ -338,10 +338,7 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_do_maintenance()
     {
-      // collect all blocks.
-      for (auto &block : m_blocks) {
-        block.collect();
-      }
+      collect();
     }
     template <typename Allocator, typename Allocator_Block_User_Data>
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::primary_memory_used() const noexcept -> size_t
@@ -405,7 +402,7 @@ namespace cgc1
       size_t num_empty = 0;
       // first we collect and see how many total empty blocks there are.
       for (auto &block : m_blocks) {
-        block.collect();
+        block.collect(m_num_destroyed_since_free);
         if (block.empty()) {
           num_empty++;
         } else {

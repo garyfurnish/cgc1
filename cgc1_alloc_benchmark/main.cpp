@@ -59,6 +59,7 @@ int main()
       abort();
     for (size_t li = 0; li < 8; ++li)
       ret[li] = ts.allocate(alloc_sz);
+    cgc1::secure_zero(&ret, sizeof(ret));
   }
 
 #else
@@ -94,6 +95,7 @@ int main()
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
   ::std::cout << ts.to_json(2) << ::std::endl;
+  ts._do_maintenance();
   ts.shrink_secondary_memory_usage_to_fit();
   ::std::cout << ts.to_json(2) << ::std::endl;
   ::std::cout << gks->to_json(2) << ::std::endl;

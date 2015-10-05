@@ -316,7 +316,7 @@ namespace cgc1
       return max_alloc;
     }
     template <typename Allocator, typename User_Data>
-    void allocator_block_t<Allocator, User_Data>::collect()
+    void allocator_block_t<Allocator, User_Data>::collect(size_t &num_quasifreed)
     {
       // reset max alloc available.
       m_last_max_alloc_available = 0;
@@ -342,10 +342,14 @@ namespace cgc1
           m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, state->object_size());
           // put in free list.
           m_free_list.insert(state);
+          num_quasifreed++;
           assert(!state->quasi_freed());
         }
         // note only check in use for next, it may be quasifree.
         if (!state->not_available() && !state->next()->in_use()) {
+          if (state->next()->quasi_freed()) {
+            num_quasifreed++;
+          }
           // ok, both this state and next one available, so merge them.
           object_state_t *next = state->next();
           // perform merge.
@@ -365,6 +369,9 @@ namespace cgc1
         }
       }
       if (!state->not_available()) {
+        if (state->quasi_freed()) {
+          num_quasifreed++;
+        }
         // ok at end of list, if its available.
         // try to find it in free list.
         if (!m_free_list.empty()) {

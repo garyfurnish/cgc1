@@ -271,6 +271,7 @@ namespace cgc1
       _u_suspend_threads();
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
+      m_gc_allocator._u_set_force_free_empty_blocks();
       // release allocator locks so they can be used.
       m_packed_object_allocator._mutex().unlock();
       m_gc_allocator._mutex().unlock();
@@ -328,7 +329,6 @@ namespace cgc1
       t2 = ::std::chrono::high_resolution_clock::now();
       m_notify_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
       m_total_collect_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - tstart);
-
       m_num_collections++;
       m_collect = false;
       m_thread_mutex.lock();

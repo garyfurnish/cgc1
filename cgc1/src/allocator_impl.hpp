@@ -677,7 +677,8 @@ namespace cgc1
       for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
         auto &&block = *block_it;
         // collect it
-        block.collect();
+        size_t num_quasifreed = 0;
+        block.collect(num_quasifreed);
         // if after collection it is empty, destroy it.
         if (block.empty()) {
           _u_destroy_global_allocator_block(::std::move(block));
@@ -730,6 +731,12 @@ namespace cgc1
       ptree.put("free_list_size", ::std::to_string(m_free_list.size()));
       ptree.put("initial_heap_size", ::std::to_string(m_initial_gc_heap_size));
       ptree.put("minimum_expansion_size", ::std::to_string(m_minimum_expansion_size));
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::_u_set_force_free_empty_blocks()
+    {
+      for (auto &&pair : m_thread_allocators)
+        pair.second->set_force_free_empty_blocks();
     }
   }
 }

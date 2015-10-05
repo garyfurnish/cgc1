@@ -186,11 +186,13 @@ void allocator_block_tests()
       block.destroy(alloc1);
       block.destroy(alloc2);
       AssertThat(block.m_free_list, HasLength(2));
-      block.collect();
+      size_t num_quasifreed = 0;
+      block.collect(num_quasifreed);
       AssertThat(block.m_free_list, HasLength(1));
       block.destroy(alloc3);
       AssertThat(block.m_free_list, HasLength(1));
-      block.collect();
+      num_quasifreed = 0;
+      block.collect(num_quasifreed);
       AssertThat(block.m_free_list, HasLength(0));
       alloc1 = block.allocate(15);
       AssertThat(alloc1, Equals(old_alloc1));

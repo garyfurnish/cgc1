@@ -197,6 +197,14 @@ namespace cgc1
 
     private:
       /**
+       * \brief Free empty blocks, but only if necessary.
+       **/
+      void _check_do_free_empty_blocks();
+      /**
+       * \brief Execute free empty blocks.
+       **/
+      void _do_free_empty_blocks();
+      /**
        * \brief Attempt to add an allocator block with a given id.
        * @param id Id to try to add.
        * @param sz Request size.

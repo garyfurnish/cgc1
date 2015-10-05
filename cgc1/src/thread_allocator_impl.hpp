@@ -80,6 +80,7 @@ namespace cgc1
               min_to_leave);
         }
       }
+      m_force_free_empty_blocks = false;
     }
 
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
@@ -184,12 +185,29 @@ namespace cgc1
       }
       // do book keeping for returning memory to global.
       // do this if we exceed the destroy threshold or externally forced.
-      if (m_force_free_empty_blocks.load(::std::memory_order_relaxed) ||
-          allocator->num_destroyed_since_last_free() > destroy_threshold()) {
-        // ok, this needs to be tweaked.
-        free_empty_blocks(m_minimum_local_blocks, false);
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+
+      if (should_force_free || allocator->num_destroyed_since_last_free() > destroy_threshold()) {
+        _do_free_empty_blocks();
       }
       return ret;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_check_do_free_empty_blocks()
+    {
+      // do book keeping for returning memory to global.
+      // do this if we exceed the destroy threshold or externally forced.
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+
+      if (should_force_free) {
+        _do_free_empty_blocks();
+      }
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_free_empty_blocks()
+    {
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+      free_empty_blocks(m_minimum_local_blocks, should_force_free);
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const
@@ -303,9 +321,8 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
     {
-      for (auto &allocator : m_allocators) {
-        allocator._do_maintenance();
-      }
+      ::std::cout << "_do_maintenance()\n";
+      _check_do_free_empty_blocks();
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::primary_memory_used() const noexcept -> size_type
@@ -361,6 +378,7 @@ namespace cgc1
       ptree.put("primary_memory_used", ::std::to_string(primary_memory_used()));
       ptree.put("secondary_memory_used_self", ::std::to_string(secondary_memory_used_self()));
       ptree.put("secondary_memory_used", ::std::to_string(secondary_memory_used()));
+      ptree.put("force_free_empty_blocks", ::std::to_string(m_force_free_empty_blocks));
       if (level > 0) {
         ::boost::property_tree::ptree abs_array;
         for (size_t i = 0; i < m_allocators.size(); ++i) {

@@ -429,6 +429,11 @@ namespace cgc1
        * @param level Level of information to give.  Higher is more verbose.
        **/
       void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
+      /**
+       * \brief Set all threads to force free empty blocks.
+       * Typically called after state is externally altered from gc.
+       **/
+      void _u_set_force_free_empty_blocks() REQUIRES(m_mutex);
 
     private:
       /**

@@ -115,8 +115,9 @@ namespace cgc1
       bool destroy(void *v, size_t &last_collapsed_size, size_t &last_max_alloc_available);
       /**
        * \brief Collect any adjacent blocks that may have formed into one block.
+       * @param num_quasifreed Increment by number of quasifreed found.
       **/
-      void collect();
+      void collect(size_t &num_quasifreed);
       /**
        * \brief Return the maximum allocation size available.
       **/
