@@ -38,29 +38,40 @@ void allocator_tests()
       auto memory1 = allocator->get_memory(10000, false);
       auto memory2 = allocator->get_memory(20000, false);
       auto memory3 = allocator->get_memory(10000, false);
-      AssertThat(memory1.first != nullptr, IsTrue());
+      AssertThat(::cgc1::details::size(memory1), Equals(10000_sz));
+      AssertThat(::cgc1::details::size(memory2), Equals(20000_sz));
+      AssertThat(::cgc1::details::size(memory3), Equals(10000_sz));
+      AssertThat(memory1.begin() != nullptr, IsTrue());
       allocator->release_memory(memory1);
       allocator->release_memory(memory2);
       AssertThat(allocator->_d_free_list(), HasLength(2));
       auto memory2_new = allocator->get_memory(10000, false);
-      AssertThat(memory2_new.first, Equals(memory2.first));
-      AssertThat(memory2_new.second, Equals(memory2.first + 10000));
+      AssertThat(::cgc1::details::size(memory2_new), Equals(10000_sz));
+      AssertThat(memory2_new.begin(), Equals(memory1.begin()));
+      AssertThat(reinterpret_cast<int *>(memory2_new.end()), Equals(reinterpret_cast<int *>(memory1.begin() + 10000)));
       auto memory4 = allocator->get_memory(10000, false);
-      AssertThat(memory4.first, Equals(memory2_new.second));
-      AssertThat(memory4.second, Equals(memory2.second));
-      AssertThat(allocator->get_memory(10000, false), Equals(memory1));
+      AssertThat(memory4.begin(), Equals(memory2_new.end()));
+      AssertThat(memory4.end(), Equals(memory2.begin() + 10000));
+      auto memory5 = allocator->get_memory(10000, false);
+      AssertThat(memory5, Equals(cgc1::system_memory_range_t(memory2.begin() + 10000, memory2.end())));
       AssertThat(allocator->_d_free_list(), HasLength(0));
       allocator->release_memory(memory3);
       allocator->release_memory(memory2_new);
-      allocator->release_memory(memory1);
       AssertThat(allocator->current_end() != allocator->begin(), IsTrue());
+      auto vec = allocator->_d_free_list();
+
       allocator->collapse();
+      vec = allocator->_d_free_list();
       AssertThat(allocator->_d_free_list(), HasLength(1));
       allocator->release_memory(memory4);
-      AssertThat(allocator->_d_free_list(), HasLength(1));
+      vec = allocator->_d_free_list();
+      AssertThat(allocator->_d_free_list(), HasLength(2));
+      allocator->release_memory(memory5);
       allocator->collapse();
+      vec = allocator->_d_free_list();
       AssertThat(allocator->_d_free_list(), HasLength(0));
       AssertThat(static_cast<void *>(allocator->current_end()), Equals(static_cast<void *>(allocator->begin())));
+      //*/
     });
     it("test3", []() {
       ::std::unique_ptr<cgc1::details::allocator_t<>> allocator(new cgc1::details::allocator_t<>());

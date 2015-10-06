@@ -351,6 +351,20 @@ namespace cgc1
       return static_cast<size_t>(2) << (n - 1);
     }
   }
+  template <typename Begin, typename End, typename Val, typename Comparator>
+  auto last_greater_equal_than(Begin &&begin, End &&end, Val &&val, Comparator &&comparator)
+  {
+    if (begin == end)
+      return end;
+    const auto ub = ::std::upper_bound(::std::forward<Begin>(begin), ::std::forward<End>(end), ::std::forward<Val>(val),
+                                       ::std::forward<Comparator>(comparator));
+    const auto plb = ub - 1;
+    if (ub == begin || comparator(*plb, val)) {
+      return ub;
+    } else {
+      return plb;
+    }
+  }
 }
 namespace std
 {

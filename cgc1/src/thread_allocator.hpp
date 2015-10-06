@@ -6,6 +6,7 @@
 #include <cgc1/posix_slab.hpp>
 #include <array>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <cgc1/memory_range.hpp>
 namespace cgc1
 {
   namespace details

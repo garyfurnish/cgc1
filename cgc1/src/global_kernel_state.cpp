@@ -594,5 +594,15 @@ namespace cgc1
     {
     }
 #endif
+    allocation_failure_action_t gc_allocator_traits_t::on_allocation_failure(const allocation_failure_t &failure)
+    {
+      ::std::cout << "gc allocation failure\n";
+      ::std::cout << cgc1::details::g_gks->to_json(2) << ::std::endl;
+      g_gks->gc_allocator().initialize_thread()._do_maintenance();
+      g_gks->force_collect();
+      ::std::cout << "force collect\n";
+      ::std::cout << cgc1::details::g_gks->to_json(2) << ::std::endl;
+      return allocation_failure_action_t{false, failure.m_failures < 5};
+    }
   }
 }

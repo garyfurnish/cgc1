@@ -23,7 +23,7 @@
 int main()
 {
   //  const size_t num_alloc = 1000000;
-  const size_t num_alloc = 100000;
+  const size_t num_alloc = 100000000;
   const size_t alloc_sz = 64;
 
   using hrc = ::std::chrono::high_resolution_clock;

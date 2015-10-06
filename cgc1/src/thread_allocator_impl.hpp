@@ -244,9 +244,14 @@ namespace cgc1
       bool success;
       bool try_expand = true;
       while (unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+        ::std::cout << "allocation failed\n";
         auto action = m_allocator.traits().on_allocation_failure({attempts});
-        if (!action.m_repeat)
+        ::std::cout << typeid(m_allocator.traits()).name() << ::std::endl;
+        if (!action.m_repeat) {
+          ::std::cout << "no repeat\n";
           break;
+        }
+        ++attempts;
         try_expand = action.m_attempt_expand;
       }
       if (!success) {

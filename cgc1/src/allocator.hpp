@@ -45,6 +45,19 @@ namespace cgc1
       using allocator_block_user_data_type = user_data_base_t;
     };
     /**
+     * \brief Pair of memory addresses (begin and end)
+     **/
+    using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
+    /**
+     * \brief Size comparator for memory pair.
+     **/
+    struct memory_pair_size_comparator_t {
+      bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
+      {
+        return size(a) < size(b);
+      }
+    };
+    /**
      * \brief Global slab interval allocator, used by thread allocators.
      *
      * The intent of this allocator is to maximize linearity of cache accesses.
@@ -86,16 +99,12 @@ namespace cgc1
        **/
       using block_type = allocator_block_t<allocator, typename allocator_traits::allocator_block_user_data_type>;
       /**
-       * \brief Pair of memory addresses (begin and end)
-      **/
-      using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
-      /**
        * \brief Type that is a Vector of memory addresses.
        *
        * This uses the control allocator for control memory.
       **/
       using memory_pair_vector_t =
-          typename ::std::vector<memory_pair_t, typename allocator::template rebind<memory_pair_t>::other>;
+          typename ::std::vector<system_memory_range_t, typename allocator::template rebind<memory_range_t>::other>;
       /**
        * \brief Type of thread allocator used by this allocator.
        *
@@ -134,10 +143,10 @@ namespace cgc1
        *
        * Note that suggested max heap size does not guarentee the heap can expand to that size depending on platform.
        * @param initial_gc_heap_size Initial size of gc heap.
-       * @param suggested_max_heap_size Hint about how large the gc heap may grow.
+       * @param max_heap_size Hint about how large the gc heap may grow.
        * @return True on success, false on failure.
       **/
-      bool initialize(size_t initial_gc_heap_size, size_t suggested_max_heap_size) REQUIRES(!m_mutex);
+      bool initialize(size_t initial_gc_heap_size, size_t max_heap_size) REQUIRES(!m_mutex);
       /**
        * \brief Return a thread allocator for the current thread.
        *
@@ -155,7 +164,7 @@ namespace cgc1
        * @param try_expand Attempt to expand underlying slab if necessary
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
+      system_memory_range_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
 
       /**
        * \brief Get an interval of memory.
@@ -165,7 +174,7 @@ namespace cgc1
        * @param try_expand Try to expand underlying slab if true.
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
+      system_memory_range_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
       /**
        * \brief Create or reuse an allocator block in destination by reference.
        *
@@ -333,7 +342,10 @@ namespace cgc1
        * \brief Return the currently used size of slab.
        **/
       REQUIRES(m_mutex) auto _u_current_size() const noexcept -> size_t;
-
+      /**
+       * \brief Return maximum heap size.
+       **/
+      auto max_heap_size() const noexcept -> size_type;
       /**
        * \brief Collapse the free list.
       **/
@@ -558,6 +570,11 @@ namespace cgc1
        * \brief Allocator traits.
       **/
       Allocator_Traits m_traits;
+
+      /**
+       * \brief Maximum heap size.
+       **/
+      size_type m_maximum_heap_size = 0;
 
     public:
       /**
