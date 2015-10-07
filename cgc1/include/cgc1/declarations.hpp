@@ -256,8 +256,8 @@ namespace cgc1
 #endif
 #ifdef _DEBUG
 #ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 2
-#define CGC1_DEBUG_VERBOSE_TRACK
+#define _CGC1_DEBUG_LEVEL 0
+//#define CGC1_DEBUG_VERBOSE_TRACK
 #endif
 #endif
 #ifndef _CGC1_DEBUG_LEVEL

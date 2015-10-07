@@ -35,6 +35,7 @@ namespace cgc1
      * Does nothing on any event.
      **/
     struct allocator_no_traits_t {
+      do_nothing_t on_allocation;
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;

@@ -11,6 +11,10 @@ namespace cgc1
      * In particular note that gc user data is used.
      **/
     struct gc_allocator_traits_t {
+      void on_allocation(void *addr, size_t sz)
+      {
+        secure_zero(addr, sz);
+      }
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;

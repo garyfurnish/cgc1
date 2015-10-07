@@ -238,17 +238,16 @@ namespace cgc1
       // try allocation.
       void *ret = m_allocators[id].allocate(sz);
       // if successful returned.
-      if (ret)
+      if (ret) {
+        m_allocator.traits().on_allocation(ret, sz);
         return ret;
+      }
       size_t attempts = 1;
       bool success;
       bool try_expand = true;
       while (unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
-        ::std::cout << "allocation failed\n";
         auto action = m_allocator.traits().on_allocation_failure({attempts});
-        ::std::cout << typeid(m_allocator.traits()).name() << ::std::endl;
         if (!action.m_repeat) {
-          ::std::cout << "no repeat\n";
           break;
         }
         ++attempts;
@@ -261,6 +260,7 @@ namespace cgc1
       ret = m_allocators[id].allocate(sz);
       if (unlikely(!ret)) // should be impossible.
         abort();
+      m_allocator.traits().on_allocation(ret, sz);
       return ret;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>

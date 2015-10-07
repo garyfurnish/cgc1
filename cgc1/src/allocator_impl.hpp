@@ -95,7 +95,7 @@ namespace cgc1
         uint8_t *new_end = m_current_end + sz;
         // create the memory interval pair.
         auto ret = ::std::make_pair(m_current_end, new_end);
-        assert(new_end < m_slab.end());
+        assert(new_end <= m_slab.end());
         m_current_end = new_end;
         assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
         assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
