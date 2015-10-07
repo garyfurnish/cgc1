@@ -71,7 +71,7 @@ namespace cgc1
       for (size_t i = 0; i < num_blocks(); ++i) {
         auto ret = free_bits()[i].first_set();
         if (ret != ::std::numeric_limits<size_t>::max())
-          return i * 64 + ret;
+          return i * bits_array_type::size_in_bits() + ret;
       }
       return ::std::numeric_limits<size_t>::max();
     }
@@ -173,6 +173,7 @@ namespace cgc1
       // guarentee the memory address exists somewhere that is visible to gc
       volatile auto memory_address = begin() + real_entry_size() * i;
       set_free(i, false);
+      assert(first_free() != i);
       return memory_address;
     }
     CGC1_OPT_INLINE bool packed_object_state_t::deallocate(void *vv) noexcept
