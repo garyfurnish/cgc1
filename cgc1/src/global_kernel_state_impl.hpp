@@ -10,7 +10,8 @@ namespace cgc1
     {
       return m_gc_allocator;
     }
-    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept -> packed_object_allocator_t &
+    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept
+        -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &
     {
       return m_packed_object_allocator;
     }

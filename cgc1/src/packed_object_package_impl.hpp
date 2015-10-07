@@ -21,16 +21,18 @@ namespace cgc1
         return ::std::numeric_limits<size_t>::max();
       return ret;
     }
-    CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> void *
+    CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> ::std::pair<void *, size_t>
     {
       auto &vec = m_vectors[id];
       for (auto &it : ::boost::make_iterator_range(vec.rbegin(), vec.rend())) {
         auto &packed = *it;
         auto ret = packed.allocate();
-        if (ret)
-          return ret;
+        if (ret) {
+          return ::std::make_pair(ret, packed.real_entry_size());
+        }
       }
-      return nullptr;
+      ::std::cout << "ret nullptr\n";
+      return ::std::make_pair(nullptr, 0);
     }
   }
 }

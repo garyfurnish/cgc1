@@ -7,6 +7,7 @@ namespace cgc1
   namespace details
   {
     using namespace literals;
+    template <typename Allocator_Policy>
     class packed_object_allocator_t;
     /**
      * \brief Return the id for an object of a given size.
@@ -53,7 +54,7 @@ namespace cgc1
       /**
        * \brief Allocate an object with given id.
        **/
-      auto allocate(size_t id) noexcept -> void *;
+      auto allocate(size_t id) noexcept -> ::std::pair<void *, size_t>;
       /**
        * \brief Do Maintenance for package.
        **/

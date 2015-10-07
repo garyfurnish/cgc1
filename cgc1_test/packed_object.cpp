@@ -189,9 +189,9 @@ static void multiple_slab_test1()
   AssertThat(info1.m_num_blocks, Equals(::cgc1::details::packed_object_package_t::cs_total_size / 512 / 64));
   AssertThat(info1.m_data_entry_sz, Equals(64_sz));
 
-  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
+  auto &poa = cgc1::details::g_gks->_packed_object_allocator();
 
-  cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
+  auto &ta = poa.initialize_thread();
   {
     void *v = ta.allocate(128);
     AssertThat(v != nullptr, IsTrue());
@@ -234,8 +234,8 @@ static void multiple_slab_test1()
  **/
 static _NoInline_ void packed_root_test__setup(void *&memory, size_t &old_memory)
 {
-  cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
-  cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
+  auto &poa = cgc1::details::g_gks->_packed_object_allocator();
+  auto &ta = poa.initialize_thread();
   memory = ta.allocate(50);
   // hide a pointer away for comparison testing.
   old_memory = cgc1::hide_pointer(memory);
@@ -289,8 +289,8 @@ static void packed_linked_list_test()
   auto test_thread = [&keep_going, &debug_mutex, &locations, &foo]() {
     CGC1_INITIALIZE_THREAD();
     //    void** foo;
-    cgc1::details::packed_object_allocator_t &poa = cgc1::details::g_gks->_packed_object_allocator();
-    cgc1::details::packed_object_thread_allocator_t &ta = poa.initialize_thread();
+    auto &poa = cgc1::details::g_gks->_packed_object_allocator();
+    auto &ta = poa.initialize_thread();
     foo = reinterpret_cast<void **>(ta.allocate(100));
     {
       void **bar = foo;

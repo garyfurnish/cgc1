@@ -3,12 +3,14 @@ namespace cgc1
 {
   namespace details
   {
-    inline auto packed_object_allocator_t::_mutex() const noexcept -> mutex_type &
+    template <typename Allocator_Policy>
+    inline auto packed_object_allocator_t<Allocator_Policy>::_mutex() const noexcept -> mutex_type &
     {
       return m_mutex;
     }
+    template <typename Allocator_Policy>
     template <typename Predicate>
-    void packed_object_allocator_t::_for_all_state(Predicate &&predicate)
+    void packed_object_allocator_t<Allocator_Policy>::_for_all_state(Predicate &&predicate)
     {
       CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
       for (auto &&thread : m_thread_allocators)

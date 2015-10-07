@@ -72,8 +72,10 @@ int main()
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
     if (!ret)
       abort();
-    for (size_t li = 0; li < 8; ++li)
-      ret[li] = ts.allocate(alloc_sz);
+    for (size_t li = 0; li < 8; ++li) {
+      if (!(ret[li] = ts.allocate(alloc_sz)))
+        abort();
+    }
   }
 #endif
   hrc::time_point t2 = hrc::now();

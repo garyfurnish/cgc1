@@ -94,7 +94,7 @@ namespace cgc1
       /**
        * \brief Return the packed object allocator.
        **/
-      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t &;
+      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &;
       /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
@@ -262,7 +262,7 @@ namespace cgc1
       /**
        * \brief Packed object allocator for fast allocation.
        **/
-      mutable packed_object_allocator_t m_packed_object_allocator;
+      mutable packed_object_allocator_t<gc_packed_object_allocator_policy_t> m_packed_object_allocator;
       /**
        * \brief Main mutex for state.
        **/

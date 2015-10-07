@@ -251,6 +251,15 @@ namespace cgc1
     ::std::rotate(replace, replace + 1, new_location + 1);
     *new_location = ::std::forward<Val>(val);
   }
+  /**
+   * \brief Functional that does nothing when called.
+   **/
+  struct do_nothing_t {
+    template <typename... Args>
+    void operator()(Args &&...)
+    {
+    }
+  };
 #ifndef NDEBUG
 #define _DEBUG
 #endif

@@ -13,15 +13,6 @@ namespace cgc1
 {
   namespace details
   {
-    /**
-     * \brief Functional that does nothing when called.
-     **/
-    struct do_nothing_t {
-      template <typename... Args>
-      void operator()(Args &&...)
-      {
-      }
-    };
     struct allocation_failure_t {
       size_t m_failures;
     };

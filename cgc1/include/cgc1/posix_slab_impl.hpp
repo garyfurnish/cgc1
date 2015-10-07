@@ -89,7 +89,6 @@ namespace cgc1
     if (ret != m_addr) {
       ::std::cerr << "\n Failed to expand memory " << m_addr << " " << m_size << " " << size << " returned " << ret
                   << ::std::endl;
-      assert(0);
       return false;
     }
     m_size = size;
