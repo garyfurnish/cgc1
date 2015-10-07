@@ -23,7 +23,7 @@ namespace cgc1
       using allocator_policy_type = Allocator_Policy;
       packed_object_thread_allocator_t(packed_object_allocator_t<allocator_policy_type> &allocator);
       packed_object_thread_allocator_t(const packed_object_thread_allocator_t &) = delete;
-      packed_object_thread_allocator_t(packed_object_thread_allocator_t &&) noexcept = default;
+      packed_object_thread_allocator_t(packed_object_thread_allocator_t &&) noexcept;
       packed_object_thread_allocator_t &operator=(const packed_object_thread_allocator_t &) = delete;
       packed_object_thread_allocator_t &operator=(packed_object_thread_allocator_t &&) = default;
       ~packed_object_thread_allocator_t();
@@ -43,9 +43,15 @@ namespace cgc1
 
       template <typename Predicate>
       void for_all_state(Predicate &&predicate);
+      /**
+       * \brief Tell thread to perform maintenance at next opportunity.
+       **/
+      void set_force_maintenance();
 
     private:
+      void _check_maintenance();
       packed_object_package_t m_locals;
+      ::std::atomic<bool> m_force_maintenance;
       cgc_internal_vector_t<void *> m_free_list;
       packed_object_allocator_t<allocator_policy_type> &m_allocator;
       ::std::array<size_t, packed_object_package_t::cs_num_vectors> m_popcount_max;
@@ -54,7 +60,5 @@ namespace cgc1
     };
   }
 }
-#ifdef CGC1_INLINES
 #include "packed_object_thread_allocator_impl.hpp"
-#endif
 #include "packed_object_thread_allocator_timpl.hpp"

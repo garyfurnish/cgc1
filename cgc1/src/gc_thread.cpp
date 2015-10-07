@@ -265,7 +265,6 @@ namespace cgc1
           m_addresses_to_mark.insert(addr);
           return;
         }
-
         auto state = get_state(addr);
         if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
           return;

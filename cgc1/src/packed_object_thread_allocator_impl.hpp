@@ -5,6 +5,17 @@ namespace cgc1
   {
     template <typename Allocator_Policy>
     packed_object_thread_allocator_t<Allocator_Policy>::packed_object_thread_allocator_t(
+        packed_object_thread_allocator_t &&ta) noexcept : m_locals(::std::move(ta.m_locals)),
+                                                          m_force_maintenance(ta.force_maintenance.load()),
+                                                          m_free_list(::std::move(ta.m_free_list)),
+                                                          m_allocator(ta.m_allocator),
+                                                          m_popcount_max(::std::move(ta.m_popcount_max)),
+                                                          m_max_in_use(::std::move(ta.m_max_in_use)),
+                                                          m_max_free(::std::move(ta.m_max_free))
+    {
+    }
+    template <typename Allocator_Policy>
+    packed_object_thread_allocator_t<Allocator_Policy>::packed_object_thread_allocator_t(
         packed_object_allocator_t<allocator_policy_type> &allocator)
         : m_allocator(allocator)
     {
@@ -46,7 +57,10 @@ namespace cgc1
     template <typename Allocator_Policy>
     void packed_object_thread_allocator_t<Allocator_Policy>::do_maintenance()
     {
+      m_force_maintenance = false;
+
       m_locals.do_maintenance(m_free_list);
+
       size_t id = 0;
       for (auto &&vec : m_locals.m_vectors) {
         size_t num_potential_moves = 0;
@@ -68,7 +82,6 @@ namespace cgc1
               if (state.free_popcount() > state.size() / 2) {
                 num_found++;
                 if (num_found > threshold) {
-                  ::std::swap(*it, *(end - 1));
                   --end;
                   continue;
                 }
@@ -86,6 +99,7 @@ namespace cgc1
           vec.resize(vec.size() - num_to_be_moved);
         }
         // move extra free to global.
+
         if (m_free_list.size() > m_max_free) {
           CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
           while (m_free_list.size() != m_max_free) {
@@ -99,17 +113,20 @@ namespace cgc1
     template <typename Allocator_Policy>
     auto packed_object_thread_allocator_t<Allocator_Policy>::allocate(size_t sz) noexcept -> void *
     {
+
       size_t attempts = 1;
       bool expand = false;
+      (void)expand;
     RESTART:
+      _check_maintenance();
       const auto id = get_packed_object_size_id(sz);
       void *v;
       size_t ret_size;
       ::std::tie(v, ret_size) = m_locals.allocate(id);
       if (!v) {
-        ::std::cout << "!v\n";
         if (!m_free_list.empty()) {
           packed_object_state_t *state = unsafe_cast<packed_object_state_t>(m_free_list.back());
+          assert(state);
           state->m_info = packed_object_package_t::_get_info(id);
           state->initialize();
           m_free_list.pop_back();
@@ -156,6 +173,17 @@ namespace cgc1
         m_free_list.push_back(state);
       }
       return true;
+    }
+    template <typename Allocator_Policy>
+    void packed_object_thread_allocator_t<Allocator_Policy>::set_force_maintenance()
+    {
+      m_force_maintenance = true;
+    }
+    template <typename Allocator_Policy>
+    void packed_object_thread_allocator_t<Allocator_Policy>::_check_maintenance()
+    {
+      if (unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
+        do_maintenance();
     }
   }
 }

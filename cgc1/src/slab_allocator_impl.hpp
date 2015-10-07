@@ -111,7 +111,6 @@ namespace cgc1
           continue;
         // if next valid, and both this and next object state are not in use, coalesce.
         while (it->next_valid() && !it->next()->not_available()) {
-          ::std::cout << "allocate coalesse\n";
           if (!it->next()->next_valid())
             break;
           it->set_all(it->next()->next(), false, it->next()->next_valid());
@@ -128,7 +127,6 @@ namespace cgc1
         else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
           ub = it;
         if (!it->next_valid() && it->next() != _u_object_current_end()) {
-          ::std::cout << it->next() << " " << _u_object_current_end() << " " << reinterpret_cast<void *>(end()) << ::std::endl;
           abort();
         }
       }
@@ -147,7 +145,6 @@ namespace cgc1
     }
     CGC1_OPT_INLINE void slab_allocator_t::deallocate_raw(void *v)
     {
-      ::std::cout << "deallocate raw\n";
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
       // set not in use.
@@ -156,12 +153,10 @@ namespace cgc1
       while (object->next_valid() && !object->next()->not_available()) {
         auto next = object->next();
         object->set_all(next->next(), false, next->next_valid());
-        ::std::cout << "while loop\n";
       }
       // if we can coallesce into end pointer, do that.
       if (!object->next_valid() ||
           (object->next_valid() && !object->next()->not_available() && object->next()->next() == &*_u_object_end())) {
-        ::std::cout << "moving endptr\n";
         object->set_next(&*_u_object_end());
         m_end = object;
       }

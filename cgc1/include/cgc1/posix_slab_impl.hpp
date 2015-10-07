@@ -87,8 +87,6 @@ namespace cgc1
     // this can fail for lots of reasons, such as ASLR.
     void *ret = ::mremap(m_addr, m_size, size, 0);
     if (ret != m_addr) {
-      ::std::cerr << "\n Failed to expand memory " << m_addr << " " << m_size << " " << size << " returned " << ret
-                  << ::std::endl;
       return false;
     }
     m_size = size;

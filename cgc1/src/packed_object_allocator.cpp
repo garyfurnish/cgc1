@@ -28,7 +28,6 @@ namespace cgc1
     auto gc_packed_object_allocator_policy_t::on_allocation_failure(const packed_allocation_failure_t &failure)
         -> packed_allocation_failure_action_t
     {
-      ::std::cout << "Packed forcing gc\n";
       g_gks->force_collect();
       return packed_allocation_failure_action_t{false, failure.m_failures < 5};
     }

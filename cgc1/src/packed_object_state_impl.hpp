@@ -224,6 +224,10 @@ namespace cgc1
       }
       return static_cast<size_t>(diff) / real_entry_size();
     }
+    CGC1_OPT_INLINE auto packed_object_state_t::get_object(size_t i) noexcept -> void *
+    {
+      return reinterpret_cast<void *>(begin() + i * real_entry_size());
+    }
     CGC1_OPT_INLINE auto packed_object_state_t::has_valid_magic_numbers() const noexcept -> bool
     {
       return m_info.m_padding[2] == cs_magic_number_0 && m_info.m_padding[3] == cs_magic_number_1;

@@ -3,7 +3,6 @@
 #include <iostream>
 void *operator new(size_t count)
 {
-  ::std::cout << "new\n";
   return ::malloc(count);
 }
 void *operator new[](size_t count)

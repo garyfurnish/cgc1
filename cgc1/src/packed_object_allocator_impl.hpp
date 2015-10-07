@@ -42,7 +42,6 @@ namespace cgc1
       {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         if (!m_free_globals.empty()) {
-          ::std::cout << "get memory frfee global\n";
           auto ret = m_free_globals.back();
           m_free_globals.pop_back();
           return unsafe_cast<packed_object_state_t>(ret);
@@ -50,7 +49,6 @@ namespace cgc1
       }
       auto new_memory =
           unsafe_cast<packed_object_state_t>(m_slab.allocate_raw(c_packed_object_block_size - slab_allocator_t::cs_alignment));
-      ::std::cout << "allocating on slab " << new_memory << ::std::endl;
       return new_memory;
     }
     template <typename Allocator_Policy>
@@ -120,6 +118,13 @@ namespace cgc1
     auto packed_object_allocator_t<Allocator_Policy>::allocator_policy() const noexcept -> const allocator_policy_type &
     {
       return m_policy;
+    }
+    template <typename Allocator_Policy>
+    void packed_object_allocator_t<Allocator_Policy>::_u_set_force_maintenance()
+    {
+      for (auto &&ta : m_thread_allocators) {
+        ta.second->set_force_maintenance();
+      }
     }
   }
 }

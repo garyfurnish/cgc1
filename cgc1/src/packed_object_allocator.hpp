@@ -61,6 +61,10 @@ namespace cgc1
        * \brief Return reference to allocator policy.
        **/
       auto allocator_policy() const noexcept -> const allocator_policy_type &;
+      /**
+       * \brief Notify all threads to force maintenance.
+       **/
+      void _u_set_force_maintenance() REQUIRES(m_mutex);
 
     private:
       /**
@@ -106,6 +110,4 @@ namespace cgc1
   }
 }
 #include "packed_object_allocator_inlines.hpp"
-#ifdef CGC1_INLINES
 #include "packed_object_allocator_impl.hpp"
-#endif

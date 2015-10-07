@@ -164,15 +164,10 @@ namespace cgc1
                                                                    block_type &block,
                                                                    bool try_expand)
     {
+      (void)try_expand;
       // try to allocate memory.
       auto memory = _u_get_memory(sz, true);
       if (!memory.begin()) {
-        if (try_expand) {
-          ::std::cerr << "Error in " << typeid(typename ::std::decay<decltype(*this)>::type).name()
-                      << "::_u_create_allocator_block" << ::std::endl;
-          ::std::cerr << "Request size is " << sz << ::std::endl;
-          ::std::cerr << "out of memory\n";
-        }
         return false;
       }
       // get actual size of memory.

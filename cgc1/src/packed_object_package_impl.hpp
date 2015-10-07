@@ -31,7 +31,6 @@ namespace cgc1
           return ::std::make_pair(ret, packed.real_entry_size());
         }
       }
-      ::std::cout << "ret nullptr\n";
       return ::std::make_pair(nullptr, 0);
     }
   }
