@@ -165,6 +165,7 @@ namespace cgc1
 
     CGC1_OPT_INLINE void *packed_object_state_t::allocate() noexcept
     {
+    RESTART:
       auto i = first_free();
       if (i >= size())
         return nullptr;
@@ -173,7 +174,17 @@ namespace cgc1
       // guarentee the memory address exists somewhere that is visible to gc
       volatile auto memory_address = begin() + real_entry_size() * i;
       set_free(i, false);
-      assert(first_free() != i);
+      size_t retries = 0;
+      // this awful code is because for a conservative gc
+      // we could set free before memory_address is live.
+      // this can go wrong because we could mark while it is still free.
+      if (unlikely(first_free() == i)) {
+        if (retries < 15) {
+          goto RESTART;
+        } else
+          abort();
+      }
+      assert(memory_address);
       return memory_address;
     }
     CGC1_OPT_INLINE bool packed_object_state_t::deallocate(void *vv) noexcept

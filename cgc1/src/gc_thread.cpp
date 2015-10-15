@@ -266,6 +266,9 @@ namespace cgc1
           return;
         }
         auto state = get_state(addr);
+        // getting state moves pointer lower, so recheck bounds.
+        if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
+          return;
         if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
           return;
         state->set_marked(state->get_index(addr));

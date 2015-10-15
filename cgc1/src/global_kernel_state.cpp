@@ -56,11 +56,9 @@ namespace cgc1
     global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
         : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
           m_packed_object_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
-          m_num_collections(0), m_initialization_parameters(param)
+          m_initialization_parameters(param)
     {
       m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
-      ::std::cout << "Created CGC1\n";
-      m_enabled_count = 1;
       details::initialize_tlks();
     }
     void global_kernel_state_t::shutdown()
@@ -248,6 +246,15 @@ namespace cgc1
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
         abort();
       }
+      bool expected = false;
+      m_collect.compare_exchange_strong(expected, true);
+      if (expected) {
+        // if another thread is trying to collect, let them do it instead.
+        while (m_collect.load(::std::memory_order_relaxed))
+          ::std::this_thread::yield();
+        return;
+      }
+
       // wait until safe to collect.
       wait_for_finalization();
       // we need to maintain global allocator at some point so do it here.
@@ -255,18 +262,30 @@ namespace cgc1
       // note that the order of allocator locks and unlocks are all important here to prevent deadlocks!
       // grab allocator locks so that they are in a consistent state for garbage collection.
       lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-           m_slab_allocator._mutex(), m_thread_mutex);
+           m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      if (m_collect || m_num_paused_threads != m_num_resumed_threads) {
-        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-               m_slab_allocator._mutex(), m_mutex);
-        return;
+      while (m_num_paused_threads != m_num_resumed_threads) {
+        // we need to unlock these because gc_thread could be using them.
+        // and gc_thread is not paused.
+        unlock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
+        //        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
+        //               m_slab_allocator._mutex(), m_mutex);
+        //	m_collect = false;
+        //        return;
+        // this is not good enough
+        // we need an array so we can try to repause threads.
+        ::std::this_thread::yield();
+        lock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
       }
+      m_start_world_condition_mutex.unlock();
       ::std::atomic_thread_fence(::std::memory_order_acq_rel);
-      m_collect = true;
+      //      m_collect = true;
       m_num_freed_in_last_collection = 0;
       m_freed_in_last_collection.clear();
-      m_num_paused_threads = m_num_resumed_threads = 0;
+      m_collect_finished.store(0, ::std::memory_order_release);
+      m_num_paused_threads.store(0, ::std::memory_order_release);
+      m_num_resumed_threads.store(0, ::std::memory_order_release);
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       m_allocators_unavailable_mutex.lock();
       _u_suspend_threads();
       m_thread_mutex.unlock();
@@ -332,9 +351,11 @@ namespace cgc1
       m_notify_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
       m_total_collect_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - tstart);
       m_num_collections++;
-      m_collect = false;
       m_thread_mutex.lock();
+      // tell threads they make wake up.
+      m_collect_finished = true;
       _u_resume_threads();
+      m_collect = false;
       m_thread_mutex.unlock();
       m_mutex.unlock();
     }
@@ -356,7 +377,7 @@ namespace cgc1
       // this just needs mutex.
       ::std::unique_lock<decltype(m_mutex)> lock(m_mutex);
 #ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
 #else
       while (m_collect) {
         lock.unlock();
@@ -371,7 +392,7 @@ namespace cgc1
       // this needs both thread mutex and mutex.
       double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
 #ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
 #else
       while (m_collect) {
         lock.unlock();
@@ -439,8 +460,8 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(pow2(33), pow2(36));
-      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
-      // const size_t num_gc_threads = 1;
+      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
       if (!num_gc_threads) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
@@ -472,9 +493,14 @@ namespace cgc1
       // note threads.size() can not change out from under us here by logic.
       // in particular we can't add threads during collection cycle.
       lock.unlock();
-      while (m_num_paused_threads != m_threads.size() - 1) {
+      ::std::chrono::high_resolution_clock::time_point start_time = ::std::chrono::high_resolution_clock::now();
+      while (m_num_paused_threads.load(::std::memory_order_acquire) != m_threads.size() - 1) {
         // os friendly spin a bit.
         ::std::this_thread::yield();
+        ::std::chrono::high_resolution_clock::time_point cur_time = ::std::chrono::high_resolution_clock::now();
+        auto time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(cur_time - start_time);
+        if (time_span > ::std::chrono::seconds(1))
+          ::std::cerr << "Waiting on thread to pause\n";
       }
       lock.lock();
       // we shouldn't unlock at end of this.
@@ -504,10 +530,10 @@ namespace cgc1
         m_allocators_unavailable_mutex.lock();
         m_allocators_unavailable_mutex.unlock();
       }
-      unique_lock_t<decltype(m_mutex)> lock(m_mutex);
+      unique_lock_t<decltype(m_start_world_condition_mutex)> lock(m_start_world_condition_mutex);
       // deadlock potential here if conditional var sets mutexes in kernel
       // so we use our own conditional variable implementation.
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
       // this thread is resumed.
       m_num_resumed_threads++;
       // do this inside lock just to prevent race conditions.

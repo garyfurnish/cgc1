@@ -60,11 +60,11 @@ namespace cgc1
       /**
        * \brief Hint to perform a garbage collection.
       **/
-      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
+      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Force a garbage collection.
       **/
-      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
+      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Return the number of collections that have happened.
        *
@@ -268,6 +268,11 @@ namespace cgc1
        **/
       mutable mutex_t m_mutex;
       /**
+       * \brief Mutex for resuming world.
+       *
+       **/
+      mutable mutex_t m_start_world_condition_mutex;
+      /**
        * Number of paused threads in a collect cycle.
       **/
       std::atomic<size_t> m_num_paused_threads;
@@ -279,7 +284,7 @@ namespace cgc1
        * \brief Number of collections that have happened.
        * May wrap around.
       **/
-      mutable ::std::atomic<size_t> m_num_collections;
+      mutable ::std::atomic<size_t> m_num_collections{0};
 #ifndef _WIN32
       /**
        * \brief Condition variable used to broadcast
@@ -326,13 +331,17 @@ namespace cgc1
       **/
       cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
-       * \brief True while a garbage collection is running, otherwise false.
+       * \brief True while a garbage collection is running or trying to run, otherwise false.
       **/
-      ::std::atomic<bool> m_collect;
+      ::std::atomic<bool> m_collect{false};
+      /**
+       * \brief True if last GC is finished, false otherwise.
+       **/
+      ::std::atomic<bool> m_collect_finished{true};
       /**
        * \brief Increment variable for enabling or disabling
       **/
-      ::std::atomic<long> m_enabled_count;
+      ::std::atomic<long> m_enabled_count{1};
       /**
        * \brief True if the kernel has been initialized, false otherwise.
       **/

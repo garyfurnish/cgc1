@@ -23,8 +23,7 @@
 #endif
 
 static const size_t num_alloc = 10000000;
-// static const size_t num_alloc = 3000000;
-static const size_t num_thread = 64;
+static const size_t num_thread = 32;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
@@ -66,6 +65,7 @@ void thread_main()
   done_cv.notify_all();
   GC_unregister_my_thread();
 #else
+  CGC1_INITIALIZE_THREAD();
 #ifdef CGC1_SPARSE
   auto &allocator = cgc1::details::g_gks->gc_allocator();
   auto &ts = allocator.initialize_thread();
@@ -99,6 +99,7 @@ void thread_main()
   }
   ++done;
   done_cv.notify_all();
+  cgc1::cgc_unregister_thread();
 #endif
 }
 

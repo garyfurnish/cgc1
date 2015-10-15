@@ -136,7 +136,6 @@ namespace cgc1
           m_allocator.allocator_policy().on_allocate(v, state->real_entry_size());
           return v;
         } else {
-
           packed_object_state_t *state = m_allocator._get_memory();
           if (!state) {
             packed_allocation_failure_t failure{attempts};
@@ -149,8 +148,10 @@ namespace cgc1
           }
           state->m_info = packed_object_package_t::_get_info(id);
           state->initialize();
+          assert(state->first_free() == 0);
 
           v = state->allocate();
+          assert(v);
           m_locals.insert(id, state);
           m_allocator.allocator_policy().on_allocate(v, state->real_entry_size());
           return v;
