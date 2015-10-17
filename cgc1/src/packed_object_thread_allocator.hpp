@@ -48,6 +48,12 @@ namespace cgc1
        **/
       void set_force_maintenance();
 
+      /**
+       * \brief Put information about allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level);
+
     private:
       void _check_maintenance();
       packed_object_package_t m_locals;
@@ -57,6 +63,7 @@ namespace cgc1
       ::std::array<size_t, packed_object_package_t::cs_num_vectors> m_popcount_max;
       size_t m_max_in_use = 10;
       size_t m_max_free = 5;
+      bool m_in_destructor{false};
     };
   }
 }

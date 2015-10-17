@@ -28,11 +28,23 @@ namespace cgc1
     template <typename Allocator_Policy>
     packed_object_thread_allocator_t<Allocator_Policy>::~packed_object_thread_allocator_t()
     {
+      m_in_destructor = true;
       // set max to zero to move all states.
       ::std::fill(m_popcount_max.begin(), m_popcount_max.end(), 0);
       set_max_in_use(0);
       set_max_free(0);
       do_maintenance();
+      for (auto &&vec : m_locals.m_vectors) {
+        if (unlikely(!vec.empty())) {
+          ::std::cerr << ::std::this_thread::get_id()
+                      << " error: deallocating packed_object_thread_allocator_t with objects left\n";
+          abort();
+        }
+      }
+      if (unlikely(!m_free_list.empty())) {
+        ::std::cerr << ::std::this_thread::get_id()
+                    << " error deallocating packed_object_thread_allocator_t with free list nonempty\n";
+      }
     }
     template <typename Allocator_Policy>
     void packed_object_thread_allocator_t<Allocator_Policy>::set_max_in_use(size_t max_in_use)
@@ -66,7 +78,7 @@ namespace cgc1
         size_t num_potential_moves = 0;
         // move extra in use to global.
         for (auto &&state : vec) {
-          if (state->free_popcount() > state->size() / 2)
+          if (state->free_popcount() > state->size() / 2 || unlikely(m_in_destructor))
             // approximately half free.
             num_potential_moves++;
         }
@@ -83,6 +95,7 @@ namespace cgc1
                 num_found++;
                 if (num_found > threshold) {
                   --end;
+                  ::std::swap(*end, *it);
                   continue;
                 }
               }
@@ -185,6 +198,19 @@ namespace cgc1
     {
       if (unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
         do_maintenance();
+    }
+    template <typename Allocator_Policy>
+    void packed_object_thread_allocator_t<Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level)
+    {
+      ptree.put("max_in_use", ::std::to_string(max_in_use()));
+      ptree.put("max_free", ::std::to_string(max_free()));
+      ptree.put("force_maintenance", ::std::to_string(m_force_maintenance));
+      ptree.put("free_list_size", ::std::to_string(m_free_list.size()));
+      {
+        ::boost::property_tree::ptree locals;
+        m_locals.to_ptree(locals, level);
+        ptree.add_child("locals", locals);
+      }
     }
   }
 }

@@ -2,6 +2,7 @@
 #include <cgc1/declarations.hpp>
 #include "packed_object_state.hpp"
 #include "internal_allocator.hpp"
+#include "boost/property_tree/ptree_fwd.hpp"
 namespace cgc1
 {
   namespace details
@@ -62,6 +63,12 @@ namespace cgc1
 
       template <typename Predicate>
       void for_all(Predicate &&predicate);
+
+      /**
+       * \brief Put debug information into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
       /**
        * \brief Allocate an object with given size.

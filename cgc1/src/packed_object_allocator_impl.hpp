@@ -1,4 +1,6 @@
 #pragma once
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 namespace cgc1
 {
   namespace details
@@ -125,6 +127,36 @@ namespace cgc1
       for (auto &&ta : m_thread_allocators) {
         ta.second->set_force_maintenance();
       }
+    }
+    template <typename Allocator_Policy>
+    void packed_object_allocator_t<Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      ptree.put("num_free_globals", ::std::to_string(m_free_globals.size()));
+      {
+        ::boost::property_tree::ptree globals;
+        m_globals.to_ptree(globals, level);
+        ptree.add_child("globals", globals);
+      }
+      {
+        ::boost::property_tree::ptree thread_allocators;
+        for (auto &&pair : m_thread_allocators) {
+          ::boost::property_tree::ptree thread_allocator;
+          thread_allocator.put("id", pair.first);
+          pair.second->to_ptree(thread_allocator, level);
+          thread_allocators.add_child("thread_allocator", thread_allocator);
+        }
+        ptree.add_child("thread_allocators", thread_allocators);
+      }
+    }
+    template <typename Allocator>
+    auto to_json(Allocator &&allocator, int level) -> ::std::string
+    {
+      ::std::stringstream ss;
+      ::boost::property_tree::ptree ptree;
+      allocator.to_ptree(ptree, level);
+      ::boost::property_tree::json_parser::write_json(ss, ptree);
+      return ss.str();
     }
   }
 }

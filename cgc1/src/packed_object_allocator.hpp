@@ -65,6 +65,11 @@ namespace cgc1
        * \brief Notify all threads to force maintenance.
        **/
       void _u_set_force_maintenance() REQUIRES(m_mutex);
+      /**
+       * \brief Put information about allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
 
     private:
       /**
