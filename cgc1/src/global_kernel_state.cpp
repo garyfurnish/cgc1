@@ -135,6 +135,11 @@ namespace cgc1
         m_gc_allocator.to_ptree(gc_allocator, level);
         ptree.put_child("gc_allocator", gc_allocator);
       }
+      {
+        ::boost::property_tree::ptree packed_allocator;
+        m_packed_object_allocator.to_ptree(packed_allocator, level);
+        ptree.put_child("packed_allocator", packed_allocator);
+      }
     }
     auto global_kernel_state_t::to_json(int level) const -> ::std::string
     {
@@ -250,11 +255,11 @@ namespace cgc1
       m_collect.compare_exchange_strong(expected, true);
       if (expected) {
         // if another thread is trying to collect, let them do it instead.
-        while (m_collect.load(::std::memory_order_relaxed))
+        // this is memory order acquire because it should be a barrier like locking a mutex.
+        while (m_collect.load(::std::memory_order_acquire))
           ::std::this_thread::yield();
         return;
       }
-
       // wait until safe to collect.
       wait_for_finalization();
       // we need to maintain global allocator at some point so do it here.
@@ -264,7 +269,8 @@ namespace cgc1
       lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
            m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      while (m_num_paused_threads != m_num_resumed_threads) {
+      while (likely(m_num_collections) &&
+             m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
         // we need to unlock these because gc_thread could be using them.
         // and gc_thread is not paused.
         unlock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
@@ -353,8 +359,12 @@ namespace cgc1
       m_num_collections++;
       m_thread_mutex.lock();
       // tell threads they make wake up.
+      m_start_world_condition_mutex.lock();
       m_collect_finished = true;
+      // make sure everything is committed
+      ::std::atomic_thread_fence(::std::memory_order_seq_cst);
       _u_resume_threads();
+      m_start_world_condition_mutex.unlock();
       m_collect = false;
       m_thread_mutex.unlock();
       m_mutex.unlock();
@@ -377,7 +387,7 @@ namespace cgc1
       // this just needs mutex.
       ::std::unique_lock<decltype(m_mutex)> lock(m_mutex);
 #ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_acquire); });
 #else
       while (m_collect) {
         lock.unlock();
@@ -391,15 +401,12 @@ namespace cgc1
     {
       // this needs both thread mutex and mutex.
       double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
-#ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
-#else
-      while (m_collect) {
+
+      while (!m_collect_finished && m_collect) {
         lock.unlock();
         ::std::this_thread::yield();
         lock.lock();
       }
-#endif
       lock.release();
     }
     void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
@@ -444,6 +451,7 @@ namespace cgc1
       // destroy thread allocators for this thread.
       m_gc_allocator.destroy_thread();
       m_cgc_allocator.destroy_thread();
+      m_packed_object_allocator.destroy_thread();
       // remove thread from gks.
       m_threads.erase(it);
       // this will delete our tks.
@@ -533,12 +541,12 @@ namespace cgc1
       unique_lock_t<decltype(m_start_world_condition_mutex)> lock(m_start_world_condition_mutex);
       // deadlock potential here if conditional var sets mutexes in kernel
       // so we use our own conditional variable implementation.
-      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_relaxed); });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_acquire); });
+      // do this inside lock just to prevent race conditions.
+      // This is defensive programming only, it shouldn't be required.
+      tlks->set_in_signal_handler(false);
       // this thread is resumed.
       m_num_resumed_threads++;
-      // do this inside lock just to prevent race conditions.
-      // I can't think of any, but paranoid wins with threading.
-      tlks->set_in_signal_handler(false);
       lock.unlock();
     }
 #else

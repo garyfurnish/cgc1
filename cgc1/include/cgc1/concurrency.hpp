@@ -298,7 +298,11 @@ namespace cgc1
     {
       bool expected = false;
       bool desired = true;
-      return m_lock.compare_exchange_strong(expected, desired, ::std::memory_order_acquire);
+      if (m_lock.compare_exchange_strong(expected, desired)) {
+        ::std::atomic_thread_fence(::std::memory_order_acquire);
+        return true;
+      }
+      return false;
     }
     const spinlock_t &operator!() const
     {

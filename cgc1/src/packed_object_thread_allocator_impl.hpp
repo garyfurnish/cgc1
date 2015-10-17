@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/property_tree/ptree.hpp>
 namespace cgc1
 {
   namespace details
@@ -91,7 +92,7 @@ namespace cgc1
             auto it = vec.begin();
             while (it != end) {
               auto &state = **it;
-              if (state.free_popcount() > state.size() / 2) {
+              if (state.free_popcount() > state.size() / 2 || unlikely(m_in_destructor)) {
                 num_found++;
                 if (num_found > threshold) {
                   --end;
