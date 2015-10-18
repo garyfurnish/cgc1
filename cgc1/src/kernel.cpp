@@ -214,8 +214,8 @@ namespace cgc1
   }
 }
 extern "C" {
-#include "gc.h"
-#include "../gc/gc_version.h"
+#include <cgc1/gc.h>
+#include "../include/gc/gc_version.h"
 CGC1_DLL_PUBLIC void *GC_realloc(void *old_object, ::std::size_t new_size)
 {
   return cgc1::cgc_realloc(old_object, new_size);
@@ -313,7 +313,7 @@ CGC1_DLL_PUBLIC void *GC_check_annotated_obj(void *)
 {
   return nullptr;
 }
-CGC1_DLL_PUBLIC unsigned int GC_get_version()
+CGC1_DLL_PUBLIC unsigned GC_get_version()
 {
   return static_cast<unsigned>((GC_VERSION_MAJOR << 16) | (GC_VERSION_MINOR << 8));
 }

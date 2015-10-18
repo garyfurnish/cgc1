@@ -14,6 +14,7 @@
 #include "../cgc1/src/internal_allocator.hpp"
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"
+#include "../cgc1/include/gc/gc.h"
 static ::std::vector<size_t> locations;
 static cgc1::spinlock_t debug_mutex;
 using namespace bandit;
@@ -576,6 +577,7 @@ static _NoInline_ void return_to_global_test2()
 **/
 static void api_tests()
 {
+  GC_get_version();
   // test heap size api call.
   AssertThat(cgc1::cgc_heap_size(), Is().GreaterThan(static_cast<size_t>(0)));
   // test heap free api call.
