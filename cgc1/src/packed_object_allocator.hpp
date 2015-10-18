@@ -8,11 +8,19 @@ namespace cgc1
   namespace details
   {
 
+    class gc_packed_object_allocator_policy_t
+    {
+    public:
+      void on_allocate(void *addr, size_t sz);
+      auto on_allocation_failure(const packed_allocation_failure_t &action) -> packed_allocation_failure_action_t;
+    };
+    template <typename Allocator_Policy>
     class packed_object_allocator_t
     {
     public:
       using mutex_type = spinlock_t;
-      using thread_allocator_type = packed_object_thread_allocator_t;
+      using allocator_policy_type = Allocator_Policy;
+      using thread_allocator_type = packed_object_thread_allocator_t<allocator_policy_type>;
       using allocator = cgc_internal_allocator_t<void>;
 
       packed_object_allocator_t(size_t size, size_t size_hint);
@@ -45,6 +53,24 @@ namespace cgc1
       template <typename Predicate>
       NO_THREAD_SAFETY_ANALYSIS void _for_all_state(Predicate &&);
 
+      /**
+       * \brief Return reference to allocator policy.
+       **/
+      auto allocator_policy() noexcept -> allocator_policy_type &;
+      /**
+       * \brief Return reference to allocator policy.
+       **/
+      auto allocator_policy() const noexcept -> const allocator_policy_type &;
+      /**
+       * \brief Notify all threads to force maintenance.
+       **/
+      void _u_set_force_maintenance() REQUIRES(m_mutex);
+      /**
+       * \brief Put information about allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
+
     private:
       /**
        * \brief Encapsulate access to thread local variable for thread allocator.
@@ -72,6 +98,10 @@ namespace cgc1
        * \brief Underlying slab.
        **/
       mutable slab_allocator_t m_slab;
+      /**
+       * \brief Allocator policy.
+       **/
+      allocator_policy_type m_policy;
       packed_object_package_t m_globals GUARDED_BY(m_mutex);
       /**
        * \brief Free sections of slab.
@@ -85,6 +115,4 @@ namespace cgc1
   }
 }
 #include "packed_object_allocator_inlines.hpp"
-#ifdef CGC1_INLINES
 #include "packed_object_allocator_impl.hpp"
-#endif

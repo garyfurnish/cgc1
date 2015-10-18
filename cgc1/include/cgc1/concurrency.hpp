@@ -20,6 +20,14 @@ namespace cgc1
   /**
    * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
    **/
+  template <typename Lockable1, typename Lockable2, typename Lockable3>
+  void lock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3) ACQUIRE(lock1, lock2, lock3) NO_THREAD_SAFETY_ANALYSIS
+  {
+    ::std::lock(lock1, lock2, lock3);
+  }
+  /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
   template <typename Lockable1, typename Lockable2, typename Lockable3, typename Lockable4>
   void lock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3, Lockable4 &lock4)
       ACQUIRE(lock1, lock2, lock3, lock4) NO_THREAD_SAFETY_ANALYSIS
@@ -49,6 +57,26 @@ namespace cgc1
   {
     ::std::lock(lock1, lock2, lock3, lock4, lock5, lock6);
   }
+  /**
+   * \brief Locks the given Lockable objects lock1, lock2, ..., lockn using a deadlock avoidance algorithm to avoid deadlock.
+   **/
+  template <typename Lockable1,
+            typename Lockable2,
+            typename Lockable3,
+            typename Lockable4,
+            typename Lockable5,
+            typename Lockable6,
+            typename Lockable7>
+  void lock(Lockable1 &lock1,
+            Lockable2 &lock2,
+            Lockable3 &lock3,
+            Lockable4 &lock4,
+            Lockable5 &lock5,
+            Lockable6 &lock6,
+            Lockable7 &lock7) ACQUIRE(lock1, lock2, lock3, lock4, lock5, lock6, lock7) NO_THREAD_SAFETY_ANALYSIS
+  {
+    ::std::lock(lock1, lock2, lock3, lock4, lock5, lock6, lock7);
+  }
 
   /**
    * \brief For static analysis, assume lock1 is unlocked.
@@ -57,6 +85,25 @@ namespace cgc1
   void assume_unlock(Lockable1 &lock1) RELEASE(lock1) NO_THREAD_SAFETY_ANALYSIS
   {
     (void)lock1;
+  }
+  /**
+   * \brief Unlock lock1, lock2, ..., lockn in order.
+   **/
+  template <typename Lockable1, typename Lockable2>
+  void unlock(Lockable1 &lock1, Lockable2 &lock2) RELEASE(lock1, lock2) NO_THREAD_SAFETY_ANALYSIS
+  {
+    lock1.unlock();
+    lock2.unlock();
+  }
+  /**
+   * \brief Unlock lock1, lock2, ..., lockn in order.
+   **/
+  template <typename Lockable1, typename Lockable2, typename Lockable3>
+  void unlock(Lockable1 &lock1, Lockable2 &lock2, Lockable3 &lock3) RELEASE(lock1, lock2, lock3) NO_THREAD_SAFETY_ANALYSIS
+  {
+    lock1.unlock();
+    lock2.unlock();
+    lock3.unlock();
   }
   /**
    * \brief Unlock lock1, lock2, ..., lockn in order.
@@ -251,7 +298,11 @@ namespace cgc1
     {
       bool expected = false;
       bool desired = true;
-      return m_lock.compare_exchange_strong(expected, desired, ::std::memory_order_acquire);
+      if (m_lock.compare_exchange_strong(expected, desired)) {
+        ::std::atomic_thread_fence(::std::memory_order_acquire);
+        return true;
+      }
+      return false;
     }
     const spinlock_t &operator!() const
     {

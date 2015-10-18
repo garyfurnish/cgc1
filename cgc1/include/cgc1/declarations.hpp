@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <assert.h>
+#include <tuple>
 #ifndef CGC1_NO_INLINES
 #define CGC1_INLINES
 #define CGC1_OPT_INLINE inline
@@ -20,14 +21,18 @@
 #define CGC1_POSIX
 #define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) __builtin_clzl(X)
+#ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
+#endif
 #define _NoInline_ __attribute__((noinline))
 #define likely(x) __builtin_expect(static_cast<bool>(x), 1)
 #define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
+#ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack() _AddressOfReturnAddress()
+#endif
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)
@@ -214,6 +219,23 @@ namespace cgc1
   struct cgc_allocator_deleter_t<T, ::std::allocator<void>> {
     using type = ::std::default_delete<T>;
   };
+  template <typename T, typename Allocator>
+  using allocator_unique_ptr = ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type>;
+  template <typename T, typename Allocator, typename... Ts>
+  allocator_unique_ptr<T, Allocator> make_unique_allocator(Ts &&... ts)
+  {
+    typename Allocator::template rebind<T>::other allocator;
+    auto ptr = allocator.allocate(1);
+    // if T throws, we don't want to leak.
+    try {
+      allocator.construct(ptr, ::std::forward<Ts>(ts)...);
+    } catch (...) {
+      allocator.deallocate(ptr, 1);
+      throw;
+    }
+    return ::std::unique_ptr<T, typename cgc_allocator_deleter_t<T, Allocator>::type>(ptr);
+  }
+
   /**
    * \brief Make a reverse iterator from an iterator.
    **/
@@ -229,13 +251,22 @@ namespace cgc1
     ::std::rotate(replace, replace + 1, new_location + 1);
     *new_location = ::std::forward<Val>(val);
   }
+  /**
+   * \brief Functional that does nothing when called.
+   **/
+  struct do_nothing_t {
+    template <typename... Args>
+    void operator()(Args &&...)
+    {
+    }
+  };
 #ifndef NDEBUG
 #define _DEBUG
 #endif
 #ifdef _DEBUG
 #ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 2
-#define CGC1_DEBUG_VERBOSE_TRACK
+#define _CGC1_DEBUG_LEVEL 0
+//#define CGC1_DEBUG_VERBOSE_TRACK
 #endif
 #endif
 #ifndef _CGC1_DEBUG_LEVEL
@@ -319,4 +350,43 @@ namespace cgc1
 
   template <size_t bytes = 5000>
   extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
+  namespace details
+  {
+    /**
+     * \brief Return 2^n.
+    **/
+    inline constexpr size_t pow2(int n)
+    {
+      return static_cast<size_t>(2) << (n - 1);
+    }
+  }
+  template <typename Begin, typename End, typename Val, typename Comparator>
+  auto last_greater_equal_than(Begin &&begin, End &&end, Val &&val, Comparator &&comparator)
+  {
+    if (begin == end)
+      return end;
+    const auto ub = ::std::upper_bound(::std::forward<Begin>(begin), ::std::forward<End>(end), ::std::forward<Val>(val),
+                                       ::std::forward<Comparator>(comparator));
+    const auto plb = ub - 1;
+    if (ub == begin || comparator(*plb, val)) {
+      return ub;
+    } else {
+      return plb;
+    }
+  }
+}
+namespace std
+{
+  template <typename F, typename Tuple, size_t... I>
+  CGC1_ALWAYS_INLINE auto apply_impl(F &&f, Tuple &&t, integer_sequence<size_t, I...>)
+      -> decltype(::std::forward<F>(f)(::std::get<I>(::std::forward<Tuple>(t))...))
+  {
+    return t, ::std::forward<F>(f)(::std::get<I>(::std::forward<Tuple>(t))...);
+  }
+  template <typename F, typename Tuple>
+  CGC1_ALWAYS_INLINE auto apply(F &&f, Tuple &&t)
+  {
+    return apply_impl(::std::forward<F>(f), ::std::forward<Tuple>(t),
+                      make_index_sequence<::std::tuple_size<typename ::std::decay<Tuple>::type>::value>());
+  }
 }

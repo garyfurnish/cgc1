@@ -34,6 +34,7 @@ namespace cgc1
       typedef cgc_internal_malloc_allocator_t<Type> other;
     };
     cgc_internal_malloc_allocator_t() = default;
+    cgc_internal_malloc_allocator_t(const cgc_internal_malloc_allocator_t &) noexcept = default;
     template <class _Other>
     cgc_internal_malloc_allocator_t(const cgc_internal_malloc_allocator_t<_Other> &) noexcept
     {
@@ -44,6 +45,8 @@ namespace cgc1
       return *this;
     }
     cgc_internal_malloc_allocator_t(cgc_internal_malloc_allocator_t<void> &&) noexcept = default;
+    cgc_internal_malloc_allocator_t &operator=(const cgc_internal_malloc_allocator_t &) noexcept = default;
+    cgc_internal_malloc_allocator_t &operator=(cgc_internal_malloc_allocator_t &&) noexcept = default;
   };
   /**
   Allocator for use with standard library that uses malloc internally.
@@ -166,6 +169,16 @@ namespace cgc1
       allocator.deallocate(t, 1);
     }
   };
+  template <typename T>
+  using unique_ptr_malloc_t = ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>;
+  template <typename T, typename... Args>
+  auto make_unique_malloc(Args &&... args) -> unique_ptr_malloc_t<T>
+  {
+    cgc_internal_malloc_allocator_t<T> allocator;
+    auto ptr = allocator.allocate(1);
+    allocator.construct(ptr, ::std::forward<Args>(args)...);
+    return ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>(ptr);
+  }
   /**
    * Tag for dispatch of getting deleter.
   **/

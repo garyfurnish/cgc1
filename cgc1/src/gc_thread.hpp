@@ -1,12 +1,13 @@
 #pragma once
 #include "internal_declarations.hpp"
-#include <thread>
 #include <mutex>
-#include <thread>
 #include <vector>
 #include <atomic>
 #include <condition_variable>
 #include <cgc1/concurrency.hpp>
+#include <cgc1/allocated_thread.hpp>
+#include <cgc1/cgc_internal_malloc_allocator.hpp>
+#include <boost/container/flat_set.hpp>
 #include "allocator.hpp"
 #include "internal_allocator.hpp"
 #include "gc_allocator.hpp"
@@ -180,7 +181,7 @@ namespace cgc1
       /**
        * \brief Thread that this runs in.
       **/
-      ::std::thread m_thread;
+      allocated_thread_t<cgc_internal_malloc_allocator_t<void>> m_thread;
       /**
        * \brief State variables.
        **/
@@ -212,7 +213,8 @@ namespace cgc1
       /**
        * \brief Hold addresses to mark that would have otherwise caused excessive recursion.
       **/
-      cgc_internal_vector_t<void *> m_addresses_to_mark GUARDED_BY(m_mutex);
+      ::boost::container::flat_set<void *, ::std::less<>, cgc_internal_malloc_allocator_t<void *>>
+          m_addresses_to_mark GUARDED_BY(m_mutex);
       /**
        * \brief Roots from stack.
       **/

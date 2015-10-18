@@ -1,6 +1,7 @@
 #pragma once
 #include "object_state.hpp"
 #include "allocator_block.hpp"
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
@@ -21,12 +22,13 @@ namespace cgc1
       using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;
       using sized_block_ref_t = typename ::std::pair<size_t, allocator_block_type *>;
       using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
+      using size_type = size_t;
 
       explicit allocator_block_set_t() = default;
       allocator_block_set_t(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
-      allocator_block_set_t(allocator_block_set_t<allocator, allocator_block_user_data_type> &&abs) = default;
+      allocator_block_set_t(allocator_block_set_t<allocator, allocator_block_user_data_type> &&abs) = delete;
       allocator_block_set_t &operator=(const allocator_block_set_t<allocator, allocator_block_user_data_type> &) = delete;
-      allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = default;
+      allocator_block_set_t &operator=(allocator_block_set_t<allocator, allocator_block_user_data_type> &&) = delete;
       /**
        * \brief Constructor
        *
@@ -158,6 +160,32 @@ namespace cgc1
        * Coalescing, etc happens here.
       **/
       void _do_maintenance();
+
+      /**
+       * \brief Return the bytes of primary memory used.
+       **/
+      auto primary_memory_used() const noexcept -> size_t;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      auto secondary_memory_used() const noexcept -> size_t;
+      /**
+       * \brief Return the bytes of secondary memory used for self only.
+       **/
+      auto secondary_memory_used_self() const noexcept -> size_t;
+      /**
+       * \brief Shrink secondary data structures to fit.
+       **/
+      void shrink_secondary_memory_usage_to_fit();
+      /**
+       * \brief Shrink secondary data structures to fit for self only.
+       **/
+      void shrink_secondary_memory_usage_to_fit_self();
+      /**
+       * \brief Put information about abs into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
     private:
       allocator_block_type *m_last_block = nullptr;

@@ -5,6 +5,8 @@
 #include "thread_allocator_abs_data.hpp"
 #include <cgc1/posix_slab.hpp>
 #include <array>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <cgc1/memory_range.hpp>
 namespace cgc1
 {
   namespace details
@@ -47,6 +49,7 @@ namespace cgc1
        * \brief Allocator traits for global allocator.
       **/
       using allocator_traits = Allocator_Traits;
+      using size_type = size_t;
       /**
        * \brief Allocator block set for this thread allocator.
       **/
@@ -106,7 +109,13 @@ namespace cgc1
       *
       * @return nullptr on error.
       **/
-      void *allocate(size_t size) NO_THREAD_SAFETY_ANALYSIS;
+      void *allocate(size_t size);
+      /**
+       * \brief Attempt to allocate once.
+       *
+       * @return nullptr on error.
+       **/
+      void *_allocate_once(size_t size);
       /**
       * \brief Destroy a pointer allocated by this allocator.
       *
@@ -117,7 +126,7 @@ namespace cgc1
       /**
        * \brief  Return the array of multiples for debugging purposes.
       **/
-      auto allocator_multiples() const -> const ::std::array<size_t, c_bins> &;
+      auto allocator_multiples() const -> const ::std::array<thread_allocator_abs_data_t, c_bins> &;
       /**
        * \brief Return the array of allocators for debugging purposes.
       **/
@@ -155,8 +164,61 @@ namespace cgc1
        * This incldues coalescing, etc.
       **/
       void _do_maintenance();
+      /**
+       * \brief Return the bytes of primary memory used.
+       **/
+      auto primary_memory_used() const noexcept -> size_type;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      auto secondary_memory_used() const noexcept -> size_type;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      auto secondary_memory_used_self() const noexcept -> size_type;
+      /**
+       * \brief Shrink secondary data structures to fit.
+       **/
+      void shrink_secondary_memory_usage_to_fit();
+      /**
+       * \brief Shrink secondary data structures to fit for self only.
+       **/
+      void shrink_secondary_memory_usage_to_fit_self();
+
+      /**
+       * \brief Put information about thread allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
+      /**
+       * \brief Put information about thread allocator into a json string.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      auto to_json(int level) const -> ::std::string;
 
     private:
+      /**
+       * \brief Free empty blocks, but only if necessary.
+       **/
+      void _check_do_free_empty_blocks();
+      /**
+       * \brief Free empty blocks, but only if necessary.
+       * @param allocator Allocator to condition on.
+       **/
+      void _check_do_free_empty_blocks(this_allocator_block_set_t &allocator);
+
+      /**
+       * \brief Execute free empty blocks.
+       **/
+      void _do_free_empty_blocks();
+      /**
+       * \brief Attempt to add an allocator block with a given id.
+       * @param id Id to try to add.
+       * @param sz Request size.
+       * @param try_expand Attempt to expand underlying slab if necessary
+       * @return True on success, false on failure.
+       **/
+      bool _add_allocator_block(size_t id, size_t sz, bool try_expand);
       /**
        * \brief Allocators used to allocate various sizes of memory.
       **/

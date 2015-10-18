@@ -22,7 +22,6 @@
 
 int main()
 {
-  //  const size_t num_alloc = 100000000;
   const size_t num_alloc = 10000000;
   const size_t alloc_sz = 64;
 
@@ -48,29 +47,34 @@ int main()
 #elif defined(CGC1_SPARSE)
   ::std::cout << "Using cgc1 sparse\n";
   CGC1_INITIALIZE_THREAD();
-  auto &allocator = cgc1::details::g_gks.gc_allocator();
+  auto &allocator = cgc1::details::g_gks->gc_allocator();
+  ::std::cout << cgc1::details::g_gks->to_json(2) << ::std::endl;
 
   auto &ts = allocator.initialize_thread();
+  ::std::cout << ts.to_json(2) << ::std::endl;
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
     if (!ret)
       abort();
     for (size_t li = 0; li < 8; ++li)
       ret[li] = ts.allocate(alloc_sz);
+    cgc1::secure_zero(&ret, sizeof(ret));
   }
 
 #else
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
-  auto &allocator = cgc1::details::g_gks._packed_object_allocator();
+  auto &allocator = cgc1::details::g_gks->_packed_object_allocator();
 
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
     if (!ret)
       abort();
-    for (size_t li = 0; li < 8; ++li)
-      ret[li] = ts.allocate(alloc_sz);
+    for (size_t li = 0; li < 8; ++li) {
+      if (!(ret[li] = ts.allocate(alloc_sz)))
+        abort();
+    }
   }
 #endif
   hrc::time_point t2 = hrc::now();
@@ -91,21 +95,17 @@ int main()
 #elif defined(CGC1_SPARSE)
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
-  ::std::cout << "Clear: " << gks.clear_mark_time_span().count() << ::std::endl;
-  ::std::cout << "Mark: " << gks.mark_time_span().count() << ::std::endl;
-  ::std::cout << "Sweep: " << gks.sweep_time_span().count() << ::std::endl;
-  ::std::cout << "Notify: " << gks.notify_time_span().count() << ::std::endl;
-  ::std::cout << gks.total_collect_time_span().count() << ::std::endl;
+  ::std::cout << gks->to_json(2) << ::std::endl;
+  auto &int_ts = cgc1::details::g_gks->_internal_allocator().initialize_thread();
+  ts._do_maintenance();
+  int_ts._do_maintenance();
+  ts.shrink_secondary_memory_usage_to_fit();
+  ::std::cout << gks->to_json(2) << ::std::endl;
 
 #else
   cgc1::cgc_force_collect();
   auto &gks = cgc1::details::g_gks;
-  ::std::cout << "Clear: " << gks.clear_mark_time_span().count() << ::std::endl;
-  ::std::cout << "Mark: " << gks.mark_time_span().count() << ::std::endl;
-  ::std::cout << "Sweep: " << gks.sweep_time_span().count() << ::std::endl;
-  ::std::cout << "Notify: " << gks.notify_time_span().count() << ::std::endl;
-  ::std::cout << gks.total_collect_time_span().count() << ::std::endl;
-
+  ::std::cout << gks->to_json(2) << ::std::endl;
 #endif
   hrc::time_point t3 = hrc::now();
   ::std::chrono::duration<double> setup = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);

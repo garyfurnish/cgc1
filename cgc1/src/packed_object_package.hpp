@@ -2,11 +2,13 @@
 #include <cgc1/declarations.hpp>
 #include "packed_object_state.hpp"
 #include "internal_allocator.hpp"
+#include "boost/property_tree/ptree_fwd.hpp"
 namespace cgc1
 {
   namespace details
   {
     using namespace literals;
+    template <typename Allocator_Policy>
     class packed_object_allocator_t;
     /**
      * \brief Return the id for an object of a given size.
@@ -53,7 +55,7 @@ namespace cgc1
       /**
        * \brief Allocate an object with given id.
        **/
-      auto allocate(size_t id) noexcept -> void *;
+      auto allocate(size_t id) noexcept -> ::std::pair<void *, size_t>;
       /**
        * \brief Do Maintenance for package.
        **/
@@ -61,6 +63,12 @@ namespace cgc1
 
       template <typename Predicate>
       void for_all(Predicate &&predicate);
+
+      /**
+       * \brief Put debug information into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
       /**
        * \brief Allocate an object with given size.

@@ -1,99 +1,35 @@
 #include "packed_object_allocator.hpp"
 #include "packed_object_allocator_impl.hpp"
 #include "packed_object_thread_allocator.hpp"
+#include "global_kernel_state.hpp"
 namespace cgc1
 {
 #ifdef __APPLE__
   template <>
-  pthread_key_t cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::s_pkey{};
+      pthread_key_t cgc1::thread_local_pointer_t <
+      cgc1::details::packed_object_thread_allocator_t<details::gc_packed_object_allocator_policy_t>::s_pkey{};
 #else
   template <>
-  thread_local cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::pointer_type
-      cgc1::thread_local_pointer_t<cgc1::details::packed_object_thread_allocator_t>::s_tlks = nullptr;
+  thread_local cgc1::thread_local_pointer_t<
+      cgc1::details::packed_object_thread_allocator_t<details::gc_packed_object_allocator_policy_t>>::pointer_type
+      cgc1::thread_local_pointer_t<
+          cgc1::details::packed_object_thread_allocator_t<details::gc_packed_object_allocator_policy_t>>::s_tlks = nullptr;
 #endif
   namespace details
   {
-    thread_local_pointer_t<typename packed_object_allocator_t::thread_allocator_type>
-        packed_object_allocator_t::t_thread_allocator{};
-    packed_object_allocator_t::packed_object_allocator_t(size_t size, size_t size_hint) : m_slab(size, size_hint)
-    {
-      m_slab.align_next(c_packed_object_block_size);
-    }
-    packed_object_allocator_t::~packed_object_allocator_t() = default;
-    auto packed_object_allocator_t::get_ttla() noexcept -> thread_allocator_type *
-    {
-      return t_thread_allocator;
-    }
-    void packed_object_allocator_t::set_ttla(thread_allocator_type *ta) noexcept
-    {
-      t_thread_allocator = ta;
-    }
+    template <>
+    thread_local_pointer_t<typename packed_object_allocator_t<gc_packed_object_allocator_policy_t>::thread_allocator_type>
+        packed_object_allocator_t<gc_packed_object_allocator_policy_t>::t_thread_allocator{};
 
-    auto packed_object_allocator_t::_get_memory() noexcept -> packed_object_state_t *
+    void gc_packed_object_allocator_policy_t::on_allocate(void *addr, size_t sz)
     {
-      {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-        if (!m_free_globals.empty()) {
-          auto ret = m_free_globals.back();
-          m_free_globals.pop_back();
-          return unsafe_cast<packed_object_state_t>(ret);
-        }
-      }
-      return unsafe_cast<packed_object_state_t>(m_slab.allocate_raw(c_packed_object_block_size - slab_allocator_t::cs_alignment));
+      secure_zero(addr, sz);
     }
-    auto packed_object_allocator_t::initialize_thread() -> thread_allocator_type &
+    auto gc_packed_object_allocator_policy_t::on_allocation_failure(const packed_allocation_failure_t &failure)
+        -> packed_allocation_failure_action_t
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      auto ttla = get_ttla();
-      if (ttla)
-        return *ttla;
-      // one doesn't already exist.
-      // create a thread allocator.
-      thread_allocator_unique_ptr_type ta = make_unique_allocator<thread_allocator_type, allocator>(*this);
-      // get a reference to thread allocator.
-      auto &ret = *ta.get();
-      set_ttla(&ret);
-      // put the thread allocator in the thread allocator list.
-      m_thread_allocators.emplace(::std::this_thread::get_id(), ::std::move(ta));
-      return ret;
-    }
-    void packed_object_allocator_t::destroy_thread()
-    {
-      // this is outside of scope so that the lock is not held when it is destroyed.
-      thread_allocator_unique_ptr_type ptr;
-      {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-        set_ttla(nullptr);
-        auto it = m_thread_allocators.find(::std::this_thread::get_id());
-        // check to make sure it was initialized at some point.
-        if (it == m_thread_allocators.end())
-          return;
-        // just move the owning pointer into ptr.
-        // this guarentees it will be erased when this function returns.
-        ptr = std::move(it->second);
-        // erase the entry in the ta list.
-        m_thread_allocators.erase(it);
-      }
-    }
-
-    void packed_object_allocator_t::_u_to_global(size_t id, packed_object_state_t *state) noexcept
-    {
-      m_globals.insert(id, state);
-    }
-    void packed_object_allocator_t::_u_to_free(void *v) noexcept
-    {
-      m_free_globals.push_back(v);
-    }
-
-    auto packed_object_allocator_t::num_free_blocks() const noexcept -> size_t
-    {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      return m_free_globals.size();
-    }
-    auto packed_object_allocator_t::num_globals(size_t id) const noexcept -> size_t
-    {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      return m_globals.m_vectors[id].size();
+      g_gks->force_collect();
+      return packed_allocation_failure_action_t{false, failure.m_failures < 5};
     }
   }
 }

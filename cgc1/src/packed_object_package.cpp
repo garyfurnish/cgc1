@@ -46,11 +46,10 @@ namespace cgc1
     {
       for (auto &&vec : m_vectors) {
         // move out any free vectors.
-        auto it = ::std::remove_if(vec.begin(), vec.end(), [](auto &&obj) { return obj->all_free(); });
+        auto it = ::std::partition(vec.begin(), vec.end(), [](auto &&obj) { return !obj->all_free(); });
         size_t num_to_move = static_cast<size_t>(vec.end() - it);
         if (num_to_move) {
-          free_list.resize(free_list.size() + num_to_move);
-          ::std::move(it, vec.end(), free_list.end());
+          free_list.insert(free_list.end(), ::std::make_move_iterator(it), ::std::make_move_iterator(vec.end()));
           vec.resize(vec.size() - num_to_move);
         }
       }

@@ -64,13 +64,14 @@ namespace cgc1
       size_t total_size = slab_allocator_object_t::needed_size(sizeof(slab_allocator_object_t), sz, cs_alignment);
       auto object = m_end;
       // tack on needed size to current end.
-      m_end = reinterpret_cast<slab_allocator_object_t *>(reinterpret_cast<uint8_t *>(m_end) + total_size);
+      auto new_end = reinterpret_cast<slab_allocator_object_t *>(reinterpret_cast<uint8_t *>(m_end) + total_size);
       // expand until current end is in the slab.
-      while (m_end > _u_object_end() && m_slab.expand(m_slab.size() * 2)) {
+      while (new_end > _u_object_end() && m_slab.expand(m_slab.size() * 2)) {
       }
       // if we couldn't do that, then we are out of memory and hard fail.
-      if (m_end > _u_object_end())
-        abort();
+      if (new_end > _u_object_end())
+        return nullptr;
+      m_end = new_end;
       // ok, setup object state for new allocation.
       object->set_in_use(true);
       object->set_next(m_end);
@@ -101,6 +102,10 @@ namespace cgc1
       // up is basically for doing worst fit by dividing biggest object.
       auto ub = _u_object_end();
       for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
+        if (it == _u_object_end())
+          abort();
+        if (it > _u_object_end())
+          abort();
         // if in use, go to next.
         if (it->not_available())
           continue;
@@ -121,6 +126,9 @@ namespace cgc1
         // if ub is undefined, take anything valid.
         else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
           ub = it;
+        if (!it->next_valid() && it->next() != _u_object_current_end()) {
+          abort();
+        }
       }
       if (lb == _u_object_end()) {
         // no precise fit, either split or allocate more memory.
@@ -156,6 +164,16 @@ namespace cgc1
     CGC1_OPT_INLINE ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
     {
       return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
+    }
+    CGC1_OPT_INLINE auto slab_allocator_t::current_size() const noexcept -> size_t
+    {
+      return static_cast<size_t>(reinterpret_cast<uint8_t *>(m_end) - m_slab.begin());
+    }
+    CGC1_OPT_INLINE void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      ptree.put("size", ::std::to_string(m_slab.size()));
+      ptree.put("current_size", ::std::to_string(current_size()));
     }
   }
 }

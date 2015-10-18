@@ -7,13 +7,6 @@ namespace cgc1
 {
   namespace details
   {
-    /**
-     * \brief Return 2^n.
-    **/
-    inline constexpr size_t pow2(int n)
-    {
-      return static_cast<size_t>(2) << (n - 1);
-    }
     template <typename Allocator, typename Traits>
     inline allocator_t<Allocator, Traits>::allocator_t() : m_shutdown(false)
     {
@@ -39,7 +32,7 @@ namespace cgc1
       return m_shutdown;
     }
     template <typename Allocator, typename Traits>
-    bool allocator_t<Allocator, Traits>::initialize(size_t initial_gc_heap_size, size_t suggested_max_heap_size)
+    bool allocator_t<Allocator, Traits>::initialize(size_t initial_gc_heap_size, size_t max_heap_size)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // sanity check heap size.
@@ -48,7 +41,7 @@ namespace cgc1
       m_initial_gc_heap_size = initial_gc_heap_size;
       m_minimum_expansion_size = m_initial_gc_heap_size;
       // try to allocate at a location that has room for expansion.
-      if (!m_slab.allocate(m_initial_gc_heap_size, slab_t::find_hole(suggested_max_heap_size)))
+      if (!m_slab.allocate(m_initial_gc_heap_size, slab_t::find_hole(max_heap_size)))
         return false;
       // setup current end point (nothing used yet).
       m_current_end = m_slab.begin();
@@ -56,40 +49,41 @@ namespace cgc1
       return true;
     }
     template <typename Allocator, typename Traits>
-    auto allocator_t<Allocator, Traits>::get_memory(size_t sz) -> memory_pair_t
+    auto allocator_t<Allocator, Traits>::get_memory(size_t sz, bool try_expand) -> system_memory_range_t
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
-      return _u_get_memory(sz);
+      return _u_get_memory(sz, try_expand);
     }
 
     template <typename Allocator, typename Traits>
-    auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz) -> memory_pair_t
+    auto allocator_t<Allocator, Traits>::_u_get_memory(size_t sz, bool try_expand) -> system_memory_range_t
     {
       _ud_verify();
+      sz = align(sz, c_alignment);
       // do worst fit memory vector lookup
       typename memory_pair_vector_t::iterator worst = m_free_list.end();
-      for (auto it = m_free_list.begin(); it != m_free_list.end(); ++it) {
-        if (size_pos(*it) >= sz) {
-          if (worst == m_free_list.end())
-            worst = it;
-          else if (size(*worst) <= size(*it))
-            worst = it;
-        }
-      }
+      auto find_pair = memory_pair_t(nullptr, reinterpret_cast<uint8_t *>(sz));
+      worst =
+          last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair, system_memory_range_t::size_comparator());
       if (worst != m_free_list.end()) {
         // subdivide
-        memory_pair_t ret = *worst;
+        system_memory_range_t ret = *worst;
+        m_free_list.erase(worst);
         // calculate part not used.
-        memory_pair_t free_pair = ::std::make_pair(worst->first + sz, worst->second);
-        ret.second = free_pair.first;
-        if (size(free_pair)) {
-          // positive size of free pair, so just swap it into the list in the same place.
-          ::std::swap(*worst, free_pair);
-        } else {
-          // request for all memory, just erase the interval.
-          m_free_list.erase(worst);
+        system_memory_range_t free_pair(ret.begin() + sz, ret.end());
+        ret.set_end(free_pair.begin());
+        if (!free_pair.empty()) {
+          auto ub =
+              ::std::upper_bound(m_free_list.begin(), m_free_list.end(), free_pair, system_memory_range_t::size_comparator());
+          if (m_current_end == free_pair.end())
+            m_current_end = free_pair.begin();
+          else {
+            m_free_list.emplace(ub, free_pair);
+          }
         }
-        return ret;
+        assert(reinterpret_cast<uintptr_t>(ret.begin()) % c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.end()) % c_alignment == 0);
+        return memory_pair_t(ret.begin(), ret.end());
       }
       // no space available in free list.
       auto sz_available = m_slab.end() - m_current_end;
@@ -101,17 +95,23 @@ namespace cgc1
         uint8_t *new_end = m_current_end + sz;
         // create the memory interval pair.
         auto ret = ::std::make_pair(m_current_end, new_end);
-        assert(new_end < m_slab.end());
+        assert(new_end <= m_slab.end());
         m_current_end = new_end;
+        assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
         return ret;
       }
       // we need to expand the heap.
       assert(m_current_end <= m_slab.end());
       size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
+      if (expansion_size > max_heap_size())
+        return system_memory_range_t::make_nullptr();
+      if (!try_expand)
+        return system_memory_range_t::make_nullptr();
       if (!m_slab.expand(expansion_size)) {
         ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
         // unable to expand heap so return error condition.
-        return ::std::make_pair(nullptr, nullptr);
+        return system_memory_range_t::make_nullptr();
       }
       // recalculate used end.
       uint8_t *new_end = m_current_end + sz;
@@ -120,15 +120,18 @@ namespace cgc1
       auto ret = ::std::make_pair(m_current_end, new_end);
       m_current_end = new_end;
       _ud_verify();
+      assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
+      assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
       return ret;
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
+    bool allocator_t<Allocator, Traits>::_u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                                                              size_t create_sz,
                                                                              size_t minimum_alloc_length,
                                                                              size_t maximum_alloc_length,
                                                                              size_t allocate_sz,
-                                                                             block_type &block)
+                                                                             block_type &block,
+                                                                             bool try_expand)
     {
       // first check to see if we can find a partially used block that fits parameters.
       auto found_block = _u_find_global_allocator_block(allocate_sz, minimum_alloc_length, maximum_alloc_length);
@@ -148,30 +151,34 @@ namespace cgc1
         for (size_t i = location; i < m_global_blocks.size(); ++i) {
           _u_move_registered_block(&m_global_blocks[i + 1], &m_global_blocks[i]);
         }
-        return;
+        return true;
       }
       // otherwise just create a new block
-      _u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block);
+      return _u_create_allocator_block(ta, create_sz, minimum_alloc_length, maximum_alloc_length, block, try_expand);
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator, Traits>::_u_create_allocator_block(
-        this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block)
+    bool allocator_t<Allocator, Traits>::_u_create_allocator_block(this_thread_allocator_t &ta,
+                                                                   size_t sz,
+                                                                   size_t minimum_alloc_length,
+                                                                   size_t maximum_alloc_length,
+                                                                   block_type &block,
+                                                                   bool try_expand)
     {
+      (void)try_expand;
       // try to allocate memory.
-      auto memory = _u_get_memory(sz);
-      if (!memory.first) {
-        ::std::cerr << "out of memory\n";
-        throw out_of_memory_exception_t();
+      auto memory = _u_get_memory(sz, true);
+      if (!memory.begin()) {
+        return false;
       }
       // get actual size of memory.
-      auto memory_size = size(memory);
+      auto memory_size = memory.size();
       assert(memory_size > 0);
       // create block.
-      //      block = block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       block.~block_type();
-      new (&block) block_type(memory.first, static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+      new (&block) block_type(memory.begin(), static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
       // call traits function that gets called when block is created.
       m_traits.on_create_allocator_block(ta, block);
+      return true;
     }
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
@@ -439,8 +446,8 @@ namespace cgc1
         assert(m_current_end <= m_slab.end());
         return;
       } else {
-        // otherwise add it to free list.
-        m_free_list.push_back(pair);
+        auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), pair, system_memory_range_t::size_comparator());
+        m_free_list.insert(ub, pair);
       }
       _ud_verify();
     }
@@ -453,7 +460,7 @@ namespace cgc1
         return true;
       // otherwise check to see if it is in some interval in the free list.
       for (auto &&fpair : m_free_list) {
-        if (fpair.first <= pair.first && pair.second <= fpair.second)
+        if (fpair.contains(pair))
           return true;
       }
       return false;
@@ -498,37 +505,50 @@ namespace cgc1
       return m_current_end;
     }
     template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::size() const noexcept -> size_t
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::current_size() const noexcept -> size_t
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      return _u_current_size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_u_size() const noexcept -> size_t
+    {
+      return m_slab.size();
+    }
+    template <typename Allocator, typename Traits>
+    inline auto allocator_t<Allocator, Traits>::_u_current_size() const noexcept -> size_t
+    {
+      return static_cast<size_t>(_u_current_end() - _u_begin());
+    }
+
+    template <typename Allocator, typename Traits>
     inline void allocator_t<Allocator, Traits>::collapse()
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       _ud_verify();
-      auto end = m_free_list.end();
-      // this is just a simple O(n^2) operation to coallese all adjacent free segments.
-      // should fit in cache, so should be fast.
-      for (auto it = m_free_list.begin(); it < end; ++it) {
-        for (auto it2 = it; it2 < end; ++it2) {
-          if (it->first == it2->second) {
-            // it->second stays same
-            it->first = it2->first;
-            // put it2(invalid) to end, so we can remove it at end.
-            ::std::swap(*--end, *it2);
-          }
-          if (it->second == it2->first) {
-            // it->first stays same
-            it->second = it2->second;
-            // put it2 to end, so we can remove it at end.
-            ::std::swap(*--end, *it2);
-          }
-          if (it2->second == m_current_end) {
-            // case where we can just move the slab pointer.
-            m_current_end = it2->first;
-            // put it2 to end, so we can remove it at end.
-            ::std::swap(*--end, *it2);
+      ::std::sort(m_free_list.begin(), m_free_list.end());
+      for (auto it = m_free_list.rbegin(), end = m_free_list.rend(); it != end; ++it) {
+        auto prev = it + 1;
+        if (prev != end) {
+          if (prev->end() == it->begin()) {
+            prev->set_end(it->end());
+            m_free_list.erase(it.base());
           }
         }
       }
-      // static cast is fine as end() is guarenteed to be greater then "real" end.
-      m_free_list.resize(m_free_list.size() - static_cast<size_t>(m_free_list.end() - end));
+      if (!m_free_list.empty()) {
+        if (m_free_list.back().end() == m_current_end) {
+          m_current_end = m_free_list.back().begin();
+          m_free_list.pop_back();
+        }
+      }
+      ::std::sort(m_free_list.begin(), m_free_list.end(), system_memory_range_t::size_comparator());
       _ud_verify();
     }
     template <typename Allocator, typename Traits>
@@ -606,6 +626,17 @@ namespace cgc1
       container.clear();
     }
     template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::traits() noexcept -> allocator_traits &
+    {
+      return m_traits;
+    }
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::traits() const noexcept -> const allocator_traits &
+    {
+      return m_traits;
+    }
+
+    template <typename Allocator, typename Traits>
     size_t allocator_t<Allocator, Traits>::num_global_blocks()
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
@@ -630,7 +661,8 @@ namespace cgc1
       for (auto block_it = m_global_blocks.rbegin(); block_it != m_global_blocks.rend(); ++block_it) {
         auto &&block = *block_it;
         // collect it
-        block.collect();
+        size_t num_quasifreed = 0;
+        block.collect(num_quasifreed);
         // if after collection it is empty, destroy it.
         if (block.empty()) {
           _u_destroy_global_allocator_block(::std::move(block));
@@ -664,6 +696,45 @@ namespace cgc1
                block.maximum_allocation_length() == maximum_alloc_length && block.max_alloc_available() >= sz;
       });
       return it;
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      ptree.put("name", typeid(*this).name());
+      {
+        ::boost::property_tree::ptree slab;
+        slab.put("size", ::std::to_string(m_slab.size()));
+        ptree.put_child("slab", slab);
+      }
+      ptree.put("size", ::std::to_string(_u_size()));
+      ptree.put("current_size", ::std::to_string(_u_current_size()));
+      ptree.put("num_blocks", ::std::to_string(m_blocks.size()));
+      ptree.put("num_global_blocks", ::std::to_string(m_global_blocks.size()));
+      ptree.put("num_thread_allocators", ::std::to_string(m_thread_allocators.size()));
+      ptree.put("free_list_size", ::std::to_string(m_free_list.size()));
+      ptree.put("initial_heap_size", ::std::to_string(m_initial_gc_heap_size));
+      ptree.put("minimum_expansion_size", ::std::to_string(m_minimum_expansion_size));
+      ptree.put("maximum_heap_size", ::std::to_string(max_heap_size()));
+      ::boost::property_tree::ptree thread_ptree;
+      for (auto &&thread_pair : m_thread_allocators) {
+        ::boost::property_tree::ptree local_ptree;
+        auto &&thread = thread_pair.second;
+        thread->to_ptree(local_ptree, level);
+        thread_ptree.add_child("thread_allocator", local_ptree);
+      }
+      ptree.put_child("thread_allocators", thread_ptree);
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::_u_set_force_free_empty_blocks()
+    {
+      for (auto &&pair : m_thread_allocators)
+        pair.second->set_force_free_empty_blocks();
+    }
+    template <typename Allocator, typename Traits>
+    auto allocator_t<Allocator, Traits>::max_heap_size() const noexcept -> size_type
+    {
+      return m_maximum_heap_size;
     }
   }
 }

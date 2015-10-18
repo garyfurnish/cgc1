@@ -5,12 +5,13 @@ namespace cgc1
 {
   namespace details
   {
-    extern global_kernel_state_t g_gks;
+    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
     inline auto global_kernel_state_t::gc_allocator() const noexcept -> gc_allocator_t &
     {
       return m_gc_allocator;
     }
-    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept -> packed_object_allocator_t &
+    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept
+        -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &
     {
       return m_packed_object_allocator;
     }

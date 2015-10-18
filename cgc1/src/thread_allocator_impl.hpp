@@ -1,4 +1,7 @@
 #pragma once
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 namespace cgc1
 {
   namespace details
@@ -77,6 +80,7 @@ namespace cgc1
               min_to_leave);
         }
       }
+      m_force_free_empty_blocks = false;
     }
 
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
@@ -179,18 +183,41 @@ namespace cgc1
         allocator = &m_allocators[block_id - 1];
         ret = allocator->destroy(v);
       }
-      // do book keeping for returning memory to global.
-      // do this if we exceed the destroy threshold or externally forced.
-      if (m_force_free_empty_blocks.load(::std::memory_order_relaxed) ||
-          allocator->num_destroyed_since_last_free() > destroy_threshold()) {
-        // ok, this needs to be tweaked.
-        free_empty_blocks(m_minimum_local_blocks, false);
-      }
+      _check_do_free_empty_blocks(*allocator);
       return ret;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_check_do_free_empty_blocks()
+    {
+      // do book keeping for returning memory to global.
+      // do this if we exceed the destroy threshold or externally forced.
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+
+      if (unlikely(should_force_free)) {
+        _do_free_empty_blocks();
+      }
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_check_do_free_empty_blocks(
+        this_allocator_block_set_t &allocator)
+    {
+      // do book keeping for returning memory to global.
+      // do this if we exceed the destroy threshold or externally forced.
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+
+      if (should_force_free || allocator.num_destroyed_since_last_free() > destroy_threshold()) {
+        _do_free_empty_blocks();
+      }
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_free_empty_blocks()
+    {
+      bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
+      free_empty_blocks(m_minimum_local_blocks, should_force_free);
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocator_multiples() const
-        -> const ::std::array<size_t, c_bins> &
+        -> const ::std::array<thread_allocator_abs_data_t, c_bins> &
     {
       return m_allocator_multiples;
     }
@@ -203,53 +230,78 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void *thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::allocate(size_t sz)
     {
+      _check_do_free_empty_blocks();
       // find allocation set for allocation size.
       size_t id = find_block_set_id(sz);
+      if (unlikely(sz < c_alignment))
+        sz = c_alignment;
       // try allocation.
       void *ret = m_allocators[id].allocate(sz);
       // if successful returned.
-      if (ret)
+      if (ret) {
+        m_allocator.traits().on_allocation(ret, sz);
         return ret;
-      // if not succesful, that allocator needs more memory.
-      // figre out how much memory to request.
-      size_t memory_request = get_allocator_block_size(id);
-      if (memory_request < sz * 3)
-        memory_request = sz * 3;
-      try {
-        // Get the allocator for the size requested.
-        auto &abs = m_allocators[id];
-        CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
-        // see if safe to add a block
-        if (!abs.add_block_is_safe()) {
-          // if not safe to move a block, expand that allocator block set.
-          //          m_allocator._mutex().lock();
-          m_allocator._ud_verify();
-          abs._verify();
-          ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
-          abs._verify();
-          m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
-          //          m_allocator._mutex().unlock();
+      }
+      size_t attempts = 1;
+      bool success;
+      bool try_expand = true;
+      while (unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+        auto action = m_allocator.traits().on_allocation_failure({attempts});
+        if (!action.m_repeat) {
+          break;
         }
-        typename global_allocator::block_type block;
-        // fill the empty block.
-        m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
-                                                        m_allocators[id].allocator_max_size(), sz, block);
-
-        // gcreate and grab the empty block.
-        auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
-                                                 [this](auto begin, auto end, auto offset) {
-                                                   CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
-                                                   m_allocator._u_move_registered_blocks(begin, end, offset);
-                                                 });
-        m_allocator._u_register_allocator_block(*this, inserted_block_ref);
-      } catch (out_of_memory_exception_t) {
+        ++attempts;
+        try_expand = action.m_attempt_expand;
+      }
+      if (!success) {
+        ::std::cerr << "Out of memory, aborting" << ::std::endl;
         abort();
-        // we aren't going to try to handle out of memory at this point.
       }
       ret = m_allocators[id].allocate(sz);
       if (unlikely(!ret)) // should be impossible.
         abort();
+      m_allocator.traits().on_allocation(ret, sz);
       return ret;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    bool
+    thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_add_allocator_block(size_t id, size_t sz, bool try_expand)
+    {
+      // if not succesful, that allocator needs more memory.
+      // figre out how much memory to request.
+
+      size_t memory_request = get_allocator_block_size(id);
+      if (memory_request < sz * 3)
+        memory_request = sz * 3;
+      // Get the allocator for the size requested.
+      auto &abs = m_allocators[id];
+      CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+      // see if safe to add a block
+      if (!abs.add_block_is_safe()) {
+        // if not safe to move a block, expand that allocator block set.
+        m_allocator._ud_verify();
+        abs._verify();
+        ptrdiff_t offset = static_cast<ptrdiff_t>(abs.grow_blocks());
+        abs._verify();
+        m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
+      }
+      typename global_allocator::block_type block;
+      // fill the empty block.
+      bool success =
+          m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
+                                                          m_allocators[id].allocator_max_size(), sz, block, try_expand);
+
+      if (unlikely(!success)) {
+        return false;
+      }
+      // gcreate and grab the empty block.
+      auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
+                                               [this](auto begin, auto end, auto offset) {
+                                                 CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                                                 m_allocator._u_move_registered_blocks(begin, end, offset);
+                                               });
+      m_allocator._u_register_allocator_block(*this, inserted_block_ref);
+      return true;
     }
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::destroy_threshold() const noexcept
@@ -281,25 +333,82 @@ namespace cgc1
     template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
     void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::_do_maintenance()
     {
-      for (auto &allocator : m_allocators) {
-        allocator._do_maintenance();
+      _check_do_free_empty_blocks();
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::primary_memory_used() const noexcept -> size_type
+    {
+      size_type sz = 0;
+      for (auto &&allocator : m_allocators)
+        sz += allocator.primary_memory_used();
+      return sz;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::secondary_memory_used() const noexcept -> size_type
+    {
+      size_type sz = secondary_memory_used_self();
+      for (auto &&allocator : m_allocators)
+        sz += allocator.secondary_memory_used();
+      return sz;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::secondary_memory_used_self() const noexcept
+        -> size_type
+    {
+      return 0;
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::shrink_secondary_memory_usage_to_fit()
+    {
+      for (auto &&allocator : m_allocators)
+        allocator.shrink_secondary_memory_usage_to_fit();
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::shrink_secondary_memory_usage_to_fit_self()
+    {
+    }
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    void thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::to_ptree(::boost::property_tree::ptree &ptree,
+                                                                                     int level) const
+    {
+      {
+        ::std::stringstream ss_multiples, ss_recycle;
+        for (auto &&multiple : allocator_multiples()) {
+          ss_multiples << multiple.allocator_multiple() << ",";
+          ss_recycle << multiple.max_blocks_before_recycle() << ",";
+        }
+        ptree.put("multiples", ss_multiples.str());
+        ptree.put("max_blocks_before_recycle", ss_recycle.str());
+      }
+      {
+        ::std::stringstream ss;
+        for (auto sz : allocator_block_sizes())
+          ss << sz << ",";
+        ptree.put("block_sizes", ss.str());
+      }
+      ptree.put("primary_memory_used", ::std::to_string(primary_memory_used()));
+      ptree.put("secondary_memory_used_self", ::std::to_string(secondary_memory_used_self()));
+      ptree.put("secondary_memory_used", ::std::to_string(secondary_memory_used()));
+      ptree.put("force_free_empty_blocks", ::std::to_string(m_force_free_empty_blocks));
+      if (level > 0) {
+        ::boost::property_tree::ptree abs_array;
+        for (size_t i = 0; i < m_allocators.size(); ++i) {
+          ::boost::property_tree::ptree abs;
+          abs.put("id", ::std::to_string(i));
+          m_allocators[i].to_ptree(abs, level);
+          abs_array.add_child("allocator", abs);
+        }
+        ptree.put_child("abs_array", abs_array);
       }
     }
-    template <typename charT, typename Traits, typename Global_Allocator, typename Allocator, typename Allocator_Traits>
-    ::std::basic_ostream<charT, Traits> &operator<<(::std::basic_ostream<charT, Traits> &os,
-                                                    const thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits> &ta)
+    template <typename Global_Allocator, typename Allocator, typename Allocator_Traits>
+    auto thread_allocator_t<Global_Allocator, Allocator, Allocator_Traits>::to_json(int level) const -> ::std::string
     {
-      os << "thread_allocator_t = (" << &ta << "\n";
-      os << "multiples = { ";
-      for (auto multiple : ta.allocator_multiples())
-        os << multiple << ",";
-      os << " }\n";
-      os << "block sz  = { ";
-      for (auto sz : ta.allocator_block_sizes())
-        os << sz << ",";
-      os << " }\n";
-      os << ")";
-      return os;
+      ::std::stringstream ss;
+      ::boost::property_tree::ptree ptree;
+      to_ptree(ptree, level);
+      ::boost::property_tree::json_parser::write_json(ss, ptree);
+      return ss.str();
     }
   }
 }

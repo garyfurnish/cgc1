@@ -106,15 +106,15 @@ namespace cgc1
       /**
       * \brief Top of stack for this thread.
       **/
-      uint8_t *m_top_of_stack = nullptr;
+      uint8_t *m_top_of_stack{nullptr};
       /**
       * \brief Current stack pointer.
       **/
-      ::std::atomic<uint8_t *> m_stack_ptr;
+      ::std::atomic<uint8_t *> m_stack_ptr{nullptr};
       /**
       * \brief True if in signal handler for this thread, false otherwise.
       **/
-      ::std::atomic<bool> m_in_signal_handler;
+      ::std::atomic<bool> m_in_signal_handler{false};
       /**
       * \brief List of other potential roots.
       *

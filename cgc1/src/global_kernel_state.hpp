@@ -11,32 +11,28 @@
 #include "gc_thread.hpp"
 #include "slab_allocator.hpp"
 #include "packed_object_allocator.hpp"
+#include "global_kernel_state_param.hpp"
+
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
   {
     class thread_local_kernel_state_t;
     /**
-     * \brief CGC allocator traits.
+     * \brief Class that encapsulates all garbage collection state.
      **/
-    struct cgc_allocator_traits {
-      do_nothing_t on_create_allocator_block;
-      do_nothing_t on_destroy_allocator_block;
-      template <typename Allocator>
-      inline void on_creation(Allocator &a)
-      {
-        a.initialize(pow2(31), pow2(33));
-      }
-      using allocator_block_user_data_type = user_data_base_t;
-    };
     class global_kernel_state_t
     {
     public:
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
-      using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, cgc_allocator_traits>;
+      using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, allocator_no_traits_t>;
       using duration_type = ::std::chrono::duration<double>;
-
-      global_kernel_state_t();
+      /**
+       * \brief Constructor
+       * @param param Initialization Parameters.
+       **/
+      global_kernel_state_t(const global_kernel_state_param_t &param);
       global_kernel_state_t(const global_kernel_state_t &) = delete;
       global_kernel_state_t(global_kernel_state_t &&) = delete;
       global_kernel_state_t &operator=(const global_kernel_state_t &) = delete;
@@ -64,11 +60,11 @@ namespace cgc1
       /**
        * \brief Hint to perform a garbage collection.
       **/
-      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
+      void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Force a garbage collection.
       **/
-      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex);
+      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Return the number of collections that have happened.
        *
@@ -98,7 +94,7 @@ namespace cgc1
       /**
        * \brief Return the packed object allocator.
        **/
-      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t &;
+      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &;
       /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
@@ -210,6 +206,20 @@ namespace cgc1
       auto slow_slab_end() const noexcept -> uint8_t *;
       auto fast_slab_begin() const noexcept -> uint8_t *;
       auto fast_slab_end() const noexcept -> uint8_t *;
+      /**
+       * \brief Return reference to cached initialization parameters.
+       **/
+      auto initialization_parameters_ref() const noexcept -> const global_kernel_state_param_t &;
+      /**
+       * \brief Put information about global kernel state into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
+      /**
+       * \brief Put information about global kernel state into a json string.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      auto to_json(int level) const -> ::std::string;
 
     private:
       /**
@@ -252,11 +262,16 @@ namespace cgc1
       /**
        * \brief Packed object allocator for fast allocation.
        **/
-      mutable packed_object_allocator_t m_packed_object_allocator;
+      mutable packed_object_allocator_t<gc_packed_object_allocator_policy_t> m_packed_object_allocator;
       /**
        * \brief Main mutex for state.
        **/
       mutable mutex_t m_mutex;
+      /**
+       * \brief Mutex for resuming world.
+       *
+       **/
+      mutable mutex_t m_start_world_condition_mutex;
       /**
        * Number of paused threads in a collect cycle.
       **/
@@ -269,7 +284,7 @@ namespace cgc1
        * \brief Number of collections that have happened.
        * May wrap around.
       **/
-      mutable ::std::atomic<size_t> m_num_collections;
+      mutable ::std::atomic<size_t> m_num_collections{0};
 #ifndef _WIN32
       /**
        * \brief Condition variable used to broadcast
@@ -306,7 +321,8 @@ namespace cgc1
        *
        * Not necesarily a one to one map.
       **/
-      rebind_vector_t<::std::unique_ptr<gc_thread_t>, cgc_internal_malloc_allocator_t<void>> m_gc_threads;
+      rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>, cgc_internal_malloc_allocator_t<void>>
+          m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.
        *
@@ -315,13 +331,17 @@ namespace cgc1
       **/
       cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
       /**
-       * \brief True while a garbage collection is running, otherwise false.
+       * \brief True while a garbage collection is running or trying to run, otherwise false.
       **/
-      ::std::atomic<bool> m_collect;
+      ::std::atomic<bool> m_collect{false};
+      /**
+       * \brief True if last GC is finished, false otherwise.
+       **/
+      ::std::atomic<bool> m_collect_finished{true};
       /**
        * \brief Increment variable for enabling or disabling
       **/
-      ::std::atomic<long> m_enabled_count;
+      ::std::atomic<long> m_enabled_count{1};
       /**
        * \brief True if the kernel has been initialized, false otherwise.
       **/
@@ -338,30 +358,29 @@ namespace cgc1
       /**
        * \brief Time for clear phase of gc.
        **/
-      duration_type m_clear_mark_time_span = duration_type::min();
+      duration_type m_clear_mark_time_span = duration_type::zero();
       /**
        * \brief Time for mark phase of gc.
        **/
-      duration_type m_mark_time_span = duration_type::min();
+      duration_type m_mark_time_span = duration_type::zero();
       /**
        * \brief Time for sweep phase of gc.
        **/
-      duration_type m_sweep_time_span = duration_type::min();
+      duration_type m_sweep_time_span = duration_type::zero();
       /**
        * \brief Time for notify phase of gc.
        **/
-      duration_type m_notify_time_span = duration_type::min();
+      duration_type m_notify_time_span = duration_type::zero();
       /**
        * \brief Total gc collect time.
        **/
-      duration_type m_total_collect_time_span = duration_type::min();
-
-      /*
-       * \brief Size of slab allocator at start.
-      */
-      static const size_t m_slab_allocator_start_size = 50000000;
+      duration_type m_total_collect_time_span = duration_type::zero();
+      /**
+       * \brief Saved initialization parameters.
+       **/
+      const global_kernel_state_param_t m_initialization_parameters;
     };
-    extern global_kernel_state_t g_gks;
+    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
   }
 }
 #include "global_kernel_state_impl.hpp"

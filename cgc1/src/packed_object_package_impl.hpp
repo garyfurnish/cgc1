@@ -3,6 +3,7 @@
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range/iterator_range.hpp>
 #include <cgc1/warning_wrapper_pop.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace cgc1
 {
@@ -21,16 +22,32 @@ namespace cgc1
         return ::std::numeric_limits<size_t>::max();
       return ret;
     }
-    CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> void *
+    CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> ::std::pair<void *, size_t>
     {
       auto &vec = m_vectors[id];
       for (auto &it : ::boost::make_iterator_range(vec.rbegin(), vec.rend())) {
         auto &packed = *it;
         auto ret = packed.allocate();
-        if (ret)
-          return ret;
+        if (ret) {
+          return ::std::make_pair(ret, packed.real_entry_size());
+        }
       }
-      return nullptr;
+      return ::std::make_pair(nullptr, 0);
+    }
+    CGC1_OPT_INLINE void packed_object_package_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      ptree.put("num_vectors", ::std::to_string(cs_num_vectors));
+      {
+        boost::property_tree::ptree vectors;
+        for (size_t i = 0; i < m_vectors.size(); ++i) {
+          boost::property_tree::ptree vec;
+          vec.put("id", i);
+          vec.put("size", m_vectors[i].size());
+          vectors.add_child("vector", vec);
+        }
+        ptree.add_child("vectors", vectors);
+      }
     }
   }
 }

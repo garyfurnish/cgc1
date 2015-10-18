@@ -2,6 +2,7 @@
 #include "allocator_block_set.hpp"
 #include <assert.h>
 #include <iostream>
+#include <boost/property_tree/ptree.hpp>
 namespace cgc1
 {
   namespace details
@@ -67,7 +68,7 @@ namespace cgc1
     {
       // collect all blocks.
       for (auto &block : m_blocks) {
-        block.collect();
+        block.collect(m_num_destroyed_since_free);
       }
       // some blocks may have become available so regenerate available blocks.
       regenerate_available_blocks();
@@ -337,11 +338,48 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_do_maintenance()
     {
-      // collect all blocks.
-      for (auto &block : m_blocks) {
-        block.collect();
-      }
+      collect();
     }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::primary_memory_used() const noexcept -> size_t
+    {
+      size_type sz = 0;
+      for (auto &&block : m_blocks)
+        sz += block.memory_size();
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::secondary_memory_used() const noexcept -> size_t
+    {
+      size_t sz = 0;
+      for (auto &&block : m_blocks)
+        sz += block.secondary_memory_used();
+      sz += secondary_memory_used_self();
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::secondary_memory_used_self() const noexcept -> size_t
+    {
+      size_t sz = 0;
+      sz += m_available_blocks.capacity() * sizeof(typename allocator_block_reference_vector_t::value_type);
+      sz += m_blocks.capacity() * sizeof(typename allocator_block_vector_t::value_type);
+      return sz;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::shrink_secondary_memory_usage_to_fit()
+    {
+      shrink_secondary_memory_usage_to_fit_self();
+      for (auto &&block : m_blocks)
+        block.shrink_secondary_memory_usage_to_fit();
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::shrink_secondary_memory_usage_to_fit_self()
+    {
+      m_available_blocks.shrink_to_fit();
+      // this might not be safe.
+      //      m_blocks.shrink_to_fit();
+    }
+
     template <typename Allocator, typename Allocator_Block_User_Data>
     CGC1_ALWAYS_INLINE auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::last_block() noexcept
         -> allocator_block_type &
@@ -364,7 +402,7 @@ namespace cgc1
       size_t num_empty = 0;
       // first we collect and see how many total empty blocks there are.
       for (auto &block : m_blocks) {
-        block.collect();
+        block.collect(m_num_destroyed_since_free);
         if (block.empty()) {
           num_empty++;
         } else {
@@ -401,6 +439,21 @@ namespace cgc1
     auto allocator_block_set_t<Allocator, Allocator_Block_User_Data>::num_destroyed_since_last_free() const noexcept -> size_t
     {
       return m_num_destroyed_since_free;
+    }
+    template <typename Allocator, typename Allocator_Block_User_Data>
+    void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::to_ptree(::boost::property_tree::ptree &ptree,
+                                                                               int level) const
+    {
+      (void)level;
+      ptree.put("primary_memory_used", ::std::to_string(primary_memory_used()));
+      ptree.put("secondary_memory_used_self", ::std::to_string(secondary_memory_used_self()));
+      ptree.put("secondary_memory_used", ::std::to_string(secondary_memory_used()));
+      ptree.put("allocator_min_size", ::std::to_string(allocator_min_size()));
+      ptree.put("allocator_max_size", ::std::to_string(allocator_max_size()));
+      ptree.put("num_destroyed_since_free", ::std::to_string(num_destroyed_since_last_free()));
+      ptree.put("num_blocks", ::std::to_string(m_blocks.size()));
+      ptree.put("num_available_blocks", ::std::to_string(m_available_blocks.size()));
+      ptree.put("last_block_null", ::std::to_string(m_last_block == nullptr));
     }
   }
 }

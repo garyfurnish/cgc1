@@ -1,3 +1,4 @@
+#include "new.hpp"
 #include "internal_declarations.hpp"
 #include <cgc1/declarations.hpp>
 #include <algorithm>
@@ -11,6 +12,9 @@
 #include "allocator.hpp"
 #include <chrono>
 #include <iostream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -35,25 +39,26 @@ namespace cgc1
   {
     void *internal_allocate(size_t n)
     {
-      return g_gks._internal_allocator().initialize_thread().allocate(n);
+      return g_gks->_internal_allocator().initialize_thread().allocate(n);
     }
     void internal_deallocate(void *p)
     {
-      g_gks._internal_allocator().initialize_thread().destroy(p);
+      g_gks->_internal_allocator().initialize_thread().destroy(p);
     }
     void *internal_slab_allocate(size_t n)
     {
-      return g_gks._internal_slab_allocator().allocate_raw(n);
+      return g_gks->_internal_slab_allocator().allocate_raw(n);
     }
     void internal_slab_deallocate(void *p)
     {
-      g_gks._internal_slab_allocator().deallocate_raw(p);
+      g_gks->_internal_slab_allocator().deallocate_raw(p);
     }
-    global_kernel_state_t::global_kernel_state_t()
-        : m_slab_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size),
-          m_packed_object_allocator(m_slab_allocator_start_size, m_slab_allocator_start_size), m_num_collections(0)
+    global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
+        : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
+          m_packed_object_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
+          m_initialization_parameters(param)
     {
-      m_enabled_count = 1;
+      m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
       details::initialize_tlks();
     }
     void global_kernel_state_t::shutdown()
@@ -72,6 +77,10 @@ namespace cgc1
     bool global_kernel_state_t::enabled() const
     {
       return m_enabled_count > 0;
+    }
+    auto global_kernel_state_t::initialization_parameters_ref() const noexcept -> const global_kernel_state_param_t &
+    {
+      return m_initialization_parameters;
     }
     auto global_kernel_state_t::clear_mark_time_span() const -> duration_type
     {
@@ -92,6 +101,53 @@ namespace cgc1
     auto global_kernel_state_t::total_collect_time_span() const -> duration_type
     {
       return m_total_collect_time_span;
+    }
+
+    void global_kernel_state_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+    {
+      (void)level;
+      {
+        ::boost::property_tree::ptree init;
+        initialization_parameters_ref().to_ptree(init);
+        ptree.put_child("initialization", init);
+      }
+      {
+        ::boost::property_tree::ptree last_collect;
+        last_collect.put("clear_mark_time", ::std::to_string(clear_mark_time_span().count()));
+        last_collect.put("mark_time", ::std::to_string(mark_time_span().count()));
+        last_collect.put("sweep_time", ::std::to_string(sweep_time_span().count()));
+        last_collect.put("notify_time", ::std::to_string(notify_time_span().count()));
+        last_collect.put("total_time", ::std::to_string(total_collect_time_span().count()));
+        ptree.put_child("last_collect", last_collect);
+      }
+      {
+        ::boost::property_tree::ptree slab_allocator;
+        m_slab_allocator.to_ptree(slab_allocator, level);
+        ptree.put_child("slab_allocator", slab_allocator);
+      }
+      {
+        ::boost::property_tree::ptree cgc_allocator;
+        m_cgc_allocator.to_ptree(cgc_allocator, level);
+        ptree.put_child("cgc_allocator", cgc_allocator);
+      }
+      {
+        ::boost::property_tree::ptree gc_allocator;
+        m_gc_allocator.to_ptree(gc_allocator, level);
+        ptree.put_child("gc_allocator", gc_allocator);
+      }
+      {
+        ::boost::property_tree::ptree packed_allocator;
+        m_packed_object_allocator.to_ptree(packed_allocator, level);
+        ptree.put_child("packed_allocator", packed_allocator);
+      }
+    }
+    auto global_kernel_state_t::to_json(int level) const -> ::std::string
+    {
+      ::std::stringstream ss;
+      ::boost::property_tree::ptree ptree;
+      to_ptree(ptree, level);
+      ::boost::property_tree::json_parser::write_json(ss, ptree);
+      return ss.str();
     }
 
     object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
@@ -191,6 +247,19 @@ namespace cgc1
     }
     void global_kernel_state_t::force_collect()
     {
+      if (unlikely(!get_tlks())) {
+        ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
+        abort();
+      }
+      bool expected = false;
+      m_collect.compare_exchange_strong(expected, true);
+      if (expected) {
+        // if another thread is trying to collect, let them do it instead.
+        // this is memory order acquire because it should be a barrier like locking a mutex.
+        while (m_collect.load(::std::memory_order_acquire))
+          ::std::this_thread::yield();
+        return;
+      }
       // wait until safe to collect.
       wait_for_finalization();
       // we need to maintain global allocator at some point so do it here.
@@ -198,22 +267,38 @@ namespace cgc1
       // note that the order of allocator locks and unlocks are all important here to prevent deadlocks!
       // grab allocator locks so that they are in a consistent state for garbage collection.
       lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-           m_slab_allocator._mutex(), m_thread_mutex);
+           m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      if (m_collect || m_num_paused_threads != m_num_resumed_threads) {
-        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-               m_slab_allocator._mutex(), m_mutex);
-        return;
+      while (likely(m_num_collections) &&
+             m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
+        // we need to unlock these because gc_thread could be using them.
+        // and gc_thread is not paused.
+        unlock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
+        //        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
+        //               m_slab_allocator._mutex(), m_mutex);
+        //	m_collect = false;
+        //        return;
+        // this is not good enough
+        // we need an array so we can try to repause threads.
+        ::std::this_thread::yield();
+        lock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
       }
+      m_start_world_condition_mutex.unlock();
       ::std::atomic_thread_fence(::std::memory_order_acq_rel);
-      m_collect = true;
+      //      m_collect = true;
       m_num_freed_in_last_collection = 0;
       m_freed_in_last_collection.clear();
-      m_num_paused_threads = m_num_resumed_threads = 0;
+      m_collect_finished.store(0, ::std::memory_order_release);
+      m_num_paused_threads.store(0, ::std::memory_order_release);
+      m_num_resumed_threads.store(0, ::std::memory_order_release);
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       m_allocators_unavailable_mutex.lock();
       _u_suspend_threads();
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
+      m_packed_object_allocator._u_set_force_maintenance();
+      m_gc_allocator._u_set_force_free_empty_blocks();
+      m_cgc_allocator._u_set_force_free_empty_blocks();
       // release allocator locks so they can be used.
       m_packed_object_allocator._mutex().unlock();
       m_gc_allocator._mutex().unlock();
@@ -271,11 +356,16 @@ namespace cgc1
       t2 = ::std::chrono::high_resolution_clock::now();
       m_notify_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
       m_total_collect_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - tstart);
-
       m_num_collections++;
-      m_collect = false;
       m_thread_mutex.lock();
+      // tell threads they make wake up.
+      m_start_world_condition_mutex.lock();
+      m_collect_finished = true;
+      // make sure everything is committed
+      ::std::atomic_thread_fence(::std::memory_order_seq_cst);
       _u_resume_threads();
+      m_start_world_condition_mutex.unlock();
+      m_collect = false;
       m_thread_mutex.unlock();
       m_mutex.unlock();
     }
@@ -297,7 +387,7 @@ namespace cgc1
       // this just needs mutex.
       ::std::unique_lock<decltype(m_mutex)> lock(m_mutex);
 #ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_acquire); });
 #else
       while (m_collect) {
         lock.unlock();
@@ -311,15 +401,12 @@ namespace cgc1
     {
       // this needs both thread mutex and mutex.
       double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
-#ifndef _WIN32
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
-#else
-      while (m_collect) {
+
+      while (!m_collect_finished && m_collect) {
         lock.unlock();
         ::std::this_thread::yield();
         lock.lock();
       }
-#endif
       lock.release();
     }
     void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
@@ -364,6 +451,7 @@ namespace cgc1
       // destroy thread allocators for this thread.
       m_gc_allocator.destroy_thread();
       m_cgc_allocator.destroy_thread();
+      m_packed_object_allocator.destroy_thread();
       // remove thread from gks.
       m_threads.erase(it);
       // this will delete our tks.
@@ -380,8 +468,8 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(pow2(33), pow2(36));
-      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
-      // const size_t num_gc_threads = 1;
+      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
       if (!num_gc_threads) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
@@ -390,7 +478,7 @@ namespace cgc1
       // add one gc thread.
       // TODO: Multiple gc threads.
       for (size_t i = 0; i < num_gc_threads; ++i)
-        m_gc_threads.emplace_back(::std::make_unique<gc_thread_t>());
+        m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
       m_initialized = true;
     }
 #ifndef _WIN32
@@ -413,9 +501,14 @@ namespace cgc1
       // note threads.size() can not change out from under us here by logic.
       // in particular we can't add threads during collection cycle.
       lock.unlock();
-      while (m_num_paused_threads != m_threads.size() - 1) {
+      ::std::chrono::high_resolution_clock::time_point start_time = ::std::chrono::high_resolution_clock::now();
+      while (m_num_paused_threads.load(::std::memory_order_acquire) != m_threads.size() - 1) {
         // os friendly spin a bit.
         ::std::this_thread::yield();
+        ::std::chrono::high_resolution_clock::time_point cur_time = ::std::chrono::high_resolution_clock::now();
+        auto time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(cur_time - start_time);
+        if (time_span > ::std::chrono::seconds(1))
+          ::std::cerr << "Waiting on thread to pause\n";
       }
       lock.lock();
       // we shouldn't unlock at end of this.
@@ -445,15 +538,15 @@ namespace cgc1
         m_allocators_unavailable_mutex.lock();
         m_allocators_unavailable_mutex.unlock();
       }
-      unique_lock_t<decltype(m_mutex)> lock(m_mutex);
+      unique_lock_t<decltype(m_start_world_condition_mutex)> lock(m_start_world_condition_mutex);
       // deadlock potential here if conditional var sets mutexes in kernel
       // so we use our own conditional variable implementation.
-      m_start_world_condition.wait(lock, [this]() { return !m_collect; });
+      m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_acquire); });
+      // do this inside lock just to prevent race conditions.
+      // This is defensive programming only, it shouldn't be required.
+      tlks->set_in_signal_handler(false);
       // this thread is resumed.
       m_num_resumed_threads++;
-      // do this inside lock just to prevent race conditions.
-      // I can't think of any, but paranoid wins with threading.
-      tlks->set_in_signal_handler(false);
       lock.unlock();
     }
 #else
@@ -536,5 +629,11 @@ namespace cgc1
     {
     }
 #endif
+    allocation_failure_action_t gc_allocator_traits_t::on_allocation_failure(const allocation_failure_t &failure)
+    {
+      g_gks->gc_allocator().initialize_thread()._do_maintenance();
+      g_gks->force_collect();
+      return allocation_failure_action_t{false, failure.m_failures < 5};
+    }
   }
 }

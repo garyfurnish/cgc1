@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <boost/container/flat_set.hpp>
 #include "allocator_block.hpp"
 #include "object_state.hpp"
 namespace cgc1
@@ -32,6 +33,7 @@ namespace cgc1
     public:
       using allocator = Allocator;
       using user_data_type = User_Data;
+      using size_type = size_t;
       static user_data_type s_default_user_data;
       allocator_block_t() = default;
       /**
@@ -44,7 +46,7 @@ namespace cgc1
       CGC1_ALWAYS_INLINE
       allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
       allocator_block_t(const allocator_block_t &) = delete;
-      CGC1_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept = default;
+      CGC1_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept;
       allocator_block_t &operator=(const allocator_block_t &) = delete;
       CGC1_ALWAYS_INLINE allocator_block_t &operator=(allocator_block_t &&) noexcept;
       ~allocator_block_t();
@@ -68,6 +70,10 @@ namespace cgc1
        * \brief End iterator to allow bytewise iteration over memory block.
       **/
       uint8_t *end() const noexcept;
+      /**
+       * \brief Return size of memory.
+       **/
+      auto memory_size() const noexcept -> size_type;
       /**
        * \brief End iterator for object_states
       **/
@@ -109,8 +115,9 @@ namespace cgc1
       bool destroy(void *v, size_t &last_collapsed_size, size_t &last_max_alloc_available);
       /**
        * \brief Collect any adjacent blocks that may have formed into one block.
+       * @param num_quasifreed Increment by number of quasifreed found.
       **/
-      void collect();
+      void collect(size_t &num_quasifreed);
       /**
        * \brief Return the maximum allocation size available.
       **/
@@ -142,6 +149,14 @@ namespace cgc1
        * \brief Return updated last max alloc available.
        **/
       size_t last_max_alloc_available() const noexcept;
+      /**
+       * \brief Return the bytes of secondary memory used.
+       **/
+      size_t secondary_memory_used() const noexcept;
+      /**
+       * \brief Shrink secondary data structures to fit.
+       **/
+      void shrink_secondary_memory_usage_to_fit();
 
     public:
       /**
@@ -149,7 +164,9 @@ namespace cgc1
        *
        * Uses control allocator for control data.
        **/
-      rebind_vector_t<object_state_t *, allocator> m_free_list;
+      ::boost::container::flat_set<object_state_t *,
+                                   os_size_compare,
+                                   typename allocator::template rebind<object_state_t *>::other> m_free_list;
       /**
        * \brief Next allocator pointer if whole block has not yet been used.
       **/

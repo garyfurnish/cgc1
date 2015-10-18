@@ -12,8 +12,10 @@ namespace cgc1
 #define SIGUNUSED 31
 #endif
   static const int c_map_anonymous = MAP_ANON;
+  static const int c_map_no_reserve = 0;
 #else
   static const int c_map_anonymous = MAP_ANONYMOUS;
+  static const int c_map_no_reserve = MAP_NORESERVE;
 #endif
 
   inline slab_t::slab_t(size_t size, void *addr)
@@ -50,9 +52,9 @@ namespace cgc1
     void *ret = nullptr;
     // attempt to map the memory.
     if (addr)
-      ret = ::mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | c_map_anonymous | MAP_FIXED, -1, 0);
+      ret = ::mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | c_map_anonymous | c_map_no_reserve | MAP_FIXED, -1, 0);
     else
-      ret = ::mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | c_map_anonymous, -1, 0);
+      ret = ::mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | c_map_anonymous | c_map_no_reserve, -1, 0);
     // check of failure.
     if (!ret || ret == reinterpret_cast<void *>(-1)) {
       ::std::cerr << "\n Failed to allocate memory " << addr << " " << size << ::std::endl;
@@ -85,9 +87,6 @@ namespace cgc1
     // this can fail for lots of reasons, such as ASLR.
     void *ret = ::mremap(m_addr, m_size, size, 0);
     if (ret != m_addr) {
-      ::std::cerr << "\n Failed to expand memory " << m_addr << " " << m_size << " " << size << " returned " << ret
-                  << ::std::endl;
-      assert(0);
       return false;
     }
     m_size = size;

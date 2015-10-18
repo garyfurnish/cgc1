@@ -13,14 +13,12 @@ namespace cgc1
 {
   namespace details
   {
-    /**
-     * \brief Functional that does nothing when called.
-     **/
-    struct do_nothing_t {
-      template <typename... Args>
-      void operator()(Args &&...)
-      {
-      }
+    struct allocation_failure_t {
+      size_t m_failures;
+    };
+    struct allocation_failure_action_t {
+      bool m_attempt_expand;
+      bool m_repeat;
     };
     /**
      * \brief Default allocator traits.
@@ -28,19 +26,27 @@ namespace cgc1
      * Does nothing on any event.
      **/
     struct allocator_no_traits_t {
+      do_nothing_t on_allocation;
       do_nothing_t on_create_allocator_block;
       do_nothing_t on_destroy_allocator_block;
       do_nothing_t on_creation;
+      allocation_failure_action_t on_allocation_failure(const allocation_failure_t &)
+      {
+        return allocation_failure_action_t{false, false};
+      }
       using allocator_block_user_data_type = user_data_base_t;
     };
     /**
-     * \brief Exception for out of memory error.
+     * \brief Pair of memory addresses (begin and end)
      **/
-    class out_of_memory_exception_t : public ::std::runtime_error
-    {
-    public:
-      out_of_memory_exception_t() : ::std::runtime_error("Allocator out of available memory")
+    using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
+    /**
+     * \brief Size comparator for memory pair.
+     **/
+    struct memory_pair_size_comparator_t {
+      bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
       {
+        return size(a) < size(b);
       }
     };
     /**
@@ -85,16 +91,12 @@ namespace cgc1
        **/
       using block_type = allocator_block_t<allocator, typename allocator_traits::allocator_block_user_data_type>;
       /**
-       * \brief Pair of memory addresses (begin and end)
-      **/
-      using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
-      /**
        * \brief Type that is a Vector of memory addresses.
        *
        * This uses the control allocator for control memory.
       **/
       using memory_pair_vector_t =
-          typename ::std::vector<memory_pair_t, typename allocator::template rebind<memory_pair_t>::other>;
+          typename ::std::vector<system_memory_range_t, typename allocator::template rebind<memory_range_t>::other>;
       /**
        * \brief Type of thread allocator used by this allocator.
        *
@@ -133,10 +135,10 @@ namespace cgc1
        *
        * Note that suggested max heap size does not guarentee the heap can expand to that size depending on platform.
        * @param initial_gc_heap_size Initial size of gc heap.
-       * @param suggested_max_heap_size Hint about how large the gc heap may grow.
+       * @param max_heap_size Hint about how large the gc heap may grow.
        * @return True on success, false on failure.
       **/
-      bool initialize(size_t initial_gc_heap_size, size_t suggested_max_heap_size) REQUIRES(!m_mutex);
+      bool initialize(size_t initial_gc_heap_size, size_t max_heap_size) REQUIRES(!m_mutex);
       /**
        * \brief Return a thread allocator for the current thread.
        *
@@ -151,18 +153,20 @@ namespace cgc1
        * \brief Get an interval of memory.
        *
        * This does not throw an exception on error but instead returns a special value.
+       * @param try_expand Attempt to expand underlying slab if necessary
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t get_memory(size_t sz) REQUIRES(!m_mutex);
+      system_memory_range_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
 
       /**
        * \brief Get an interval of memory.
        *
        * Requires holding lock.
        * This does not throw an exception on error but instead returns a special value.
+       * @param try_expand Try to expand underlying slab if true.
        * @return (nullptr,nullptr) on error.
       **/
-      memory_pair_t _u_get_memory(size_t sz) REQUIRES(m_mutex);
+      system_memory_range_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
       /**
        * \brief Create or reuse an allocator block in destination by reference.
        *
@@ -172,13 +176,16 @@ namespace cgc1
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param destination Returned allocator block.
+       * @param try_expand Attempt to expand underlying slab if necessary
+       * @return True on success, false on failure.
       **/
-      void _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
+      bool _u_get_unregistered_allocator_block(this_thread_allocator_t &ta,
                                                size_t create_sz,
                                                size_t minimum_alloc_length,
                                                size_t maximum_alloc_length,
                                                size_t allocate_size,
-                                               block_type &destination) REQUIRES(m_mutex);
+                                               block_type &destination,
+                                               bool try_expand) REQUIRES(m_mutex);
 
       /**
        * \brief Release an interval of memory.
@@ -312,6 +319,26 @@ namespace cgc1
       **/
       uint8_t *current_end() const REQUIRES(!m_mutex);
       /**
+       * \brief Return the size of the slab.
+       **/
+      REQUIRES(!m_mutex) auto size() const noexcept -> size_t;
+      /**
+       * \brief Return the currently used size of slab.
+       **/
+      REQUIRES(!m_mutex) auto current_size() const noexcept -> size_t;
+      /**
+       * \brief Return the size of the slab.
+       **/
+      REQUIRES(m_mutex) auto _u_size() const noexcept -> size_t;
+      /**
+       * \brief Return the currently used size of slab.
+       **/
+      REQUIRES(m_mutex) auto _u_current_size() const noexcept -> size_t;
+      /**
+       * \brief Return maximum heap size.
+       **/
+      auto max_heap_size() const noexcept -> size_type;
+      /**
        * \brief Collapse the free list.
       **/
       void collapse() REQUIRES(!m_mutex);
@@ -363,7 +390,14 @@ namespace cgc1
        * \brief Return true if the destructor has been called.
        **/
       bool is_shutdown() const;
-
+      /**
+       * \brief Return reference to allocator traits.
+       **/
+      auto traits() noexcept -> allocator_traits &;
+      /**
+       * \brief Return reference to allocator traits.
+       **/
+      auto traits() const noexcept -> const allocator_traits &;
       /**
        * \brief Return number of global blocks.
       **/
@@ -394,6 +428,16 @@ namespace cgc1
        * @param block Block to register.
       **/
       void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+      /**
+       * \brief Put information about allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
+      /**
+       * \brief Set all threads to force free empty blocks.
+       * Typically called after state is externally altered from gc.
+       **/
+      void _u_set_force_free_empty_blocks() REQUIRES(m_mutex);
 
     private:
       /**
@@ -409,10 +453,15 @@ namespace cgc1
        * @param minimum_alloc_length Minimum allocation length for block.
        * @param maximum_alloc_length Maximum allocation length for block.
        * @param block Return block by reference.
+       * @param try_expand Attempt to expand underlying slab if necessary
       **/
       REQUIRES(m_mutex)
-      void _u_create_allocator_block(
-          this_thread_allocator_t &ta, size_t sz, size_t minimum_alloc_length, size_t maximum_alloc_length, block_type &block);
+      bool _u_create_allocator_block(this_thread_allocator_t &ta,
+                                     size_t sz,
+                                     size_t minimum_alloc_length,
+                                     size_t maximum_alloc_length,
+                                     block_type &block,
+                                     bool try_expand);
       /**
        * \brief Find a global allocator block that has sz free for allocation.
        *
@@ -513,6 +562,11 @@ namespace cgc1
        * \brief Allocator traits.
       **/
       Allocator_Traits m_traits;
+
+      /**
+       * \brief Maximum heap size.
+       **/
+      size_type m_maximum_heap_size = 0;
 
     public:
       /**

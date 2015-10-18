@@ -3,6 +3,7 @@
 #include <cgc1/win32_slab.hpp>
 #include <cgc1/concurrency.hpp>
 #include "object_state.hpp"
+#include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
 {
   namespace details
@@ -107,6 +108,15 @@ namespace cgc1
        * \brief Return offset from start of slab for pointer.
        **/
       ptrdiff_t offset(void *v) const noexcept;
+      /**
+       * \brief Return currently used size.
+       **/
+      auto current_size() const noexcept -> size_t;
+      /**
+       * \brief Put information about slab allocator into a property tree.
+       * @param level Level of information to give.  Higher is more verbose.
+       **/
+      void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
     private:
       /**
