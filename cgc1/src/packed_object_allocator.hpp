@@ -18,7 +18,7 @@ namespace cgc1
     class packed_object_allocator_t
     {
     public:
-      using mutex_type = spinlock_t;
+      using mutex_type = mutex_t;
       using allocator_policy_type = Allocator_Policy;
       using thread_allocator_type = packed_object_thread_allocator_t<allocator_policy_type>;
       using allocator = cgc_internal_allocator_t<void>;

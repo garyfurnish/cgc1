@@ -245,7 +245,7 @@ namespace cgc1
           set_mark(os);
           return;
         }
-        if (depth > 300) {
+        if (depth > 100) {
           // if recursion depth too big, put it on addresses to mark.
           m_addresses_to_mark.insert(addr);
           return;

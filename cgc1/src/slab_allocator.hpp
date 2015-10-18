@@ -8,7 +8,7 @@ namespace cgc1
 {
   namespace details
   {
-
+    using mutex_type = mutex_t;
     using slab_allocator_object_t = details::object_state_t;
     static_assert(sizeof(slab_allocator_object_t) == c_alignment, "slab_allocator_object_t too large");
     static_assert(::std::is_pod<slab_allocator_object_t>::value, "slab_allocator_object_t is not POD");
@@ -68,7 +68,7 @@ namespace cgc1
       /**
        * \brief Return lock for this allocator.
        **/
-      spinlock_t &_mutex() RETURN_CAPABILITY(m_mutex)
+      mutex_t &_mutex() RETURN_CAPABILITY(m_mutex)
       {
         return m_mutex;
       }
@@ -122,7 +122,7 @@ namespace cgc1
       /**
        * \brief Mutex for allocator.
        **/
-      spinlock_t m_mutex;
+      mutex_type m_mutex;
       /**
        * \brief Underlying slab.
        **/

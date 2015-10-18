@@ -302,7 +302,23 @@ namespace cgc1
    **/
   inline void secure_zero(void *s, size_t n)
   {
-    volatile char *p = reinterpret_cast<volatile char *>(s);
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
+    while (n >= sizeof(size_t) * 8) {
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      n -= sizeof(size_t) * 8;
+    }
+    while (n >= sizeof(size_t)) {
+      *p_sz++ = 0;
+      n -= sizeof(size_t);
+    }
+    volatile char *p = reinterpret_cast<volatile char *>(p_sz);
 
     while (n--)
       *p++ = 0;
