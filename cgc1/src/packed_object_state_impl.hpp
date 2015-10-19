@@ -165,21 +165,19 @@ namespace cgc1
 
     CGC1_OPT_INLINE void *packed_object_state_t::allocate() noexcept
     {
+      size_t retries = 0;
     RESTART:
       auto i = first_free();
       if (i >= size())
         return nullptr;
-      if (i == ::std::numeric_limits<size_t>::max())
-        return nullptr;
       // guarentee the memory address exists somewhere that is visible to gc
       volatile auto memory_address = begin() + real_entry_size() * i;
       set_free(i, false);
-      size_t retries = 0;
       // this awful code is because for a conservative gc
       // we could set free before memory_address is live.
       // this can go wrong because we could mark while it is still free.
-      if (unlikely(first_free() == i)) {
-        if (retries < 15) {
+      if (unlikely(is_free(i))) {
+        if (likely(retries < 15)) {
           goto RESTART;
         } else
           abort();
