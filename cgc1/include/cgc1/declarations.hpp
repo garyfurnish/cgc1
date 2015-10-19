@@ -24,7 +24,7 @@
 #ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
 #endif
-#define _NoInline_ __attribute__((noinline))
+#define CGC1_NO_INLINE __attribute__((noinline))
 #define likely(x) __builtin_expect(static_cast<bool>(x), 1)
 #define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
@@ -36,7 +36,7 @@
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)
-#define _NoInline_ __declspec(noinline)
+#define CGC1_NO_INLINE __declspec(noinline)
 #endif
 namespace cgc1
 {

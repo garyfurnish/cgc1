@@ -232,7 +232,7 @@ static void multiple_slab_test1()
  * \brief Setup for root test.
  * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
  **/
-static _NoInline_ void packed_root_test__setup(void *&memory, size_t &old_memory)
+static CGC1_NO_INLINE void packed_root_test__setup(void *&memory, size_t &old_memory)
 {
   auto &poa = cgc1::details::g_gks->_packed_object_allocator();
   auto &ta = poa.initialize_thread();
