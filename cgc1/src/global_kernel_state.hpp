@@ -37,6 +37,7 @@ namespace cgc1
       global_kernel_state_t(global_kernel_state_t &&) = delete;
       global_kernel_state_t &operator=(const global_kernel_state_t &) = delete;
       global_kernel_state_t &operator=(global_kernel_state_t &&) = delete;
+      ~global_kernel_state_t();
       /**
        * \brief Perform shutdown work that must be done before destruction.
       **/
@@ -379,6 +380,9 @@ namespace cgc1
        * \brief Saved initialization parameters.
        **/
       const global_kernel_state_param_t m_initialization_parameters;
+    public:
+      ::std::atomic<bool> m_in_destructor{false};
+    private:
     };
     extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
   }

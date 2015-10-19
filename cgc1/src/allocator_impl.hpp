@@ -8,7 +8,7 @@ namespace cgc1
   namespace details
   {
     template <typename Allocator, typename Traits>
-    inline allocator_t<Allocator, Traits>::allocator_t() : m_shutdown(false)
+    inline allocator_t<Allocator, Traits>::allocator_t()
     {
       // notify traits that the allocator was created.
       m_traits.on_creation(*this);
@@ -16,18 +16,32 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     allocator_t<Allocator, Traits>::~allocator_t()
     {
-      // tell the world the destructor has been called.
-      m_shutdown = true;
+      if(!m_shutdown)
+	shutdown();
+      assert(m_shutdown);
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator,Traits>::shutdown()
+    {
       _ud_verify();
       // first shutdown all thread allocators.
       m_thread_allocators.clear();
       // then get rid of all block handles.
       m_blocks.clear();
       // then get rid of any lingering blocks.
-      m_global_blocks.clear();
+      m_global_blocks.clear();      
+      m_free_list.clear();
+      {
+	auto a1 = ::std::move(m_thread_allocators);
+	auto a2 = ::std::move(m_blocks);
+	auto a3 = ::std::move(m_global_blocks);
+	auto a4 = ::std::move(m_free_list);
+      }
+      // tell the world the destructor has been called.
+      m_shutdown = true;
     }
     template <typename Allocator, typename Traits>
-    inline bool allocator_t<Allocator, Traits>::is_shutdown() const
+    bool allocator_t<Allocator, Traits>::is_shutdown() const
     {
       return m_shutdown;
     }

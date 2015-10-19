@@ -130,6 +130,7 @@ namespace cgc1
        * \brief Destructor.
        **/
       ~allocator_t();
+      void shutdown();
       /**
        * \brief Initialize the allocator.
        *
@@ -502,7 +503,7 @@ namespace cgc1
        *
        * Certain features of the allocator need to behave differently during destruction.
       **/
-      std::atomic<bool> m_shutdown;
+      std::atomic<bool> m_shutdown{false};
       /**
        * \brief Free interval vector.
        *

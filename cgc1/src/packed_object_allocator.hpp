@@ -29,6 +29,9 @@ namespace cgc1
       packed_object_allocator_t &operator=(const packed_object_allocator_t &) = delete;
       packed_object_allocator_t &operator=(packed_object_allocator_t &&) noexcept = delete;
       ~packed_object_allocator_t();
+
+      REQUIRES(!m_mutex) void shutdown();
+
       REQUIRES(!m_mutex) auto _get_memory() noexcept -> packed_object_state_t *;
       void _u_to_global(size_t id, packed_object_state_t *state) noexcept REQUIRES(m_mutex);
       void _u_to_free(void *v) noexcept REQUIRES(m_mutex);
