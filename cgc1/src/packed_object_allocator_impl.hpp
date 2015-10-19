@@ -32,15 +32,15 @@ namespace cgc1
     void packed_object_allocator_t<Allocator_Policy>::shutdown()
     {
       {
-	CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       }
       CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
       m_thread_allocators.clear();
       m_free_globals.clear();
       m_globals.shutdown();
       {
-	auto a1 = ::std::move(m_thread_allocators);
-	auto a2 = ::std::move(m_free_globals);
+        auto a1 = ::std::move(m_thread_allocators);
+        auto a2 = ::std::move(m_free_globals);
       }
     }
     template <typename Allocator_Policy>

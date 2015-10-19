@@ -16,26 +16,30 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     allocator_t<Allocator, Traits>::~allocator_t()
     {
-      if(!m_shutdown)
-	shutdown();
+      if (!m_shutdown)
+        shutdown();
       assert(m_shutdown);
     }
     template <typename Allocator, typename Traits>
-    void allocator_t<Allocator,Traits>::shutdown()
+    void allocator_t<Allocator, Traits>::shutdown()
     {
+      {
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      }
+      CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
       _ud_verify();
       // first shutdown all thread allocators.
       m_thread_allocators.clear();
       // then get rid of all block handles.
       m_blocks.clear();
       // then get rid of any lingering blocks.
-      m_global_blocks.clear();      
+      m_global_blocks.clear();
       m_free_list.clear();
       {
-	auto a1 = ::std::move(m_thread_allocators);
-	auto a2 = ::std::move(m_blocks);
-	auto a3 = ::std::move(m_global_blocks);
-	auto a4 = ::std::move(m_free_list);
+        auto a1 = ::std::move(m_thread_allocators);
+        auto a2 = ::std::move(m_blocks);
+        auto a3 = ::std::move(m_global_blocks);
+        auto a4 = ::std::move(m_free_list);
       }
       // tell the world the destructor has been called.
       m_shutdown = true;

@@ -54,12 +54,12 @@ namespace cgc1
         }
       }
     }
-    void packed_object_package_t::shutdown() 
+    void packed_object_package_t::shutdown()
     {
-      for(auto&& vec : m_vectors)  {
-	vec.clear();
-	auto a1 = ::std::move(vec);
-	(void)a1;
+      for (auto &&vec : m_vectors) {
+        vec.clear();
+        auto a1 = ::std::move(vec);
+        (void)a1;
       }
     }
   }

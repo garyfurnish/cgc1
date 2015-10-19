@@ -39,38 +39,38 @@ namespace cgc1
   {
     void *internal_allocate(size_t n)
     {
-      static global_kernel_state_t* gks= nullptr;
-      if(cgc1_likely(g_gks))
-	gks=g_gks.get();
+      static global_kernel_state_t *gks = nullptr;
+      if (cgc1_likely(g_gks))
+        gks = g_gks.get();
       else
-	assert(gks->m_in_destructor);
+        assert(gks->m_in_destructor);
       return gks->_internal_allocator().initialize_thread().allocate(n);
     }
     void internal_deallocate(void *p)
     {
-      static global_kernel_state_t* gks= nullptr;
-      if(cgc1_likely(g_gks))
-	gks=g_gks.get();
+      static global_kernel_state_t *gks = nullptr;
+      if (cgc1_likely(g_gks))
+        gks = g_gks.get();
       else
-	assert(gks->m_in_destructor);
+        assert(gks->m_in_destructor);
       gks->_internal_allocator().initialize_thread().destroy(p);
     }
     void *internal_slab_allocate(size_t n)
     {
-      static global_kernel_state_t* gks= nullptr;
-      if(cgc1_likely(g_gks))
-	gks=g_gks.get();
+      static global_kernel_state_t *gks = nullptr;
+      if (cgc1_likely(g_gks))
+        gks = g_gks.get();
       else
-	assert(gks->m_in_destructor);
+        assert(gks->m_in_destructor);
       return gks->_internal_slab_allocator().allocate_raw(n);
     }
     void internal_slab_deallocate(void *p)
     {
-      static global_kernel_state_t* gks= nullptr;
-      if(cgc1_likely(g_gks))
-	gks=g_gks.get();
+      static global_kernel_state_t *gks = nullptr;
+      if (cgc1_likely(g_gks))
+        gks = g_gks.get();
       else
-	assert(gks->m_in_destructor);
+        assert(gks->m_in_destructor);
       gks->_internal_slab_allocator().deallocate_raw(p);
     }
     global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
@@ -87,21 +87,21 @@ namespace cgc1
       m_packed_object_allocator.shutdown();
       m_gc_allocator.shutdown();
       {
-	m_gc_threads.clear();
-	auto a1 = ::std::move(m_gc_threads);
-	m_roots.clear();
-	auto a2 = ::std::move(m_roots);
-	m_threads.clear();
-	auto a3 = ::std::move(m_threads);
-	m_freed_in_last_collection.clear();
-	auto a4 = ::std::move(m_freed_in_last_collection);
+        m_gc_threads.clear();
+        auto a1 = ::std::move(m_gc_threads);
+        m_roots.clear();
+        auto a2 = ::std::move(m_roots);
+        m_threads.clear();
+        auto a3 = ::std::move(m_threads);
+        m_freed_in_last_collection.clear();
+        auto a4 = ::std::move(m_freed_in_last_collection);
       }
       m_cgc_allocator.shutdown();
       assert(!m_gc_threads.capacity());
       assert(!m_roots.capacity());
       assert(!m_threads.capacity());
       assert(!m_freed_in_last_collection.capacity());
-      m_in_destructor=false;
+      m_in_destructor = false;
     }
     void global_kernel_state_t::shutdown()
     {

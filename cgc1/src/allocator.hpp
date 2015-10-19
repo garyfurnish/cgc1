@@ -130,7 +130,7 @@ namespace cgc1
        * \brief Destructor.
        **/
       ~allocator_t();
-      void shutdown();
+      void shutdown() REQUIRES(!m_mutex);
       /**
        * \brief Initialize the allocator.
        *
