@@ -6,8 +6,8 @@ namespace cgc1
 {
 #ifdef __APPLE__
   template <>
-      pthread_key_t cgc1::thread_local_pointer_t <
-    cgc1::details::packed_object_thread_allocator_t<details::gc_packed_object_allocator_policy_t>>::s_pkey{0};
+  pthread_key_t cgc1::thread_local_pointer_t<
+      cgc1::details::packed_object_thread_allocator_t<details::gc_packed_object_allocator_policy_t>>::s_pkey{0};
 #else
   template <>
   thread_local cgc1::thread_local_pointer_t<

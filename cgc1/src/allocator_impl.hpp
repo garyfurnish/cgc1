@@ -538,7 +538,7 @@ namespace cgc1
         if (prev != end) {
           if (prev->end() == it->begin()) {
             prev->set_end(it->end());
-            m_free_list.erase(it.base()-1);
+            m_free_list.erase(it.base() - 1);
           }
         }
       }
