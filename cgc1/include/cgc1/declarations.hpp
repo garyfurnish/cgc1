@@ -260,22 +260,19 @@ namespace cgc1
     {
     }
   };
-#ifndef NDEBUG
-#define _DEBUG
-#endif
-#ifdef _DEBUG
-#ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 0
+#if defined(_DEBUG) || not defined(NDEBUG)
+#ifndef CGC1_DEBUG_LEVEL
+#define CGC1_DEBUG_LEVEL 0
 //#define CGC1_DEBUG_VERBOSE_TRACK
 #endif
 #endif
-#ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 0
+#ifndef CGC1_DEBUG_LEVEL
+#define CGC1_DEBUG_LEVEL 0
 #endif
   /**
    * \brief Current debug level.
    **/
-  static const constexpr int c_debug_level = _CGC1_DEBUG_LEVEL;
+  static const constexpr int c_debug_level = CGC1_DEBUG_LEVEL;
   /**
    * \brief Return inverse for size.
    **/

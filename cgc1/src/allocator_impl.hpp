@@ -212,7 +212,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
-#if _CGC1_DEBUG_LEVEL > 0
+#if CGC1_DEBUG_LEVEL > 0
       _ud_verify();
       for (auto &&it : m_blocks) {
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
@@ -267,7 +267,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_ud_verify()
     {
-#if _CGC1_DEBUG_LEVEL > 1
+#if CGC1_DEBUG_LEVEL > 1
       // this is really expensive, but verify that blocks are sorted.
       assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
 #endif
@@ -538,7 +538,7 @@ namespace cgc1
         if (prev != end) {
           if (prev->end() == it->begin()) {
             prev->set_end(it->end());
-            m_free_list.erase(it.base());
+            m_free_list.erase(it.base()-1);
           }
         }
       }

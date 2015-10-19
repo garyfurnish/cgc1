@@ -17,7 +17,7 @@ namespace cgc1
           m_minimum_alloc_length(object_state_t::needed_size(sizeof(object_state_t), minimum_alloc_length)),
           m_start(reinterpret_cast<uint8_t *>(start))
     {
-#if _CGC1_DEBUG_LEVEL > 0
+#if CGC1_DEBUG_LEVEL > 0
       // sanity check alignment of start.
       if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
         abort();
@@ -138,7 +138,7 @@ namespace cgc1
       }
       return nullptr;
     }
-#if _CGC1_DEBUG_LEVEL > 1
+#if CGC1_DEBUG_LEVEL > 1
     template <typename Allocator, typename User_Data>
     void allocator_block_t<Allocator, User_Data>::_verify(const object_state_t *state)
     {

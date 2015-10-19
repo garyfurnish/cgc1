@@ -2,7 +2,7 @@
 #include "allocator_block_set.hpp"
 #include <assert.h>
 #include <iostream>
-#include <boost/property_tree/ptree.hpp>
+#include <cgc1/boost/property_tree/ptree.hpp>
 namespace cgc1
 {
   namespace details
@@ -76,7 +76,7 @@ namespace cgc1
     template <typename Allocator, typename Allocator_Block_User_Data>
     inline void allocator_block_set_t<Allocator, Allocator_Block_User_Data>::_verify() const
     {
-#if _CGC1_DEBUG_LEVEL > 1
+#if CGC1_DEBUG_LEVEL > 1
       // make sure available blocks is sorted.
       assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
       // make sure there are no duplicates in available blocks (since sorted, not a problem).
@@ -170,7 +170,7 @@ namespace cgc1
           ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
           auto ab_it = ab_it2;
           if (ab_it2 != m_available_blocks.end()) {
-#if _CGC1_DEBUG_LEVEL > 1
+#if CGC1_DEBUG_LEVEL > 1
             while (ab_it2->first == pair2.first) {
               if (ab_it2->second == &*it)
                 break;

@@ -3,7 +3,9 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <cgc1/warning_wrapper_push.hpp>
 #include <boost/container/flat_set.hpp>
+#include <cgc1/warning_wrapper_pop.hpp>
 #include "allocator_block.hpp"
 #include "object_state.hpp"
 namespace cgc1

@@ -1,4 +1,5 @@
 #pragma once
+#include <cgc1/warning_wrapper_push.hpp>
 // See http://clang.llvm.org/docs/ThreadSafetyAnalysis.html
 // Enable thread safety attributes only with clang.
 // The attributes can be safely erased when compiling with other compilers.
@@ -7,6 +8,7 @@
 #else
 #define THREAD_ANNOTATION_ATTRIBUTE__(x) // no-op
 #endif
+#include <cgc1/warning_wrapper_pop.hpp>
 
 #define CAPABILITY(x) THREAD_ANNOTATION_ATTRIBUTE__(capability(x))
 
