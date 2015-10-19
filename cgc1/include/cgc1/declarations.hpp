@@ -25,8 +25,8 @@
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
 #endif
 #define CGC1_NO_INLINE __attribute__((noinline))
-#define likely(x) __builtin_expect(static_cast<bool>(x), 1)
-#define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
+#define cgc1_likely(x) __builtin_expect(static_cast<bool>(x), 1)
+#define cgc1_unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))

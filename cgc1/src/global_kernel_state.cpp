@@ -247,7 +247,7 @@ namespace cgc1
     }
     void global_kernel_state_t::force_collect()
     {
-      if (unlikely(!get_tlks())) {
+      if (cgc1_unlikely(!get_tlks())) {
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
         abort();
       }
@@ -269,7 +269,7 @@ namespace cgc1
       lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
            m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      while (likely(m_num_collections) &&
+      while (cgc1_likely(m_num_collections) &&
              m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
         // we need to unlock these because gc_thread could be using them.
         // and gc_thread is not paused.

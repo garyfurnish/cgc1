@@ -176,8 +176,8 @@ namespace cgc1
       // this awful code is because for a conservative gc
       // we could set free before memory_address is live.
       // this can go wrong because we could mark while it is still free.
-      if (unlikely(is_free(i))) {
-        if (likely(retries < 15)) {
+      if (cgc1_unlikely(is_free(i))) {
+        if (cgc1_likely(retries < 15)) {
           goto RESTART;
         } else
           abort();
@@ -191,7 +191,7 @@ namespace cgc1
       if (v < begin() || v > end())
         return false;
       size_t byte_diff = static_cast<size_t>(v - begin());
-      if (unlikely(byte_diff % real_entry_size()))
+      if (cgc1_unlikely(byte_diff % real_entry_size()))
         return false;
       auto i = byte_diff / real_entry_size();
       set_free(i, true);

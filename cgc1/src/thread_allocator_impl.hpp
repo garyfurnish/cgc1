@@ -193,7 +193,7 @@ namespace cgc1
       // do this if we exceed the destroy threshold or externally forced.
       bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
 
-      if (unlikely(should_force_free)) {
+      if (cgc1_unlikely(should_force_free)) {
         _do_free_empty_blocks();
       }
     }
@@ -233,7 +233,7 @@ namespace cgc1
       _check_do_free_empty_blocks();
       // find allocation set for allocation size.
       size_t id = find_block_set_id(sz);
-      if (unlikely(sz < c_alignment))
+      if (cgc1_unlikely(sz < c_alignment))
         sz = c_alignment;
       // try allocation.
       void *ret = m_allocators[id].allocate(sz);
@@ -245,7 +245,7 @@ namespace cgc1
       size_t attempts = 1;
       bool success;
       bool try_expand = true;
-      while (unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+      while (cgc1_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
         auto action = m_allocator.traits().on_allocation_failure({attempts});
         if (!action.m_repeat) {
           break;
@@ -258,7 +258,7 @@ namespace cgc1
         abort();
       }
       ret = m_allocators[id].allocate(sz);
-      if (unlikely(!ret)) // should be impossible.
+      if (cgc1_unlikely(!ret)) // should be impossible.
         abort();
       m_allocator.traits().on_allocation(ret, sz);
       return ret;
@@ -291,7 +291,7 @@ namespace cgc1
           m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
                                                           m_allocators[id].allocator_max_size(), sz, block, try_expand);
 
-      if (unlikely(!success)) {
+      if (cgc1_unlikely(!success)) {
         return false;
       }
       // gcreate and grab the empty block.

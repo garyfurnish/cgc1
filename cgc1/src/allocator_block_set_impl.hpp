@@ -124,7 +124,7 @@ namespace cgc1
       // if here, there is a block in available blocks to use.
       // so try to allocate in there.
       auto ret = lower_bound->second->allocate(sz);
-      if (unlikely(!ret)) {
+      if (cgc1_unlikely(!ret)) {
         // this shouldn't happen
         // so memory corruption, abort.
         ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption." << ::std::endl;
@@ -229,7 +229,7 @@ namespace cgc1
         move_func(moved_begin + 1, m_blocks.end(), static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
         unlock_func();
         // if moved on emplacement.
-        if (unlikely(&m_blocks.front() != bbegin)) {
+        if (cgc1_unlikely(&m_blocks.front() != bbegin)) {
           // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
           ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
           abort();

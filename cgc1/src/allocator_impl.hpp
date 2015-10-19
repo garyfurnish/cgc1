@@ -342,7 +342,7 @@ namespace cgc1
       // while block handle is not default constructable, we can move away from it.
       // thus we can use rotate to create an empty location to modify.
       // this is the optimal solution for moving in this fashion.
-      if (likely(ub > lb)) {
+      if (cgc1_likely(ub > lb)) {
         ::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
         for (size_t i = contiguous; i > 0; --i) {
           auto ub_offset = static_cast<ptrdiff_t>(i);
