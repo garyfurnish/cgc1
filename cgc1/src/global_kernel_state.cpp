@@ -37,40 +37,36 @@ namespace cgc1
 {
   namespace details
   {
-    void *internal_allocate(size_t n)
+    auto _real_gks() -> global_kernel_state_t*
     {
       static global_kernel_state_t *gks = nullptr;
       if (cgc1_likely(g_gks))
         gks = g_gks.get();
       else
-        assert(gks->m_in_destructor);
+	{
+	  if(cgc1_unlikely(!gks->m_in_destructor))
+	    abort();
+	}
+      return gks;
+    }
+    void *internal_allocate(size_t n)
+    {
+      auto gks = _real_gks();
       return gks->_internal_allocator().initialize_thread().allocate(n);
     }
     void internal_deallocate(void *p)
     {
-      static global_kernel_state_t *gks = nullptr;
-      if (cgc1_likely(g_gks))
-        gks = g_gks.get();
-      else
-        assert(gks->m_in_destructor);
+      auto gks = _real_gks();
       gks->_internal_allocator().initialize_thread().destroy(p);
     }
     void *internal_slab_allocate(size_t n)
     {
-      static global_kernel_state_t *gks = nullptr;
-      if (cgc1_likely(g_gks))
-        gks = g_gks.get();
-      else
-        assert(gks->m_in_destructor);
+      auto gks = _real_gks();
       return gks->_internal_slab_allocator().allocate_raw(n);
     }
     void internal_slab_deallocate(void *p)
     {
-      static global_kernel_state_t *gks = nullptr;
-      if (cgc1_likely(g_gks))
-        gks = g_gks.get();
-      else
-        assert(gks->m_in_destructor);
+      auto gks = _real_gks();
       gks->_internal_slab_allocator().deallocate_raw(p);
     }
     global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
@@ -81,9 +77,19 @@ namespace cgc1
       m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
       details::initialize_tlks();
     }
+    struct shutdown_ptr_functional_t
+    {
+      template <typename T>
+      void operator()(T&& t) const
+      { 
+	t->shutdown();
+      }
+    };
+    static const auto shutdown_ptr_functional = shutdown_ptr_functional_t{};
     global_kernel_state_t::~global_kernel_state_t()
     {
       m_in_destructor = true;
+      ::std::for_each(m_gc_threads.begin(),m_gc_threads.end(),shutdown_ptr_functional);
       m_packed_object_allocator.shutdown();
       m_gc_allocator.shutdown();
       {

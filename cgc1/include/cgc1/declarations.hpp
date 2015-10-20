@@ -387,6 +387,13 @@ namespace cgc1
       return plb;
     }
   }
+  template<typename T>
+  void clear_capacity(T&& t)
+  {
+    t.clear();
+    t.shrink_to_fit();
+    auto a = ::std::move(t);
+  }
 }
 namespace std
 {

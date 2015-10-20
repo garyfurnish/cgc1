@@ -24,11 +24,16 @@ namespace cgc1
       m_thread = thread_type(thread_type::allocator{}, [this]() -> void * {
         _run();
         // make sure to destroy internal allocator if used.
-        g_gks->_internal_allocator().destroy_thread();
+        _real_gks()->_internal_allocator().destroy_thread();
         return nullptr;
       });
     }
     gc_thread_t::~gc_thread_t()
+    {
+      if(m_run)
+	shutdown();
+    }
+    void gc_thread_t::shutdown()
     {
       // tell the thread it is done running.
       m_run = false;
@@ -36,6 +41,9 @@ namespace cgc1
       wake_up();
       // wait for thread to terminate.
       m_thread.join();
+      clear_capacity(m_addresses_to_mark);
+      clear_capacity(m_stack_roots);
+      clear_capacity(m_watched_threads);
     }
     void gc_thread_t::reset()
     {
