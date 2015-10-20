@@ -38,7 +38,7 @@ namespace cgc1
       /**
        * \brief Explicit shutdown.
        **/
-      void shutdown();
+      void shutdown() REQUIRES(!m_mutex);
       /**
        * \brief Reset all GC thread state.
        **/

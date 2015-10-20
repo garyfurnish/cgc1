@@ -37,16 +37,15 @@ namespace cgc1
 {
   namespace details
   {
-    auto _real_gks() -> global_kernel_state_t*
+    auto _real_gks() -> global_kernel_state_t *
     {
       static global_kernel_state_t *gks = nullptr;
       if (cgc1_likely(g_gks))
         gks = g_gks.get();
-      else
-	{
-	  if(cgc1_unlikely(!gks->m_in_destructor))
-	    abort();
-	}
+      else {
+        if (cgc1_unlikely(!gks->m_in_destructor))
+          abort();
+      }
       return gks;
     }
     void *internal_allocate(size_t n)
@@ -77,19 +76,18 @@ namespace cgc1
       m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
       details::initialize_tlks();
     }
-    struct shutdown_ptr_functional_t
-    {
+    struct shutdown_ptr_functional_t {
       template <typename T>
-      void operator()(T&& t) const
-      { 
-	t->shutdown();
+      void operator()(T &&t) const
+      {
+        t->shutdown();
       }
     };
     static const auto shutdown_ptr_functional = shutdown_ptr_functional_t{};
     global_kernel_state_t::~global_kernel_state_t()
     {
       m_in_destructor = true;
-      ::std::for_each(m_gc_threads.begin(),m_gc_threads.end(),shutdown_ptr_functional);
+      ::std::for_each(m_gc_threads.begin(), m_gc_threads.end(), shutdown_ptr_functional);
       m_packed_object_allocator.shutdown();
       m_gc_allocator.shutdown();
       {

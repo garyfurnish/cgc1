@@ -30,8 +30,8 @@ namespace cgc1
     }
     gc_thread_t::~gc_thread_t()
     {
-      if(m_run)
-	shutdown();
+      if (m_run)
+        shutdown();
     }
     void gc_thread_t::shutdown()
     {
@@ -41,6 +41,7 @@ namespace cgc1
       wake_up();
       // wait for thread to terminate.
       m_thread.join();
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       clear_capacity(m_addresses_to_mark);
       clear_capacity(m_stack_roots);
       clear_capacity(m_watched_threads);
