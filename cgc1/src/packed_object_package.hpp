@@ -34,7 +34,7 @@ namespace cgc1
        * \brief Type of id indexed array.
        **/
       using array_type = ::std::array<vector_type, cs_num_vectors>;
-
+      void shutdown();
       /**
        * \brief Move all states in package into this package.
        **/

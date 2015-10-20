@@ -89,6 +89,7 @@ namespace cgc1
     }
     CGC1_OPT_INLINE void *slab_allocator_t::allocate_raw(size_t sz)
     {
+      // TODO: THIS IS AWFUL as we have to look through everything to see if anything is free.
       // align request.
       sz = align(sz, cs_alignment);
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);

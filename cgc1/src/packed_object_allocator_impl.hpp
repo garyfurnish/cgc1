@@ -1,6 +1,6 @@
 #pragma once
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+#include <cgc1/boost/property_tree/ptree.hpp>
+#include <cgc1/boost/property_tree/json_parser.hpp>
 namespace cgc1
 {
   namespace details
@@ -28,6 +28,21 @@ namespace cgc1
     }
     template <typename Allocator_Policy>
     packed_object_allocator_t<Allocator_Policy>::~packed_object_allocator_t() = default;
+    template <typename Allocator_Policy>
+    void packed_object_allocator_t<Allocator_Policy>::shutdown()
+    {
+      {
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      }
+      CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
+      m_thread_allocators.clear();
+      m_free_globals.clear();
+      m_globals.shutdown();
+      {
+        auto a1 = ::std::move(m_thread_allocators);
+        auto a2 = ::std::move(m_free_globals);
+      }
+    }
     template <typename Allocator_Policy>
     auto packed_object_allocator_t<Allocator_Policy>::get_ttla() noexcept -> thread_allocator_type *
     {

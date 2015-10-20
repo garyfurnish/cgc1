@@ -121,7 +121,7 @@ namespace cgc1
      **/
     pointer allocate(size_type n, cgc_internal_malloc_allocator_t<void>::const_pointer = nullptr)
     {
-      assert(!in_signal_handler());
+      //      assert(!in_signal_handler());
       return reinterpret_cast<pointer>(::malloc(n * sizeof(T)));
     }
     /**

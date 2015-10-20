@@ -36,13 +36,13 @@ namespace cgc1
       set_max_free(0);
       do_maintenance();
       for (auto &&vec : m_locals.m_vectors) {
-        if (unlikely(!vec.empty())) {
+        if (cgc1_unlikely(!vec.empty())) {
           ::std::cerr << ::std::this_thread::get_id()
                       << " error: deallocating packed_object_thread_allocator_t with objects left\n";
           abort();
         }
       }
-      if (unlikely(!m_free_list.empty())) {
+      if (cgc1_unlikely(!m_free_list.empty())) {
         ::std::cerr << ::std::this_thread::get_id()
                     << " error deallocating packed_object_thread_allocator_t with free list nonempty\n";
       }
@@ -79,7 +79,7 @@ namespace cgc1
         size_t num_potential_moves = 0;
         // move extra in use to global.
         for (auto &&state : vec) {
-          if (state->free_popcount() > state->size() / 2 || unlikely(m_in_destructor))
+          if (state->free_popcount() > state->size() / 2 || cgc1_unlikely(m_in_destructor))
             // approximately half free.
             num_potential_moves++;
         }
@@ -92,7 +92,7 @@ namespace cgc1
             auto it = vec.begin();
             while (it != end) {
               auto &state = **it;
-              if (state.free_popcount() > state.size() / 2 || unlikely(m_in_destructor)) {
+              if (state.free_popcount() > state.size() / 2 || cgc1_unlikely(m_in_destructor)) {
                 num_found++;
                 if (num_found > threshold) {
                   --end;
@@ -197,7 +197,7 @@ namespace cgc1
     template <typename Allocator_Policy>
     void packed_object_thread_allocator_t<Allocator_Policy>::_check_maintenance()
     {
-      if (unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
+      if (cgc1_unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
         do_maintenance();
     }
     template <typename Allocator_Policy>

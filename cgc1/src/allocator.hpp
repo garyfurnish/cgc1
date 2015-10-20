@@ -96,7 +96,7 @@ namespace cgc1
        * This uses the control allocator for control memory.
       **/
       using memory_pair_vector_t =
-          typename ::std::vector<system_memory_range_t, typename allocator::template rebind<memory_range_t>::other>;
+          typename ::std::vector<system_memory_range_t, typename allocator::template rebind<system_memory_range_t>::other>;
       /**
        * \brief Type of thread allocator used by this allocator.
        *
@@ -130,6 +130,7 @@ namespace cgc1
        * \brief Destructor.
        **/
       ~allocator_t();
+      void shutdown() REQUIRES(!m_mutex);
       /**
        * \brief Initialize the allocator.
        *
@@ -502,7 +503,7 @@ namespace cgc1
        *
        * Certain features of the allocator need to behave differently during destruction.
       **/
-      std::atomic<bool> m_shutdown;
+      std::atomic<bool> m_shutdown{false};
       /**
        * \brief Free interval vector.
        *

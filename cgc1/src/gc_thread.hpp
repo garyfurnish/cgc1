@@ -7,7 +7,7 @@
 #include <cgc1/concurrency.hpp>
 #include <cgc1/allocated_thread.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include <boost/container/flat_set.hpp>
+#include <cgc1/boost/container/flat_set.hpp>
 #include "allocator.hpp"
 #include "internal_allocator.hpp"
 #include "gc_allocator.hpp"
@@ -35,6 +35,10 @@ namespace cgc1
        * \brief Destructor.
        **/
       ~gc_thread_t();
+      /**
+       * \brief Explicit shutdown.
+       **/
+      void shutdown() REQUIRES(!m_mutex);
       /**
        * \brief Reset all GC thread state.
        **/

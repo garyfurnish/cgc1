@@ -24,9 +24,9 @@
 #ifndef cgc1_builtin_current_stack
 #define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
 #endif
-#define _NoInline_ __attribute__((noinline))
-#define likely(x) __builtin_expect(static_cast<bool>(x), 1)
-#define unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
+#define CGC1_NO_INLINE __attribute__((noinline))
+#define cgc1_likely(x) __builtin_expect(static_cast<bool>(x), 1)
+#define cgc1_unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
 #define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
 #define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
@@ -36,7 +36,7 @@
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)
-#define _NoInline_ __declspec(noinline)
+#define CGC1_NO_INLINE __declspec(noinline)
 #endif
 namespace cgc1
 {
@@ -260,22 +260,19 @@ namespace cgc1
     {
     }
   };
-#ifndef NDEBUG
-#define _DEBUG
-#endif
-#ifdef _DEBUG
-#ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 0
+#if defined(_DEBUG) || not defined(NDEBUG)
+#ifndef CGC1_DEBUG_LEVEL
+#define CGC1_DEBUG_LEVEL 0
 //#define CGC1_DEBUG_VERBOSE_TRACK
 #endif
 #endif
-#ifndef _CGC1_DEBUG_LEVEL
-#define _CGC1_DEBUG_LEVEL 0
+#ifndef CGC1_DEBUG_LEVEL
+#define CGC1_DEBUG_LEVEL 0
 #endif
   /**
    * \brief Current debug level.
    **/
-  static const constexpr int c_debug_level = _CGC1_DEBUG_LEVEL;
+  static const constexpr int c_debug_level = CGC1_DEBUG_LEVEL;
   /**
    * \brief Return inverse for size.
    **/
@@ -302,7 +299,23 @@ namespace cgc1
    **/
   inline void secure_zero(void *s, size_t n)
   {
-    volatile char *p = reinterpret_cast<volatile char *>(s);
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
+    while (n >= sizeof(size_t) * 8) {
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      n -= sizeof(size_t) * 8;
+    }
+    while (n >= sizeof(size_t)) {
+      *p_sz++ = 0;
+      n -= sizeof(size_t);
+    }
+    volatile char *p = reinterpret_cast<volatile char *>(p_sz);
 
     while (n--)
       *p++ = 0;
@@ -373,6 +386,13 @@ namespace cgc1
     } else {
       return plb;
     }
+  }
+  template <typename T>
+  void clear_capacity(T &&t)
+  {
+    t.clear();
+    t.shrink_to_fit();
+    auto a = ::std::move(t);
   }
 }
 namespace std

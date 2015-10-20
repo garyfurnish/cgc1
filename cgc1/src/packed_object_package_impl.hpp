@@ -25,8 +25,14 @@ namespace cgc1
     CGC1_OPT_INLINE auto packed_object_package_t::allocate(size_t id) noexcept -> ::std::pair<void *, size_t>
     {
       auto &vec = m_vectors[id];
-      for (auto &it : ::boost::make_iterator_range(vec.rbegin(), vec.rend())) {
-        auto &packed = *it;
+      auto range = ::boost::make_iterator_range(vec.rbegin(), vec.rend());
+      for (auto &&it = range.begin(); it != range.end(); ++it) {
+        auto prev = it + 1;
+        if (vec.rend() != prev) {
+          auto &prev_packed = **prev;
+          cgc1_builtin_prefetch(&prev_packed);
+        }
+        auto &packed = **it;
         auto ret = packed.allocate();
         if (ret) {
           return ::std::make_pair(ret, packed.real_entry_size());

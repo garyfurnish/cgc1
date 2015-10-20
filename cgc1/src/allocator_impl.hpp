@@ -8,7 +8,7 @@ namespace cgc1
   namespace details
   {
     template <typename Allocator, typename Traits>
-    inline allocator_t<Allocator, Traits>::allocator_t() : m_shutdown(false)
+    inline allocator_t<Allocator, Traits>::allocator_t()
     {
       // notify traits that the allocator was created.
       m_traits.on_creation(*this);
@@ -16,8 +16,17 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     allocator_t<Allocator, Traits>::~allocator_t()
     {
-      // tell the world the destructor has been called.
-      m_shutdown = true;
+      if (!m_shutdown)
+        shutdown();
+      assert(m_shutdown);
+    }
+    template <typename Allocator, typename Traits>
+    void allocator_t<Allocator, Traits>::shutdown()
+    {
+      {
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      }
+      CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
       _ud_verify();
       // first shutdown all thread allocators.
       m_thread_allocators.clear();
@@ -25,9 +34,18 @@ namespace cgc1
       m_blocks.clear();
       // then get rid of any lingering blocks.
       m_global_blocks.clear();
+      m_free_list.clear();
+      {
+        auto a1 = ::std::move(m_thread_allocators);
+        auto a2 = ::std::move(m_blocks);
+        auto a3 = ::std::move(m_global_blocks);
+        auto a4 = ::std::move(m_free_list);
+      }
+      // tell the world the destructor has been called.
+      m_shutdown = true;
     }
     template <typename Allocator, typename Traits>
-    inline bool allocator_t<Allocator, Traits>::is_shutdown() const
+    bool allocator_t<Allocator, Traits>::is_shutdown() const
     {
       return m_shutdown;
     }
@@ -212,7 +230,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_u_register_allocator_block(this_thread_allocator_t &ta, block_type &block)
     {
-#if _CGC1_DEBUG_LEVEL > 0
+#if CGC1_DEBUG_LEVEL > 0
       _ud_verify();
       for (auto &&it : m_blocks) {
         // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
@@ -267,7 +285,7 @@ namespace cgc1
     template <typename Allocator, typename Traits>
     void allocator_t<Allocator, Traits>::_ud_verify()
     {
-#if _CGC1_DEBUG_LEVEL > 1
+#if CGC1_DEBUG_LEVEL > 1
       // this is really expensive, but verify that blocks are sorted.
       assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
 #endif
@@ -342,7 +360,7 @@ namespace cgc1
       // while block handle is not default constructable, we can move away from it.
       // thus we can use rotate to create an empty location to modify.
       // this is the optimal solution for moving in this fashion.
-      if (likely(ub > lb)) {
+      if (cgc1_likely(ub > lb)) {
         ::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
         for (size_t i = contiguous; i > 0; --i) {
           auto ub_offset = static_cast<ptrdiff_t>(i);
@@ -538,7 +556,7 @@ namespace cgc1
         if (prev != end) {
           if (prev->end() == it->begin()) {
             prev->set_end(it->end());
-            m_free_list.erase(it.base());
+            m_free_list.erase(it.base() - 1);
           }
         }
       }

@@ -26,7 +26,7 @@ using namespace ::cgc1::literals;
  * \brief Setup for root test.
  * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
  **/
-static _NoInline_ void root_test__setup(void *&memory, size_t &old_memory)
+static CGC1_NO_INLINE void root_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   memory = ta.allocate(50);
@@ -77,7 +77,7 @@ static void root_test()
 /**
  * \brief Setup for internal pointer test.
  **/
-static _NoInline_ void internal_pointer_test__setup(void *&memory, size_t &old_memory)
+static CGC1_NO_INLINE void internal_pointer_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   memory = ta.allocate(50);
@@ -123,7 +123,7 @@ static void internal_pointer_test()
 /**
  * \brief Setup for atomic object test.
  **/
-static _NoInline_ void atomic_test__setup(void *&memory, size_t &old_memory)
+static CGC1_NO_INLINE void atomic_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   memory = ta.allocate(50);
@@ -170,7 +170,7 @@ static void atomic_test()
   cgc1::cgc_set_atomic(nullptr, true);
   cgc1::cgc_set_atomic(&old_memory, true);
 }
-static _NoInline_ void finalizer_test__setup(std::atomic<bool> &finalized, size_t &old_memory)
+static CGC1_NO_INLINE void finalizer_test__setup(std::atomic<bool> &finalized, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50);
@@ -199,7 +199,7 @@ static void finalizer_test()
   AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
   cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
 }
-static _NoInline_ void uncollectable_test__setup(size_t &old_memory)
+static CGC1_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50);
@@ -207,7 +207,7 @@ static _NoInline_ void uncollectable_test__setup(size_t &old_memory)
   cgc1::cgc_set_uncollectable(memory, true);
   cgc1::secure_zero_pointer(memory);
 }
-static _NoInline_ void uncollectable_test__cleanup(size_t &old_memory)
+static CGC1_NO_INLINE void uncollectable_test__cleanup(size_t &old_memory)
 {
   cgc1::cgc_set_uncollectable(cgc1::unhide_pointer(old_memory), false);
 }
@@ -299,7 +299,7 @@ namespace race_condition_test_detail
   static ::std::atomic<bool> keep_going{true};
   static ::std::atomic<size_t> finished_part1{0};
 
-  static _NoInline_ void test_thread()
+  static CGC1_NO_INLINE void test_thread()
   {
     cgc1::clean_stack(0, 0, 0, 0, 0);
     CGC1_INITIALIZE_THREAD();
@@ -329,7 +329,7 @@ namespace race_condition_test_detail
   /**
    * \brief Try to create a race condition in the garbage collector.
  **/
-  static _NoInline_ void race_condition_test()
+  static CGC1_NO_INLINE void race_condition_test()
   {
     const auto start_global_blocks = gks->gc_allocator().num_global_blocks();
     // these must be cleared each time to prevent race conditions.
@@ -467,7 +467,7 @@ static void return_to_global_test1()
   cgc1::secure_zero(&begin, sizeof(begin));
   cgc1::secure_zero(&end, sizeof(end));
 }
-static _NoInline_ void return_to_global_test2()
+static CGC1_NO_INLINE void return_to_global_test2()
 {
   cgc1::clean_stack(0, 0, 0, 0, 0);
   // get the global allocator

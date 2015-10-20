@@ -1,6 +1,6 @@
 #pragma once
 #include "declarations.hpp"
-#include <boost/property_tree/ptree.hpp>
+#include <cgc1/boost/property_tree/ptree.hpp>
 #ifdef CGC1_POSIX
 namespace cgc1
 {

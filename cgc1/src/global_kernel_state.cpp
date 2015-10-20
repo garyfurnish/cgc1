@@ -37,21 +37,36 @@ namespace cgc1
 {
   namespace details
   {
+    auto _real_gks() -> global_kernel_state_t *
+    {
+      static global_kernel_state_t *gks = nullptr;
+      if (cgc1_likely(g_gks))
+        gks = g_gks.get();
+      else {
+        if (cgc1_unlikely(!gks->m_in_destructor))
+          abort();
+      }
+      return gks;
+    }
     void *internal_allocate(size_t n)
     {
-      return g_gks->_internal_allocator().initialize_thread().allocate(n);
+      auto gks = _real_gks();
+      return gks->_internal_allocator().initialize_thread().allocate(n);
     }
     void internal_deallocate(void *p)
     {
-      g_gks->_internal_allocator().initialize_thread().destroy(p);
+      auto gks = _real_gks();
+      gks->_internal_allocator().initialize_thread().destroy(p);
     }
     void *internal_slab_allocate(size_t n)
     {
-      return g_gks->_internal_slab_allocator().allocate_raw(n);
+      auto gks = _real_gks();
+      return gks->_internal_slab_allocator().allocate_raw(n);
     }
     void internal_slab_deallocate(void *p)
     {
-      g_gks->_internal_slab_allocator().deallocate_raw(p);
+      auto gks = _real_gks();
+      gks->_internal_slab_allocator().deallocate_raw(p);
     }
     global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
         : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
@@ -60,6 +75,37 @@ namespace cgc1
     {
       m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
       details::initialize_tlks();
+    }
+    struct shutdown_ptr_functional_t {
+      template <typename T>
+      void operator()(T &&t) const
+      {
+        t->shutdown();
+      }
+    };
+    static const auto shutdown_ptr_functional = shutdown_ptr_functional_t{};
+    global_kernel_state_t::~global_kernel_state_t()
+    {
+      m_in_destructor = true;
+      ::std::for_each(m_gc_threads.begin(), m_gc_threads.end(), shutdown_ptr_functional);
+      m_packed_object_allocator.shutdown();
+      m_gc_allocator.shutdown();
+      {
+        m_gc_threads.clear();
+        auto a1 = ::std::move(m_gc_threads);
+        m_roots.clear();
+        auto a2 = ::std::move(m_roots);
+        m_threads.clear();
+        auto a3 = ::std::move(m_threads);
+        m_freed_in_last_collection.clear();
+        auto a4 = ::std::move(m_freed_in_last_collection);
+      }
+      m_cgc_allocator.shutdown();
+      assert(!m_gc_threads.capacity());
+      assert(!m_roots.capacity());
+      assert(!m_threads.capacity());
+      assert(!m_freed_in_last_collection.capacity());
+      m_in_destructor = false;
     }
     void global_kernel_state_t::shutdown()
     {
@@ -247,7 +293,7 @@ namespace cgc1
     }
     void global_kernel_state_t::force_collect()
     {
-      if (unlikely(!get_tlks())) {
+      if (cgc1_unlikely(!get_tlks())) {
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
         abort();
       }
@@ -269,7 +315,7 @@ namespace cgc1
       lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
            m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      while (likely(m_num_collections) &&
+      while (cgc1_likely(m_num_collections) &&
              m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
         // we need to unlock these because gc_thread could be using them.
         // and gc_thread is not paused.
