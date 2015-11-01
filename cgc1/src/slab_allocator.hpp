@@ -10,7 +10,6 @@ namespace cgc1
   {
     using mutex_type = mutex_t;
     using slab_allocator_object_t = details::object_state_t;
-    static_assert(sizeof(slab_allocator_object_t) == c_alignment, "slab_allocator_object_t too large");
     static_assert(::std::is_pod<slab_allocator_object_t>::value, "slab_allocator_object_t is not POD");
     /**
      * \brief This is a thread safe reentrant* slab allocator.
@@ -26,6 +25,7 @@ namespace cgc1
       static constexpr size_t cs_alignment = 32;
 
       static constexpr size_t alignment() noexcept;
+      static_assert(sizeof(slab_allocator_object_t) <= cs_alignment, "slab_allocator_object_t too large");
 
       /**
        * \brief Constructor.

@@ -15,7 +15,7 @@ with open("settings.json") as settings_file:
 
 def run_test(location):
     os.chdir(location)
-    printing_system("make -j" + str(num_cores))
+    printing_system("ninja")
     printing_system("cgc1_test/cgc1_test")
 
 def test_linux():

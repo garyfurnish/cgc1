@@ -356,6 +356,7 @@ namespace cgc1
           if (ud->m_is_default) {
           } else {
             if (ud->m_finalizer) {
+              ::std::cout << "finalizing " << os->object_start() << ::std::endl;
               ud->m_finalizer(os->object_start());
               // if it has a finalizer, finalize.
             }

@@ -17,7 +17,7 @@ def build_linux():
         builds = ["unixmake_gcc_release","unixmake_gcc_debug","unixmake_clang_release","unixmake_clang_debug","unixmake_gcc_gcov"]
         for build in builds:
             printing_chdir(build)
-            os.system("make -j" + str(num_cores))
+            os.system("ninja")
             printing_chdir("..")
 
 build_linux()

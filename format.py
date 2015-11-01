@@ -25,6 +25,6 @@ def format(filename):
     printing_system(clang_install_location+"/clang-format -style=file -i " + filename)
 
 pool = Pool()
-files = list(find_files(["cgc1","cgc1_test","cgc1_alloc_benchmark"],["*.cpp","*.hpp"]))
+files = list(find_files(["cgc1","cgc1_test","cgc1_alloc_benchmark","mcppalloc_utils","mcppalloc_sparse","mcppalloc_sparse_test","mcppalloc_bitset"],["*.cpp","*.hpp"]))
 pool.map(format,files)
 sys.exit(0)
