@@ -11,8 +11,9 @@ void allocator_block_tests()
   describe("Block", []() {
     void *memory = malloc(200);
     using ::mcppalloc::sparse::details::object_state_t;
-    using allocator_block_type = typename ::mcppalloc::sparse::details::allocator_block_t<
-        ::mcppalloc::sparse::default_allocator_policy_t<::mcppalloc::default_aligned_allocator_t>>;
+    using policy = ::mcppalloc::sparse::default_allocator_policy_t<::mcppalloc::default_aligned_allocator_t>;
+    using allocator_block_type = typename ::mcppalloc::sparse::details::allocator_block_t<policy>;
+
     using object_state_type = typename allocator_block_type::object_state_type;
     const auto aligned_header_size =
         mcppalloc::align(sizeof(object_state_type), allocator_block_type::allocator_policy_type::cs_minimum_alignment);

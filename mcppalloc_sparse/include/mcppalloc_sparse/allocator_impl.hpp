@@ -3,6 +3,7 @@
 #error "IDL must be zero"
 #endif
 #include <iostream>
+#include <mcppalloc_utils/container_functions.hpp>
 namespace mcppalloc
 {
   namespace sparse

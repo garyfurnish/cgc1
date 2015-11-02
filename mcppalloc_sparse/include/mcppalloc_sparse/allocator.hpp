@@ -24,7 +24,7 @@ namespace mcppalloc
       struct memory_pair_size_comparator_t {
         bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
         {
-          return size(a) < size(b);
+          return system_memory_range_t(a).size() < system_memory_range_t(b).size();
         }
       };
       /**
@@ -85,6 +85,7 @@ namespace mcppalloc
          * This uses the control allocator for control memory.
         **/
         using this_thread_allocator_t = thread_allocator_t<this_type, allocator_policy_type>;
+        using thread_allocator_type = this_thread_allocator_t;
         /**
          * \brief Type of handles to blocks in this allocator.
         **/
@@ -563,6 +564,8 @@ namespace mcppalloc
         auto _ud_global_blocks() -> global_block_vector_type &;
       };
     }
+    template <typename Allocator_Policy = default_allocator_policy_t<::std::allocator<void>>>
+    using allocator_t = details::allocator_t<Allocator_Policy>;
   }
 }
 #include "thread_allocator_impl.hpp"

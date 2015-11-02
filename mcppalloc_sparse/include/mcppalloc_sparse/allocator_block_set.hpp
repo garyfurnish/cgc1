@@ -19,6 +19,8 @@ namespace mcppalloc
       {
       public:
         using allocator_policy_type = Allocator_Policy;
+        static_assert(::std::is_base_of<allocator_policy_tag_t, allocator_policy_type>::value,
+                      "Allocator policy must be allocator_policy");
         using allocator = typename Allocator_Policy::internal_allocator_type;
         using allocator_block_type = allocator_block_t<allocator_policy_type>;
         using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;

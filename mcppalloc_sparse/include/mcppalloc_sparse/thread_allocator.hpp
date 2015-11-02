@@ -13,14 +13,6 @@ namespace mcppalloc
     namespace details
     {
       /**
-       * \brief Treating the pair as a beginning and end, return the size of the memory block between them.
-      **/
-      inline ::std::ptrdiff_t size(const ::std::pair<uint8_t *, uint8_t *> &pair);
-      /**
-       * \brief Treating the pair as a beginning and end, return the positive size of the memory block between them.
-      **/
-      inline size_t size_pos(const ::std::pair<uint8_t *, uint8_t *> &pair);
-      /**
        * \brief Output the memory pair as a stirng to the stream.
       **/
       template <typename T>

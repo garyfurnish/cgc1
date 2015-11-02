@@ -8,16 +8,6 @@ namespace mcppalloc
   {
     namespace details
     {
-      inline ::std::ptrdiff_t size(const ::std::pair<uint8_t *, uint8_t *> &pair)
-      {
-        return pair.second - pair.first;
-      }
-      inline size_t size_pos(const ::std::pair<uint8_t *, uint8_t *> &pair)
-      {
-        auto ret = pair.second - pair.first;
-        assert(ret >= 0);
-        return static_cast<size_t>(ret);
-      }
       template <typename T>
       void print_memory_pair(T &os, const ::std::pair<uint8_t *, uint8_t *> &pair)
       {
@@ -29,14 +19,14 @@ namespace mcppalloc
         print_memory_pair(ss, pair);
         return ss.str();
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      thread_allocator_t<Global_Allocator, Allocator_Policy>::thread_allocator_t(global_allocator &allocator)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::thread_allocator_t(global_allocator &allocator)
           : m_allocator(allocator)
       {
         fill_multiples_with_default_values();
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      thread_allocator_t<Global_Allocator, Allocator_Policy>::~thread_allocator_t()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::~thread_allocator_t()
       {
         // set minimum local blocks to 0 so all free blooks go to global.
         set_minimum_local_blocks(0);
@@ -56,8 +46,8 @@ namespace mcppalloc
           }
         }
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::free_empty_blocks(size_t min_to_leave, bool force)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::free_empty_blocks(size_t min_to_leave, bool force)
       {
         m_allocator._d_verify();
         for (auto &abs : m_allocators) {
@@ -85,8 +75,8 @@ namespace mcppalloc
         m_force_free_empty_blocks = false;
       }
 
-      template <typename Global_Allocator, typename Allocator_Policy>
-      size_t thread_allocator_t<Global_Allocator, Allocator_Policy>::find_block_set_id(size_t sz)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      size_t thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::find_block_set_id(size_t sz)
       {
         if (sz <= 16)
           return 0;
@@ -97,8 +87,8 @@ namespace mcppalloc
         id = ::std::min(id, c_bins - 1);
         return id;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::fill_multiples_with_default_values()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::fill_multiples_with_default_values()
       {
         // we want minimums to be page size compatible.
         size_t min_size = slab_t::page_size();
@@ -125,8 +115,8 @@ namespace mcppalloc
           m_allocators[i]._set_allocator_sizes(min, max);
         }
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      bool thread_allocator_t<Global_Allocator, Allocator_Policy>::set_allocator_multiple(size_t id, size_t multiple)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      bool thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::set_allocator_multiple(size_t id, size_t multiple)
       {
         // sanity check id.
         if (id > c_bins)
@@ -137,8 +127,8 @@ namespace mcppalloc
         m_allocator_multiples[id].set_allocator_multiple(static_cast<uint32_t>(multiple));
         return true;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      size_t thread_allocator_t<Global_Allocator, Allocator_Policy>::get_allocator_multiple(size_t id) noexcept
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      size_t thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::get_allocator_multiple(size_t id) noexcept
       {
         // sanity check id.
         if (id > c_bins)
@@ -146,19 +136,19 @@ namespace mcppalloc
         // return multiple.
         return m_allocator_multiples[id].allocator_multiple();
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      size_t thread_allocator_t<Global_Allocator, Allocator_Policy>::get_allocator_block_size(size_t id) const noexcept
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      size_t thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::get_allocator_block_size(size_t id) const noexcept
       {
         return m_allocator_multiples[id].allocator_multiple() * static_cast<unsigned>(2 << (id + 4));
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::allocator_by_size(size_t sz) noexcept
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocator_by_size(size_t sz) noexcept
           -> this_allocator_block_set_t &
       {
         return m_allocators[find_block_set_id(sz)];
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::allocator_block_sizes() const noexcept
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocator_block_sizes() const noexcept
           -> ::std::array<size_t, c_bins>
       {
         // build an array in place, this should get optimized away.
@@ -167,13 +157,13 @@ namespace mcppalloc
           array[id] = get_allocator_block_size(id);
         return array;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      bool thread_allocator_t<Global_Allocator, Allocator_Policy>::destroy(void *v)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      bool thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::destroy(void *v)
       {
         // only support slow lab right now.
         assert(v >= m_allocator.begin() && v <= m_allocator.end());
         // get object state
-        auto os = this_block_type::from_object_start(v);
+        auto os = this_block_type::object_state_type::from_object_start(v);
         // find block set id for object.
         auto block_id = find_block_set_id(os->object_size());
         // get a reference to the allocator.
@@ -188,8 +178,8 @@ namespace mcppalloc
         _check_do_free_empty_blocks(*allocator);
         return ret;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::_check_do_free_empty_blocks()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_check_do_free_empty_blocks()
       {
         // do book keeping for returning memory to global.
         // do this if we exceed the destroy threshold or externally forced.
@@ -199,9 +189,9 @@ namespace mcppalloc
           _do_free_empty_blocks();
         }
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void
-      thread_allocator_t<Global_Allocator, Allocator_Policy>::_check_do_free_empty_blocks(this_allocator_block_set_t &allocator)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_check_do_free_empty_blocks(
+          this_allocator_block_set_t &allocator)
       {
         // do book keeping for returning memory to global.
         // do this if we exceed the destroy threshold or externally forced.
@@ -211,26 +201,26 @@ namespace mcppalloc
           _do_free_empty_blocks();
         }
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::_do_free_empty_blocks()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_do_free_empty_blocks()
       {
         bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
         free_empty_blocks(m_minimum_local_blocks, should_force_free);
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::allocator_multiples() const
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocator_multiples() const
           -> const ::std::array<thread_allocator_abs_data_t, c_bins> &
       {
         return m_allocator_multiples;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::allocators() const
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocators() const
           -> const ::std::array<this_allocator_block_set_t, c_bins> &
       {
         return m_allocators;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void *thread_allocator_t<Global_Allocator, Allocator_Policy>::allocate(size_t sz)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void *thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocate(size_t sz)
       {
         _check_do_free_empty_blocks();
         // find allocation set for allocation size.
@@ -241,14 +231,14 @@ namespace mcppalloc
         void *ret = m_allocators[id].allocate(sz);
         // if successful returned.
         if (ret) {
-          m_allocator.traits().on_allocation(ret, sz);
+          m_allocator.thread_policy().on_allocation(ret, sz);
           return ret;
         }
         size_t attempts = 1;
         bool success;
         bool try_expand = true;
         while (cgc1_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
-          auto action = m_allocator.traits().on_allocation_failure({attempts});
+          auto action = m_allocator.thread_policy().on_allocation_failure({attempts});
           if (!action.m_repeat) {
             break;
           }
@@ -262,11 +252,12 @@ namespace mcppalloc
         ret = m_allocators[id].allocate(sz);
         if (cgc1_unlikely(!ret)) // should be impossible.
           abort();
-        m_allocator.traits().on_allocation(ret, sz);
+        m_allocator.thread_policy().on_allocation(ret, sz);
         return ret;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      bool thread_allocator_t<Global_Allocator, Allocator_Policy>::_add_allocator_block(size_t id, size_t sz, bool try_expand)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      bool
+      thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_add_allocator_block(size_t id, size_t sz, bool try_expand)
       {
         // if not succesful, that allocator needs more memory.
         // figre out how much memory to request.
@@ -304,69 +295,71 @@ namespace mcppalloc
         m_allocator._u_register_allocator_block(*this, inserted_block_ref);
         return true;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::destroy_threshold() const noexcept -> destroy_threshold_type
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::destroy_threshold() const noexcept
+          -> destroy_threshold_type
       {
         return static_cast<destroy_threshold_type>(m_destroy_threshold << 3);
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::minimum_local_blocks() const noexcept -> uint16_t
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::minimum_local_blocks() const noexcept -> uint16_t
       {
         return m_minimum_local_blocks;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::set_destroy_threshold(destroy_threshold_type threshold)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::set_destroy_threshold(destroy_threshold_type threshold)
       {
         m_destroy_threshold = static_cast<uint16_t>(threshold >> 3);
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::set_minimum_local_blocks(uint16_t minimum)
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::set_minimum_local_blocks(uint16_t minimum)
       {
         m_minimum_local_blocks = minimum;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::set_force_free_empty_blocks() noexcept
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::set_force_free_empty_blocks() noexcept
       {
         m_force_free_empty_blocks = true;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::_do_maintenance()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_do_maintenance()
       {
         _check_do_free_empty_blocks();
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::primary_memory_used() const noexcept -> size_type
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::primary_memory_used() const noexcept -> size_type
       {
         size_type sz = 0;
         for (auto &&allocator : m_allocators)
           sz += allocator.primary_memory_used();
         return sz;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::secondary_memory_used() const noexcept -> size_type
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::secondary_memory_used() const noexcept -> size_type
       {
         size_type sz = secondary_memory_used_self();
         for (auto &&allocator : m_allocators)
           sz += allocator.secondary_memory_used();
         return sz;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::secondary_memory_used_self() const noexcept -> size_type
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::secondary_memory_used_self() const noexcept -> size_type
       {
         return 0;
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::shrink_secondary_memory_usage_to_fit()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::shrink_secondary_memory_usage_to_fit()
       {
         for (auto &&allocator : m_allocators)
           allocator.shrink_secondary_memory_usage_to_fit();
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::shrink_secondary_memory_usage_to_fit_self()
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::shrink_secondary_memory_usage_to_fit_self()
       {
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      void thread_allocator_t<Global_Allocator, Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::to_ptree(::boost::property_tree::ptree &ptree,
+                                                                                   int level) const
       {
         {
           ::std::stringstream ss_multiples, ss_recycle;
@@ -398,8 +391,8 @@ namespace mcppalloc
           ptree.put_child("abs_array", abs_array);
         }
       }
-      template <typename Global_Allocator, typename Allocator_Policy>
-      auto thread_allocator_t<Global_Allocator, Allocator_Policy>::to_json(int level) const -> ::std::string
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::to_json(int level) const -> ::std::string
       {
         ::std::stringstream ss;
         ::boost::property_tree::ptree ptree;

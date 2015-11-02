@@ -33,6 +33,8 @@ namespace mcppalloc
       public:
         using size_type = size_t;
         using allocator_policy_type = Allocator_Policy;
+        static_assert(::std::is_base_of<allocator_policy_tag_t, allocator_policy_type>::value,
+                      "Allocator policy must be allocator_policy");
         using allocator = typename allocator_policy_type::internal_allocator_type;
         using user_data_type = typename allocator_policy_type::user_data_type;
         using object_state_type = object_state_t<allocator_policy_type>;

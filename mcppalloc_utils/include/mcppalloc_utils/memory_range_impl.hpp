@@ -107,12 +107,9 @@ namespace mcppalloc
     stream << "(" << reinterpret_cast<void *>(range.begin()) << "," << reinterpret_cast<void *>(range.end()) << ")";
     return stream;
   }
-  namespace details
+  template <typename Pointer_Type>
+  auto size(const memory_range_t<Pointer_Type> &range)
   {
-    template <typename Pointer_Type>
-    auto size(const memory_range_t<Pointer_Type> &range)
-    {
-      return range.size();
-    }
+    return range.size();
   }
 }

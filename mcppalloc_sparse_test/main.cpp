@@ -28,8 +28,8 @@ go_bandit([]() {
   //  slab_allocator_bandit_tests();
   describe("Allocator", []() {
     allocator_block_tests();
-    //    allocator_block_set_tests();
-    //    allocator_tests();
+    allocator_block_set_tests();
+    allocator_tests();
     describe("thread_allocator", []() {
       void *memory1 = malloc(1000);
       void *memory2 = malloc(1000);

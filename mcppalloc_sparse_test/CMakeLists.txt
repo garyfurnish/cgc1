@@ -8,7 +8,7 @@ ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_executable(mcppalloc_sparse_test
   main.cpp
   allocator_block_tests.cpp 
- # allocator_tests.cpp
-  #allocator_block_set_tests.cpp
+  allocator_tests.cpp
+  allocator_block_set_tests.cpp
   )
 target_link_libraries(mcppalloc_sparse_test)
