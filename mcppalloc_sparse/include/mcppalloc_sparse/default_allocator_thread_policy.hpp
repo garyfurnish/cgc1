@@ -5,7 +5,10 @@ namespace mcppalloc
 {
   namespace sparse
   {
-    class user_data_base_t;
+    namespace details
+    {
+      class user_data_base_t;
+    }
     /**
        * \brief Default allocator policy.
        *
@@ -20,7 +23,7 @@ namespace mcppalloc
       {
         return details::allocation_failure_action_t{false, false};
       }
-      using allocator_block_user_data_type = user_data_base_t;
+      using allocator_block_user_data_type = details::user_data_base_t;
     };
   }
 }

@@ -27,7 +27,7 @@ go_bandit([]() {
   });
   //  slab_allocator_bandit_tests();
   describe("Allocator", []() {
-    //    allocator_block_tests();
+    allocator_block_tests();
     //    allocator_block_set_tests();
     //    allocator_tests();
     describe("thread_allocator", []() {

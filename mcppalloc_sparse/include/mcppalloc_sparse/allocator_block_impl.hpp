@@ -2,6 +2,8 @@
 #include "allocator_block.hpp"
 #include <assert.h>
 #include <mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include "user_data_base.hpp"
+#include <mcppalloc_utils/function_iterator.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -21,9 +23,9 @@ namespace mcppalloc
       {
 #if CGC1_DEBUG_LEVEL > 0
         // sanity check alignment of start.
-        if (unlikely(reinterpret_cast<size_t>(m_start) % c_alignment != 0))
+        if (unlikely(reinterpret_cast<size_t>(m_start) % minimum_header_alignment() != 0))
           abort();
-        if (unlikely(reinterpret_cast<size_t>(m_end) % c_alignment != 0))
+        if (unlikely(reinterpret_cast<size_t>(m_end) % minimum_header_alignment() != 0))
           abort();
 #endif
         if (maximum_alloc_length == c_infinite_length) {

@@ -1,5 +1,5 @@
 #pragma once
-namespace cgc1
+namespace mcppalloc
 {
   /**
    * \brief Allocator that returns memory that is aligned to Alignment.
