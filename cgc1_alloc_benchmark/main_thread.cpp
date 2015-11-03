@@ -74,7 +74,7 @@ void thread_main()
   for (size_t i = 0; i < ts_type::c_bins; ++i)
     ts.set_allocator_multiple(i, ts.get_allocator_multiple(i) * 256);
 #else
-  auto &ts = cgc1::details::g_gks->_packed_object_allocator().initialize_thread();
+  auto &ts = cgc1::details::g_gks->_bitmap_allocator().initialize_thread();
 #endif
   ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   start_cv.wait(go_lk, []() { return go.load(); });

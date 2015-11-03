@@ -180,7 +180,7 @@ namespace cgc1
       tlks->clear_potential_roots();
       // scan stack.
       tlks->scan_stack(m_stack_roots, g_gks->gc_allocator()._u_begin(), g_gks->gc_allocator()._u_current_end(),
-                       g_gks->_packed_object_allocator().begin(), g_gks->_packed_object_allocator().end());
+                       g_gks->_bitmap_allocator().begin(), g_gks->_bitmap_allocator().end());
       return true;
     }
     void gc_thread_t::_clear_marks()

@@ -30,10 +30,10 @@ src/internal_allocator.hpp
 src/internal_declarations.hpp
 src/kernel.cpp
 src/object_state.hpp
-src/packed_object_allocator.cpp
-src/packed_object_state.cpp
-src/packed_object_package.cpp
-src/packed_object_thread_allocator.cpp
+src/bitmap_allocator.cpp
+src/bitmap_state.cpp
+src/bitmap_package.cpp
+src/bitmap_thread_allocator.cpp
 src/posix.cpp
 src/slab_allocator.cpp src/object_state.cpp
 src/slab_allocator.hpp

@@ -10,7 +10,7 @@
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
 #include "slab_allocator.hpp"
-#include "packed_object_allocator.hpp"
+#include "bitmap_allocator.hpp"
 #include "global_kernel_state_param.hpp"
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -95,7 +95,7 @@ namespace cgc1
       /**
        * \brief Return the packed object allocator.
        **/
-      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &;
+      auto _bitmap_allocator() const noexcept -> bitmap_allocator_t<gc_bitmap_allocator_policy_t> &;
       /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
@@ -263,7 +263,7 @@ namespace cgc1
       /**
        * \brief Packed object allocator for fast allocation.
        **/
-      mutable packed_object_allocator_t<gc_packed_object_allocator_policy_t> m_packed_object_allocator;
+      mutable bitmap_allocator_t<gc_bitmap_allocator_policy_t> m_bitmap_allocator;
       /**
        * \brief Main mutex for state.
        **/

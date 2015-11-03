@@ -10,10 +10,9 @@ namespace cgc1
     {
       return m_gc_allocator;
     }
-    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept
-        -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &
+    inline auto global_kernel_state_t::_bitmap_allocator() const noexcept -> bitmap_allocator_t<gc_bitmap_allocator_policy_t> &
     {
-      return m_packed_object_allocator;
+      return m_bitmap_allocator;
     }
     inline auto global_kernel_state_t::_internal_allocator() const noexcept -> internal_allocator_t &
     {
@@ -59,11 +58,11 @@ namespace cgc1
     }
     inline auto global_kernel_state_t::fast_slab_begin() const noexcept -> uint8_t *
     {
-      return m_packed_object_allocator.begin();
+      return m_bitmap_allocator.begin();
     }
     inline auto global_kernel_state_t::fast_slab_end() const noexcept -> uint8_t *
     {
-      return m_packed_object_allocator.end();
+      return m_bitmap_allocator.end();
     }
   }
 }

@@ -70,7 +70,7 @@ namespace cgc1
     }
     global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
         : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
-          m_packed_object_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
+          m_bitmap_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
           m_initialization_parameters(param)
     {
       m_cgc_allocator.initialize(param.internal_allocator_start_size(), param.internal_allocator_expansion_size());
@@ -88,7 +88,7 @@ namespace cgc1
     {
       m_in_destructor = true;
       ::std::for_each(m_gc_threads.begin(), m_gc_threads.end(), shutdown_ptr_functional);
-      m_packed_object_allocator.shutdown();
+      m_bitmap_allocator.shutdown();
       m_gc_allocator.shutdown();
       {
         m_gc_threads.clear();
@@ -183,7 +183,7 @@ namespace cgc1
       }
       {
         ::boost::property_tree::ptree packed_allocator;
-        m_packed_object_allocator.to_ptree(packed_allocator, level);
+        m_bitmap_allocator.to_ptree(packed_allocator, level);
         ptree.put_child("packed_allocator", packed_allocator);
       }
     }
@@ -312,15 +312,15 @@ namespace cgc1
       m_gc_allocator.collect();
       // note that the order of allocator locks and unlocks are all important here to prevent deadlocks!
       // grab allocator locks so that they are in a consistent state for garbage collection.
-      lock(m_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-           m_slab_allocator._mutex(), m_thread_mutex, m_start_world_condition_mutex);
+      lock(m_mutex, m_bitmap_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(),
+           m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
       while (cgc1_likely(m_num_collections) &&
              m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
         // we need to unlock these because gc_thread could be using them.
         // and gc_thread is not paused.
         unlock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
-        //        unlock(m_thread_mutex, m_packed_object_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
+        //        unlock(m_thread_mutex, m_bitmap_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
         //               m_slab_allocator._mutex(), m_mutex);
         //	m_collect = false;
         //        return;
@@ -342,11 +342,11 @@ namespace cgc1
       _u_suspend_threads();
       m_thread_mutex.unlock();
       get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
-      m_packed_object_allocator._u_set_force_maintenance();
+      m_bitmap_allocator._u_set_force_maintenance();
       m_gc_allocator._u_set_force_free_empty_blocks();
       m_cgc_allocator._u_set_force_free_empty_blocks();
       // release allocator locks so they can be used.
-      m_packed_object_allocator._mutex().unlock();
+      m_bitmap_allocator._mutex().unlock();
       m_gc_allocator._mutex().unlock();
       m_cgc_allocator._mutex().unlock();
       m_slab_allocator._mutex().unlock();
@@ -363,7 +363,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_clear();
       }
-      _packed_object_allocator()._for_all_state([](auto &&state) { state->clear_mark_bits(); });
+      _bitmap_allocator()._for_all_state([](auto &&state) { state->clear_mark_bits(); });
       ::std::atomic_thread_fence(::std::memory_order_release);
       // wait for clear to finish.
       for (auto &gc_thread : m_gc_threads) {
@@ -387,7 +387,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
       }
-      _packed_object_allocator()._for_all_state([](auto &&state) { state->free_unmarked(); });
+      _bitmap_allocator()._for_all_state([](auto &&state) { state->free_unmarked(); });
       // wait for sweeping to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_sweep_finished();
@@ -497,7 +497,7 @@ namespace cgc1
       // destroy thread allocators for this thread.
       m_gc_allocator.destroy_thread();
       m_cgc_allocator.destroy_thread();
-      m_packed_object_allocator.destroy_thread();
+      m_bitmap_allocator.destroy_thread();
       // remove thread from gks.
       m_threads.erase(it);
       // this will delete our tks.
