@@ -56,6 +56,7 @@ namespace mcppalloc
         using mutex_type = mutex_t;
         using allocator_policy_type = Allocator_Policy;
         using this_type = allocator_t<allocator_policy_type>;
+        using block_type = block_t<allocator_policy_type>;
 
         using allocator_thread_policy_type = typename allocator_policy_type::thread_policy_type;
         /**
@@ -67,11 +68,11 @@ namespace mcppalloc
          *
          * This uses the control allocator for control memory.
          **/
-        using block_type = allocator_block_t<allocator_policy_type>;
+        using allocator_block_type = allocator_block_t<allocator_policy_type>;
         /**
          * \brief Object state type for allocator blocks for this allocator.
          **/
-        using object_state_type = typename block_type::object_state_type;
+        using object_state_type = typename allocator_block_type::object_state_type;
         /**
          * \brief Type that is a Vector of memory addresses.
          *
@@ -164,7 +165,7 @@ namespace mcppalloc
                                                  size_t minimum_alloc_length,
                                                  size_t maximum_alloc_length,
                                                  size_t allocate_size,
-                                                 block_type &destination,
+                                                 allocator_block_type &destination,
                                                  bool try_expand) REQUIRES(m_mutex);
 
         /**
@@ -196,21 +197,21 @@ namespace mcppalloc
          *
          * @param block Block to release.
         **/
-        void to_global_allocator_block(block_type &&block) REQUIRES(!m_mutex);
+        void to_global_allocator_block(allocator_block_type &&block) REQUIRES(!m_mutex);
         /**
          * \brief Destroy an allocator block.
          *
          * @param ta Requesting thread allocator.
          * @param block Block to destroy.
         **/
-        void destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block) REQUIRES(!m_mutex);
+        void destroy_allocator_block(this_thread_allocator_t &ta, allocator_block_type &&block) REQUIRES(!m_mutex);
         /**
          * \brief Destroy an allocator block not owned by a thread.
          *
          * Requires holding lock.
          * @param block Block to destroy.
         **/
-        void _u_destroy_global_allocator_block(block_type &&block) REQUIRES(m_mutex);
+        void _u_destroy_global_allocator_block(allocator_block_type &&block) REQUIRES(m_mutex);
 
         /**
          * \brief Register a allocator block before moving/destruction.
@@ -218,7 +219,7 @@ namespace mcppalloc
          * @param ta Requesting thread allocator.
          * @param block Block to request registartion of.
         **/
-        //      void register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(!m_mutex);
+        //      void register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(!m_mutex);
         /**
          * \brief Register a allocator block before moving/destruction.
          *
@@ -226,13 +227,13 @@ namespace mcppalloc
          * @param ta Requesting thread allocator.
          * @param block Block to request registartion of.
         **/
-        //      void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+        //      void _u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(m_mutex);
         /**
          * \brief Unregister a registered allocator block before moving/destruction.
          *
          * @param block Block to request unregistration of.
         **/
-        void unregister_allocator_block(block_type &block) REQUIRES(!m_mutex);
+        void unregister_allocator_block(allocator_block_type &block) REQUIRES(!m_mutex);
 
         /**
          * \brief Unregister a registered allocator block before moving/destruction.
@@ -240,7 +241,7 @@ namespace mcppalloc
          * Requires holding lock
          * @param block Block to request unregistration of.
         **/
-        void _u_unregister_allocator_block(block_type &block) REQUIRES(m_mutex);
+        void _u_unregister_allocator_block(allocator_block_type &block) REQUIRES(m_mutex);
 
         /**
          * \brief Move registered allocator blocks by iteration.
@@ -273,7 +274,7 @@ namespace mcppalloc
          * @param old_block Address of old allocator block location.
          * @param new_block Address of new allocator block location.
          **/
-        void _u_move_registered_block(block_type *old_block, block_type *new_block) REQUIRES(m_mutex);
+        void _u_move_registered_block(allocator_block_type *old_block, allocator_block_type *new_block) REQUIRES(m_mutex);
         /**
          * \brief Find the block for this allocated memory address to find.
          *
@@ -407,7 +408,7 @@ namespace mcppalloc
          * @param ta Requesting thread allocator.
          * @param block Block to register.
         **/
-        void _u_register_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+        void _u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(m_mutex);
         /**
          * \brief Put information about allocator into a property tree.
          * @param level Level of information to give.  Higher is more verbose.
@@ -423,7 +424,7 @@ namespace mcppalloc
         /**
          * \brief Vector type for storing blocks held by the global allocator.
          **/
-        using global_block_vector_type = rebind_vector_t<block_type, allocator>;
+        using global_block_vector_type = rebind_vector_t<allocator_block_type, allocator>;
         /**
          * \brief Return an allocator block.
          *
@@ -440,7 +441,7 @@ namespace mcppalloc
                                        size_t sz,
                                        size_t minimum_alloc_length,
                                        size_t maximum_alloc_length,
-                                       block_type &block,
+                                       allocator_block_type &block,
                                        bool try_expand);
         /**
          * \brief Find a global allocator block that has sz free for allocation.
@@ -472,7 +473,7 @@ namespace mcppalloc
          * @param ta Requesting thread allocator.
          * @param block Block to unregister.
         **/
-        void _u_unregister_allocator_block(this_thread_allocator_t &ta, block_type &block) REQUIRES(m_mutex);
+        void _u_unregister_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(m_mutex);
         /**
          * \brief Mutex for this allocator.
          **/

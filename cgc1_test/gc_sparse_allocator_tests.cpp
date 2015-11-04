@@ -24,7 +24,7 @@ using namespace ::mcppalloc::literals;
 static CGC1_NO_INLINE void root_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
-  memory = ta.allocate(50);
+  memory = ta.allocate(50).m_ptr;
   // hide a pointer away for comparison testing.
   old_memory = ::mcppalloc::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
@@ -75,7 +75,7 @@ static void root_test()
 static CGC1_NO_INLINE void internal_pointer_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
-  memory = ta.allocate(50);
+  memory = ta.allocate(50).m_ptr;
   uint8_t *&umemory = ::mcppalloc::unsafe_reference_cast<uint8_t *>(memory);
   old_memory = ::mcppalloc::hide_pointer(memory);
   umemory += 1;
@@ -121,9 +121,9 @@ static void internal_pointer_test()
 static CGC1_NO_INLINE void atomic_test__setup(void *&memory, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
-  memory = ta.allocate(50);
+  memory = ta.allocate(50).m_ptr;
   cgc1::cgc_add_root(&memory);
-  void *memory2 = ta.allocate(50);
+  void *memory2 = ta.allocate(50).m_ptr;
   *reinterpret_cast<void **>(memory) = memory2;
   old_memory = ::mcppalloc::hide_pointer(memory2);
   ::mcppalloc::secure_zero_pointer(memory2);
@@ -168,7 +168,7 @@ static void atomic_test()
 static CGC1_NO_INLINE void finalizer_test__setup(std::atomic<bool> &finalized, size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
-  void *memory = ta.allocate(50);
+  void *memory = ta.allocate(50).m_ptr;
   old_memory = ::mcppalloc::hide_pointer(memory);
   finalized = false;
   cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; });
@@ -197,7 +197,7 @@ static void finalizer_test()
 static CGC1_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
-  void *memory = ta.allocate(50);
+  void *memory = ta.allocate(50).m_ptr;
   old_memory = ::mcppalloc::hide_pointer(memory);
   cgc1::cgc_set_uncollectable(memory, true);
   ::mcppalloc::secure_zero_pointer(memory);
@@ -239,7 +239,7 @@ static void linked_list_test_setup()
     CGC1_INITIALIZE_THREAD();
     auto &ta = gks->gc_allocator().initialize_thread();
     const size_t allocation_size = 50_sz;
-    void **foo = reinterpret_cast<void **>(ta.allocate(allocation_size));
+    void **foo = reinterpret_cast<void **>(ta.allocate(allocation_size).m_ptr);
     {
       void **bar = foo;
       for (int i = 0; i < 3000; ++i) {
@@ -248,7 +248,7 @@ static void linked_list_test_setup()
           locations.push_back(::mcppalloc::hide_pointer(bar));
         }
         ::mcppalloc::secure_zero(bar, allocation_size);
-        *bar = ta.allocate(allocation_size);
+        *bar = ta.allocate(allocation_size).m_ptr;
         bar = reinterpret_cast<void **>(*bar);
       }
       {
@@ -318,7 +318,7 @@ namespace race_condition_test_detail
     auto &ta = gks->gc_allocator().initialize_thread();
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-      foo = ta.allocate(100);
+      foo = ta.allocate(100).m_ptr;
       llocations.push_back(::mcppalloc::hide_pointer(foo));
     }
     ++finished_part1;
@@ -331,7 +331,7 @@ namespace race_condition_test_detail
     {
       CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
       for (int i = 0; i < 1000; ++i) {
-        llocations.push_back(::mcppalloc::hide_pointer(ta.allocate(100)));
+        llocations.push_back(::mcppalloc::hide_pointer(ta.allocate(100).m_ptr));
       }
     }
     cgc1::cgc_unregister_thread();
@@ -456,7 +456,7 @@ static void return_to_global_test1()
     auto &abs = tls.allocators()[id];
     // allocate some memory and immediately free it.
     auto &ta = gks->gc_allocator().initialize_thread();
-    cgc1::cgc_free(ta.allocate(size_to_alloc));
+    cgc1::cgc_free(ta.allocate(size_to_alloc).m_ptr);
     // get the stats on the last block so that we can test to see if it is freed to global
     auto &lb = abs.last_block();
     begin = lb.begin();
@@ -506,7 +506,7 @@ static CGC1_NO_INLINE void return_to_global_test2()
     ::std::vector<void *> ptrs;
     auto &ta = gks->gc_allocator().initialize_thread();
     while (abs.size() != 2) {
-      ptrs.push_back(ta.allocate(max_sz));
+      ptrs.push_back(ta.allocate(max_sz).m_ptr);
     }
     // get the stats on the last block so that we can test to see if it is freed to global.
     auto &lb1 = abs.last_block();

@@ -28,6 +28,7 @@ namespace cgc1
     };
     struct gc_allocator_policy_t : public ::mcppalloc::allocator_policy_tag_t {
       using uintptr_type = uintptr_t;
+      using pointer_type = void *;
       using size_type = size_t;
       using ptrdiff_type = ptrdiff_t;
       using internal_allocator_type = cgc_internal_allocator_t<void>;

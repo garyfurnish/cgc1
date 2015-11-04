@@ -220,7 +220,7 @@ namespace mcppalloc
         return m_allocators;
       }
       template <typename Global_Allocator, typename Allocator_Thread_Policy>
-      void *thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocate(size_t sz)
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocate(size_t sz) -> block_type
       {
         _check_do_free_empty_blocks();
         // find allocation set for allocation size.
@@ -228,10 +228,10 @@ namespace mcppalloc
         if (cgc1_unlikely(sz < c_alignment))
           sz = c_alignment;
         // try allocation.
-        void *ret = m_allocators[id].allocate(sz);
+        block_type ret = m_allocators[id].allocate(sz);
         // if successful returned.
-        if (ret) {
-          m_allocator.thread_policy().on_allocation(ret, sz);
+        if (ret.m_ptr) {
+          m_allocator.thread_policy().on_allocation(ret.m_ptr, ret.m_size);
           return ret;
         }
         size_t attempts = 1;
@@ -250,9 +250,9 @@ namespace mcppalloc
           abort();
         }
         ret = m_allocators[id].allocate(sz);
-        if (cgc1_unlikely(!ret)) // should be impossible.
+        if (cgc1_unlikely(!ret.m_ptr)) // should be impossible.
           abort();
-        m_allocator.thread_policy().on_allocation(ret, sz);
+        m_allocator.thread_policy().on_allocation(ret.m_ptr, ret.m_size);
         return ret;
       }
       template <typename Global_Allocator, typename Allocator_Thread_Policy>
@@ -277,7 +277,7 @@ namespace mcppalloc
           abs._verify();
           m_allocator._u_move_registered_blocks(abs.m_blocks, offset);
         }
-        typename global_allocator::block_type block;
+        typename global_allocator::allocator_block_type block;
         // fill the empty block.
         bool success =
             m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),

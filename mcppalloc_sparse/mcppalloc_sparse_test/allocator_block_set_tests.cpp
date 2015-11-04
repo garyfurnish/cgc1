@@ -55,24 +55,24 @@ void allocator_block_set_tests()
       abs.add_block(ab_type(memory1, memory_size, 16, mcppalloc::c_infinite_length));
       abs.add_block(ab_type(memory2, memory_size, 16, mcppalloc::c_infinite_length));
       // allocator two memory locations with max size.
-      void *alloc1 = abs.allocate(976);
-      void *alloc2 = abs.allocate(976);
+      void *alloc1 = abs.allocate(976).m_ptr;
+      void *alloc2 = abs.allocate(976).m_ptr;
       AssertThat(alloc1 != nullptr, IsTrue());
       AssertThat(alloc2 != nullptr, IsTrue());
       // test that trying to allocate more memory fails.
-      AssertThat(abs.allocate(1), Equals(static_cast<void *>(nullptr)));
+      AssertThat(abs.allocate(1).m_ptr, Equals(static_cast<void *>(nullptr)));
       void *old_alloc1 = alloc1;
       void *old_alloc2 = alloc2;
       // try to destroy and recreate some memory.
       abs.destroy(alloc1);
-      alloc1 = abs.allocate(976);
+      alloc1 = abs.allocate(976).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       // try to destroy and recreate both memory addresses.
       abs.destroy(alloc2);
       abs.destroy(alloc1);
-      alloc1 = abs.allocate(976);
+      alloc1 = abs.allocate(976).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
-      alloc2 = abs.allocate(976);
+      alloc2 = abs.allocate(976).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       // done
     });
@@ -124,9 +124,9 @@ void allocator_block_set_tests()
       abs.add_block(ab_type(memory3, memory_size, 16, mcppalloc::c_infinite_length));
       abs.add_block(ab_type(memory3, memory_size, 16, mcppalloc::c_infinite_length));
 
-      void *alloc1 = abs.allocate(900);
-      void *alloc2 = abs.allocate(800);
-      void *alloc3 = abs.allocate(700);
+      void *alloc1 = abs.allocate(900).m_ptr;
+      void *alloc2 = abs.allocate(800).m_ptr;
+      void *alloc3 = abs.allocate(700).m_ptr;
 
       AssertThat(abs.m_available_blocks, HasLength(3_sz));
       AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[0]));

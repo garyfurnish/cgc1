@@ -20,14 +20,14 @@ void allocator_tests()
         AssertThat(allocator_set.allocator_min_size(), Is().LessThan(55_sz));
         AssertThat(allocator_set.allocator_max_size(), Is().GreaterThan(55_sz));
         AssertThat(ta.set_allocator_multiple(20, 50), IsFalse());
-        void *alloc1 = ta.allocate(100);
+        void *alloc1 = ta.allocate(100).m_ptr;
         AssertThat(alloc1 != nullptr, IsTrue());
-        void *alloc2 = ta.allocate(100);
+        void *alloc2 = ta.allocate(100).m_ptr;
         AssertThat(alloc2 != nullptr, IsTrue());
-        void *alloc3 = ta.allocate(100);
+        void *alloc3 = ta.allocate(100).m_ptr;
         AssertThat(alloc3 != nullptr, IsTrue());
         AssertThat(ta.destroy(alloc1), IsTrue());
-        AssertThat(ta.allocate(100), Equals(alloc1));
+        AssertThat(ta.allocate(100).m_ptr, Equals(alloc1));
       }
     });
     it("test2", []() {
@@ -78,14 +78,14 @@ void allocator_tests()
       allocator->initialize_thread();
       allocator->destroy_thread();
       auto &ta = allocator->initialize_thread();
-      void *alloc1 = ta.allocate(100);
+      void *alloc1 = ta.allocate(100).m_ptr;
       AssertThat(alloc1 != nullptr, IsTrue());
-      void *alloc2 = ta.allocate(100);
+      void *alloc2 = ta.allocate(100).m_ptr;
       AssertThat(alloc2 != nullptr, IsTrue());
-      void *alloc3 = ta.allocate(100);
+      void *alloc3 = ta.allocate(100).m_ptr;
       AssertThat(alloc3 != nullptr, IsTrue());
       AssertThat(ta.destroy(alloc1), IsTrue());
-      AssertThat(ta.allocate(100), Equals(alloc1));
+      AssertThat(ta.allocate(100).m_ptr, Equals(alloc1));
     });
     it("test4", []() {
       /*for (size_t j = 0; j < 30; ++j) {
@@ -117,7 +117,7 @@ void allocator_tests()
       // list to store allocate pointers in so we can destroy them.
       ::std::vector<void *> ptrs;
       while (abs.m_blocks.size() != 2)
-        ptrs.emplace_back(tls.allocate(size_to_alloc));
+        ptrs.emplace_back(tls.allocate(size_to_alloc).m_ptr);
       ptrs.pop_back();
       AssertThat(abs.m_blocks.size(), Equals(2_sz));
       // get rid of one of the blocks by freeing everything in it.
@@ -145,11 +145,11 @@ void allocator_tests()
       auto allocator = ::std::make_unique<allocator_type>();
       AssertThat(allocator->initialize(100000, 100000000), IsTrue());
       auto &ta = allocator->initialize_thread();
-      void *alloc1 = ta.allocate(100);
+      void *alloc1 = ta.allocate(100).m_ptr;
       AssertThat(alloc1 != nullptr, IsTrue());
       allocator->destroy_thread();
       auto &ta2 = allocator->initialize_thread();
-      void *alloc2 = ta2.allocate(100);
+      void *alloc2 = ta2.allocate(100).m_ptr;
       (void)alloc2;
     });
   });

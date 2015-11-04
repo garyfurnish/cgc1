@@ -2,6 +2,7 @@
 #include "allocator_block.hpp"
 #include <assert.h>
 #include <mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc/block.hpp>
 #include <mcppalloc/user_data_base.hpp>
 #include <mcppalloc_utils/function_iterator.hpp>
 namespace mcppalloc
@@ -165,7 +166,7 @@ namespace mcppalloc
       }
 #endif
       template <typename Allocator_Policy>
-      void *allocator_block_t<Allocator_Policy>::allocate(size_t size)
+      auto allocator_block_t<Allocator_Policy>::allocate(size_t size) -> block_type
       {
         assert(minimum_allocation_length() <= maximum_allocation_length());
         _verify(nullptr);
@@ -214,19 +215,19 @@ namespace mcppalloc
             state->set_user_data(m_default_user_data.get());
             assert(state->object_size() >= original_size);
             _verify(state);
-            return state->object_start();
+            return block_type{state->object_start(), state->object_size()};
           }
         }
         object_state_type *next = later_next;
         // check to see if we have memory left over at tail.
         if (!m_next_alloc_ptr)
-          return nullptr;
+          return block_type{nullptr, 0};
         // check to see we haven't requested an excessively large allocation.
         if (m_next_alloc_ptr->next_valid()) {
           if (m_next_alloc_ptr->object_size() < original_size)
-            return nullptr;
+            return block_type{nullptr, 0};
         } else if (static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size)
-          return nullptr;
+          return block_type{nullptr, 0};
         m_next_alloc_ptr->m_user_data = 0;
         // see if we should split memory left over after this allocation.
         bool do_split = reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= end();
@@ -237,11 +238,12 @@ namespace mcppalloc
           m_next_alloc_ptr->set_all(next, true, true);
           m_next_alloc_ptr->set_user_data(m_default_user_data.get());
           auto ret = m_next_alloc_ptr->object_start();
+          auto sz = m_next_alloc_ptr->object_size();
           assert(m_next_alloc_ptr->object_size() >= original_size);
           _verify(m_next_alloc_ptr);
           m_next_alloc_ptr = next;
           _verify(next);
-          return ret;
+          return block_type{ret, sz};
         } else {
           // memory left over would be smaller then minimum allocation.
           // take all the memory.
@@ -249,12 +251,13 @@ namespace mcppalloc
           assert(m_next_alloc_ptr->next() == reinterpret_cast<object_state_type *>(end()));
           m_next_alloc_ptr->set_user_data(m_default_user_data.get());
           auto ret = m_next_alloc_ptr->object_start();
+          auto sz = m_next_alloc_ptr->object_size();
           assert(m_next_alloc_ptr->object_size() >= original_size);
           assert(m_next_alloc_ptr->next() == reinterpret_cast<object_state_type *>(end()));
           _verify(m_next_alloc_ptr);
           m_next_alloc_ptr = nullptr;
           _verify(m_next_alloc_ptr);
-          return ret;
+          return block_type{ret, sz};
         }
       }
       template <typename Allocator_Policy>

@@ -151,7 +151,7 @@ namespace mcppalloc
                                                                               size_t minimum_alloc_length,
                                                                               size_t maximum_alloc_length,
                                                                               size_t allocate_sz,
-                                                                              block_type &block,
+                                                                              allocator_block_type &block,
                                                                               bool try_expand)
       {
         // first check to see if we can find a partially used block that fits parameters.
@@ -182,7 +182,7 @@ namespace mcppalloc
                                                                     size_t sz,
                                                                     size_t minimum_alloc_length,
                                                                     size_t maximum_alloc_length,
-                                                                    block_type &block,
+                                                                    allocator_block_type &block,
                                                                     bool try_expand)
       {
         (void)try_expand;
@@ -195,14 +195,15 @@ namespace mcppalloc
         auto memory_size = memory.size();
         assert(memory_size > 0);
         // create block.
-        block.~block_type();
-        new (&block) block_type(memory.begin(), static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
+        block.~allocator_block_type();
+        new (&block)
+            allocator_block_type(memory.begin(), static_cast<size_t>(memory_size), minimum_alloc_length, maximum_alloc_length);
         // call traits function that gets called when block is created.
         m_thread_policy.on_create_allocator_block(ta, block);
         return true;
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::destroy_allocator_block(this_thread_allocator_t &ta, block_type &&block)
+      void allocator_t<Allocator_Policy>::destroy_allocator_block(this_thread_allocator_t &ta, allocator_block_type &&block)
       {
         // notify traits that a memory block is being destroyed.
         m_thread_policy.on_destroy_allocator_block(ta, block);
@@ -212,7 +213,7 @@ namespace mcppalloc
         release_memory(std::make_pair(block.begin(), block.end()));
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_destroy_global_allocator_block(block_type &&block)
+      void allocator_t<Allocator_Policy>::_u_destroy_global_allocator_block(allocator_block_type &&block)
       {
         // unregister block.
         _u_unregister_allocator_block(block);
@@ -231,7 +232,7 @@ namespace mcppalloc
         }
       };
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, block_type &block)
+      void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block)
       {
 #if CGC1_DEBUG_LEVEL > 0
         _ud_verify();
@@ -259,7 +260,7 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::unregister_allocator_block(block_type &block)
+      void allocator_t<Allocator_Policy>::unregister_allocator_block(allocator_block_type &block)
       {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         // forward unregistration.
@@ -267,7 +268,7 @@ namespace mcppalloc
       }
 
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_unregister_allocator_block(block_type &block)
+      void allocator_t<Allocator_Policy>::_u_unregister_allocator_block(allocator_block_type &block)
       {
         _ud_verify();
         // create a fake handle to search for.
@@ -307,8 +308,9 @@ namespace mcppalloc
       {
 
         if (begin != end) {
-          block_type *new_block = &*begin;
-          block_type *old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+          allocator_block_type *new_block = &*begin;
+          allocator_block_type *old_block =
+              reinterpret_cast<allocator_block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
 
           // create fake handle to search for.
           this_allocator_block_handle_t handle;
@@ -323,7 +325,8 @@ namespace mcppalloc
           // first we must locate a section of contiuous blocks.
           do {
             auto &block_handle = *(lb + static_cast<difference_type>(i));
-            auto next_old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(old_block) + i * sizeof(block_type));
+            auto next_old_block = reinterpret_cast<allocator_block_type *>(reinterpret_cast<uint8_t *>(old_block) +
+                                                                           i * sizeof(allocator_block_type));
             if (block_handle.m_block == next_old_block) {
               // another contiguous block found.
               contiguous++;
@@ -333,7 +336,7 @@ namespace mcppalloc
               _u_move_registered_blocks_contiguous(contiguous, begin + static_cast<ptrdiff_t>(contig_start), lb);
               // then update search.
               new_block = &*(begin + static_cast<ptrdiff_t>(i));
-              old_block = reinterpret_cast<block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
+              old_block = reinterpret_cast<allocator_block_type *>(reinterpret_cast<uint8_t *>(new_block) - offset);
               handle.initialize(nullptr, old_block, new_block->begin());
               lb = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), handle, block_handle_begin_compare_t{});
               contiguous = 1;
@@ -384,7 +387,8 @@ namespace mcppalloc
         _u_move_registered_blocks(blocks.begin(), blocks.end(), offset);
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_move_registered_block(block_type *old_block, block_type *new_block)
+      void allocator_t<Allocator_Policy>::_u_move_registered_block(allocator_block_type *old_block,
+                                                                   allocator_block_type *new_block)
       {
         // create fake handle to search for.
         this_allocator_block_handle_t handle;
@@ -434,7 +438,7 @@ namespace mcppalloc
         return &*ub;
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::to_global_allocator_block(block_type &&block)
+      void allocator_t<Allocator_Policy>::to_global_allocator_block(allocator_block_type &&block)
       {
         assert(block.valid());
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
@@ -711,11 +715,12 @@ namespace mcppalloc
         minimum_alloc_length = object_state_type::needed_size(sizeof(object_state_type), minimum_alloc_length);
         maximum_alloc_length = object_state_type::needed_size(sizeof(object_state_type), maximum_alloc_length);
         // run find.
-        auto it = ::std::find_if(m_global_blocks.begin(), m_global_blocks.end(), [this, sz, minimum_alloc_length,
-                                                                                  maximum_alloc_length](block_type &block) {
-          return block.minimum_allocation_length() == minimum_alloc_length &&
-                 block.maximum_allocation_length() == maximum_alloc_length && block.max_alloc_available() >= sz;
-        });
+        auto it = ::std::find_if(m_global_blocks.begin(), m_global_blocks.end(),
+                                 [this, sz, minimum_alloc_length, maximum_alloc_length](allocator_block_type &block) {
+                                   return block.minimum_allocation_length() == minimum_alloc_length &&
+                                          block.maximum_allocation_length() == maximum_alloc_length &&
+                                          block.max_alloc_available() >= sz;
+                                 });
         return it;
       }
       template <typename Allocator_Policy>

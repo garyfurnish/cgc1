@@ -20,7 +20,7 @@
 #endif
 
 template <>
-cgc1::details::gc_user_data_t cgc1::details::gc_allocator_t::block_type::s_default_user_data{};
+cgc1::details::gc_user_data_t cgc1::details::gc_allocator_t::allocator_block_type::s_default_user_data{};
 template <>
 ::mcppalloc::details::user_data_base_t mcppalloc::sparse::details::allocator_block_t<
     mcppalloc::default_allocator_policy_t<cgc1::cgc_internal_slab_allocator_t<void>>>::s_default_user_data{};
@@ -68,7 +68,7 @@ namespace cgc1
     void *internal_allocate(size_t n)
     {
       auto gks = _real_gks();
-      return gks->_internal_allocator().initialize_thread().allocate(n);
+      return gks->_internal_allocator().initialize_thread().allocate(n).m_ptr;
     }
     void internal_deallocate(void *p)
     {

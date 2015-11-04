@@ -4,6 +4,7 @@ namespace mcppalloc
 {
   template <typename Internal_Allocator>
   struct default_allocator_policy_t : public allocator_policy_tag_t {
+    using pointer_type = void *;
     using uintptr_type = uintptr_t;
     using size_type = size_t;
     using ptrdiff_type = ptrdiff_t;

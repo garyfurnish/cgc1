@@ -26,7 +26,7 @@ namespace mcppalloc
         using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;
         using sized_block_ref_t = typename ::std::pair<size_t, allocator_block_type *>;
         using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
-
+        using block_type = block_t<allocator_policy_type>;
         explicit allocator_block_set_t() = default;
         allocator_block_set_t(const allocator_block_set_t &) = delete;
         allocator_block_set_t(allocator_block_set_t &&abs) = delete;
@@ -75,7 +75,7 @@ namespace mcppalloc
          * @param sz Size to allocate.
          * @return A pointer to allocated memory, nullptr on failure.
         **/
-        void *allocate(size_t sz);
+        auto allocate(size_t sz) -> block_type;
         /**
          * \brief Destroy memory.
          * @return True if this block set allocated the memory and thus destroyed it, false otherwise.

@@ -23,19 +23,19 @@ void allocator_block_tests()
     void *alloc3 = nullptr;
     void *alloc4 = nullptr;
     it("alloc1", [&]() {
-      alloc1 = block.allocate(15);
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, !Equals(static_cast<void *>(nullptr)));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
     });
     it("alloc2", [&]() {
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, !Equals(static_cast<void *>(nullptr)));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
     });
     it("alloc3", [&]() {
-      alloc3 = block.allocate(15);
+      alloc3 = block.allocate(15).m_ptr;
       AssertThat(alloc3, !Equals(static_cast<void *>(nullptr)));
       AssertThat(object_state_type::from_object_start(alloc3)->next_valid(), IsFalse());
       AssertThat(object_state_type::from_object_start(alloc3)->not_available(), IsTrue());
@@ -43,13 +43,13 @@ void allocator_block_tests()
       AssertThat(alloc3_state->next() == reinterpret_cast<object_state_type *>(block.end()), IsTrue());
     });
     it("alloc4", [&]() {
-      alloc4 = block.allocate(15);
+      alloc4 = block.allocate(15).m_ptr;
       AssertThat(alloc4, Equals(static_cast<void *>(nullptr)));
     });
     it("re-alloc 3", [&]() {
       auto old_alloc3 = alloc3;
       block.destroy(alloc3);
-      alloc3 = block.allocate(15);
+      alloc3 = block.allocate(15).m_ptr;
       AssertThat(!!alloc3, IsTrue());
       AssertThat(alloc3, Equals(old_alloc3));
       AssertThat(object_state_type::from_object_start(alloc3)->next_valid(), IsFalse());
@@ -58,7 +58,7 @@ void allocator_block_tests()
     it("re-alloc 2", [&]() {
       auto old_alloc2 = alloc2;
       block.destroy(alloc2);
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
@@ -70,11 +70,11 @@ void allocator_block_tests()
       block.destroy(alloc2);
       block.destroy(alloc3);
       AssertThat(block.m_free_list, HasLength(1));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
-      alloc3 = block.allocate(15);
+      alloc3 = block.allocate(15).m_ptr;
       AssertThat(alloc3, Equals(old_alloc3));
       AssertThat(object_state_type::from_object_start(alloc3)->next_valid(), IsFalse());
       AssertThat(object_state_type::from_object_start(alloc3)->not_available(), IsTrue());
@@ -91,11 +91,11 @@ void allocator_block_tests()
       AssertThat(alloc3_state->in_use(), !IsTrue());
       block.destroy(alloc2);
       AssertThat(block.m_free_list, HasLength(0));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
-      alloc3 = block.allocate(15);
+      alloc3 = block.allocate(15).m_ptr;
       AssertThat(alloc3, Equals(old_alloc3));
       AssertThat(object_state_type::from_object_start(alloc3)->next_valid(), IsFalse());
       AssertThat(object_state_type::from_object_start(alloc3)->not_available(), IsTrue());
@@ -106,11 +106,11 @@ void allocator_block_tests()
       block.destroy(alloc1);
       block.destroy(alloc2);
       AssertThat(block.m_free_list, HasLength(2));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
-      alloc1 = block.allocate(15);
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
@@ -121,12 +121,12 @@ void allocator_block_tests()
       block.destroy(alloc2);
       block.destroy(alloc1);
       AssertThat(block.m_free_list, HasLength(1));
-      alloc1 = block.allocate(15);
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
       AssertThat(block.m_free_list, HasLength(1));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
@@ -138,19 +138,19 @@ void allocator_block_tests()
       block.destroy(alloc2);
       block.destroy(alloc1);
       AssertThat(block.m_free_list, HasLength(1));
-      alloc1 = block.allocate(48);
+      alloc1 = block.allocate(48).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
       AssertThat(block.m_free_list, HasLength(0));
       block.destroy(alloc1);
       AssertThat(block.m_free_list, HasLength(1));
-      alloc1 = block.allocate(15);
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
       AssertThat(block.m_free_list, HasLength(1));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
@@ -162,13 +162,13 @@ void allocator_block_tests()
       block.destroy(alloc2);
       block.destroy(alloc1);
       AssertThat(block.m_free_list, HasLength(1));
-      AssertThat(block.allocate(17 + 2 * aligned_header_size), Equals(static_cast<void *>(nullptr)));
-      alloc1 = block.allocate(15);
+      AssertThat(block.allocate(17 + 2 * aligned_header_size).m_ptr, Equals(static_cast<void *>(nullptr)));
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
       AssertThat(block.m_free_list, HasLength(1));
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
@@ -177,14 +177,14 @@ void allocator_block_tests()
     it("fail massive alloc", []() {
       void *memory2 = malloc(1000);
       allocator_block_type block2(memory2, 96, 16, ::mcppalloc::c_infinite_length);
-      AssertThat(block2.allocate(985), Equals(static_cast<void *>(nullptr)));
+      AssertThat(block2.allocate(985).m_ptr, Equals(static_cast<void *>(nullptr)));
       free(memory2);
     });
     it("empty", []() {
       void *memory2 = malloc(1000);
       allocator_block_type block2(memory2, 992, 16, ::mcppalloc::c_infinite_length);
       AssertThat(block2.empty(), IsTrue());
-      auto m = block2.allocate(500);
+      auto m = block2.allocate(500).m_ptr;
       AssertThat(block2.empty(), IsFalse());
       block2.destroy(m);
       AssertThat(block2.empty(), IsTrue());
@@ -206,15 +206,15 @@ void allocator_block_tests()
       num_quasifreed = 0;
       block.collect(num_quasifreed);
       AssertThat(block.m_free_list, HasLength(0));
-      alloc1 = block.allocate(15);
+      alloc1 = block.allocate(15).m_ptr;
       AssertThat(alloc1, Equals(old_alloc1));
       AssertThat(object_state_type::from_object_start(alloc1)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc1)->not_available(), IsTrue());
-      alloc2 = block.allocate(15);
+      alloc2 = block.allocate(15).m_ptr;
       AssertThat(alloc2, Equals(old_alloc2));
       AssertThat(object_state_type::from_object_start(alloc2)->next_valid(), IsTrue());
       AssertThat(object_state_type::from_object_start(alloc2)->not_available(), IsTrue());
-      alloc3 = block.allocate(15);
+      alloc3 = block.allocate(15).m_ptr;
       AssertThat(alloc3, Equals(old_alloc3));
       AssertThat(object_state_type::from_object_start(alloc3)->next_valid(), IsFalse());
       AssertThat(object_state_type::from_object_start(alloc3)->not_available(), IsTrue());

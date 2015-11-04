@@ -100,13 +100,14 @@ namespace mcppalloc
 #endif
       }
       template <typename Allocator_Policy>
-      void *allocator_block_set_t<Allocator_Policy>::allocate(size_t sz)
+      auto allocator_block_set_t<Allocator_Policy>::allocate(size_t sz) -> block_type
       {
+        block_type ret{nullptr, 0};
         _verify();
         if (m_available_blocks.empty()) {
           if (!m_blocks.empty()) {
             assert(&last_block());
-            void *ret = last_block().allocate(sz);
+            ret = last_block().allocate(sz);
 
             return ret;
           }
@@ -118,15 +119,15 @@ namespace mcppalloc
         if (lower_bound == m_available_blocks.end()) {
           if (!m_blocks.empty()) {
             assert(&last_block());
-            void *ret = last_block().allocate(sz);
+            ret = last_block().allocate(sz);
             return ret;
           }
-          return nullptr;
+          return ret;
         }
         // if here, there is a block in available blocks to use.
         // so try to allocate in there.
-        auto ret = lower_bound->second->allocate(sz);
-        if (cgc1_unlikely(!ret)) {
+        ret = lower_bound->second->allocate(sz);
+        if (cgc1_unlikely(!ret.m_ptr)) {
           // this shouldn't happen
           // so memory corruption, abort.
           ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption." << ::std::endl;
@@ -136,7 +137,7 @@ namespace mcppalloc
           ::std::cerr << &block << " " << block.valid() << " " << block.last_max_alloc_available() << ::std::endl;
           ::std::cerr << block.secondary_memory_used() << " " << block.memory_size() << " " << block.full() << ::std::endl;
           abort();
-          return nullptr;
+          return ret;
         }
         // ok, so we have allocated the memory.
         auto it = lower_bound;

@@ -7,6 +7,7 @@
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc_utils/warning_wrapper_pop.hpp>
 #include "allocator_block.hpp"
+#include <mcppalloc/block.hpp>
 #include <mcppalloc/object_state.hpp>
 #include <mcppalloc_utils/make_unique.hpp>
 #include <mcppalloc_utils/container.hpp>
@@ -39,6 +40,7 @@ namespace mcppalloc
         using user_data_type = typename allocator_policy_type::user_data_type;
         using object_state_type = ::mcppalloc::details::object_state_t<allocator_policy_type>;
         static user_data_type s_default_user_data;
+        using block_type = block_t<allocator_policy_type>;
         static constexpr size_type minimum_header_alignment() noexcept
         {
           return allocator_policy_type::cs_minimum_alignment;
@@ -104,7 +106,7 @@ namespace mcppalloc
          *
          * @return Valid pointer if possible, nullptr otherwise.
         **/
-        void *allocate(size_t size);
+        auto allocate(size_t size) -> block_type;
         /**
          * \brief Destroy a v that is on the block.
          *

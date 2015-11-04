@@ -11,7 +11,7 @@ namespace mcppalloc
       template <typename Global_Allocator>
       struct allocator_block_handle_t {
         using global_allocator_t = Global_Allocator;
-        using block_type = typename global_allocator_t::block_type;
+        using allocator_block_type = typename global_allocator_t::allocator_block_type;
         /**
          * \brief Constructor.
          *
@@ -19,7 +19,7 @@ namespace mcppalloc
          * @param block Block address.
          * @param begin Beginning of block data.
          **/
-        void initialize(typename global_allocator_t::this_thread_allocator_t *ta, block_type *block, uint8_t *begin)
+        void initialize(typename global_allocator_t::this_thread_allocator_t *ta, allocator_block_type *block, uint8_t *begin)
         {
           m_thread_allocator = ta;
           m_block = block;
@@ -40,7 +40,7 @@ namespace mcppalloc
          *
          * This does not own the block.
         **/
-        block_type *m_block;
+        allocator_block_type *m_block;
         /**
          * \brief Start location of block data.
          *

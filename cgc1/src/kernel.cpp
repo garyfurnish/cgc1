@@ -54,6 +54,11 @@ namespace cgc1
   void *cgc_malloc(size_t sz)
   {
     auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    return ta.allocate(sz).m_ptr;
+  }
+  auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
+  {
+    auto &ta = details::g_gks->gc_allocator().initialize_thread();
     return ta.allocate(sz);
   }
   uintptr_t cgc_hidden_malloc(size_t sz)
