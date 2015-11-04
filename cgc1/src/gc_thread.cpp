@@ -245,7 +245,7 @@ namespace cgc1
             return;
         }
         assert(is_aligned_properly(os));
-        if (!os->not_available() || !os->next())
+        if (!os->in_use() || os->quasi_freed() || !os->next())
           return;
         if (!ignore_skip_marked && is_marked(os))
           return;
@@ -357,7 +357,6 @@ namespace cgc1
           if (ud->is_default()) {
           } else {
             if (ud->m_finalizer) {
-              ::std::cout << "finalizing " << os->object_start() << ::std::endl;
               ud->m_finalizer(os->object_start());
               // if it has a finalizer, finalize.
             }

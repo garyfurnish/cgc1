@@ -229,7 +229,8 @@ static void uncollectable_test()
   cgc1::cgc_set_uncollectable(nullptr, true);
   cgc1::cgc_set_uncollectable(&old_memory, true);
 }
-static void linked_list_test()
+
+static void linked_list_test_setup()
 {
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
@@ -237,7 +238,8 @@ static void linked_list_test()
   auto test_thread = [&keep_going]() {
     CGC1_INITIALIZE_THREAD();
     auto &ta = gks->gc_allocator().initialize_thread();
-    void **foo = reinterpret_cast<void **>(ta.allocate(50));
+    const size_t allocation_size = 50_sz;
+    void **foo = reinterpret_cast<void **>(ta.allocate(allocation_size));
     {
       void **bar = foo;
       for (int i = 0; i < 3000; ++i) {
@@ -245,22 +247,26 @@ static void linked_list_test()
           CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
           locations.push_back(::mcppalloc::hide_pointer(bar));
         }
-        ::mcppalloc::secure_zero(bar, 100);
-        *bar = ta.allocate(50);
+        ::mcppalloc::secure_zero(bar, allocation_size);
+        *bar = ta.allocate(allocation_size);
         bar = reinterpret_cast<void **>(*bar);
       }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
         locations.push_back(::mcppalloc::hide_pointer(bar));
       }
+      ::mcppalloc::secure_zero_pointer(bar);
     }
     while (keep_going) {
       ::std::stringstream ss;
       ss << foo << ::std::endl;
     }
-    cgc1::cgc_unregister_thread();
+    ::mcppalloc::secure_zero_pointer(foo);
+    ::cgc1::cgc_unregister_thread();
+    ::cgc1::clean_stack(0, 0, 0, 0, 0);
   };
-  ::std::thread t1(test_thread);
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  auto t1 = ::std::make_unique<::std::thread>(test_thread);
   ::std::this_thread::yield();
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
@@ -273,7 +279,11 @@ static void linked_list_test()
     AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
   }
   keep_going = false;
-  t1.join();
+  t1->join();
+  ::mcppalloc::secure_zero(&test_thread, sizeof(test_thread));
+}
+static void linked_list_final()
+{
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
@@ -287,6 +297,12 @@ static void linked_list_test()
 #endif
   AssertThat(gks->num_freed_in_last_collection(), Equals(locations.size()));
   locations.clear();
+}
+static void linked_list_test()
+{
+  linked_list_test_setup();
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  linked_list_final();
 }
 namespace race_condition_test_detail
 {
@@ -382,6 +398,7 @@ namespace race_condition_test_detail
     // check to make sure empty blocks aren't being put in global blocks (ACTUAL BUG).
     gks->gc_allocator().collect();
     AssertThat(gks->gc_allocator().num_global_blocks(), Equals(start_global_blocks));
+    ::cgc1::clean_stack(0, 0, 0, 0, 0);
   }
 }
 static size_t expected_global_blocks(const size_t start, size_t taken, const size_t put_back)
