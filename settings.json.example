@@ -4,5 +4,6 @@
     "clang_install_location":"/usr/bin/",
     "gcc_install_location":"/usr/bin/",
     "install_path":"../cgc_install",
-    "gcov_location":"/usr/bin"
+    "gcov_location":"/usr/bin",
+    "boehm_path":"../build/root-gc"
 }
