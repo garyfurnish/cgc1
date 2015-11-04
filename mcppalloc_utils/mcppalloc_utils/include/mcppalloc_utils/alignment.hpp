@@ -16,6 +16,14 @@ namespace mcppalloc
     return reinterpret_cast<void *>(align(reinterpret_cast<size_t>(iptr), alignment));
   }
   /**
+   * \brief Align pointer to alignment.
+  **/
+  inline const void *align(const void *iptr, size_t alignment)
+  {
+    return reinterpret_cast<void *>(align(reinterpret_cast<size_t>(iptr), alignment));
+  }
+
+  /**
    * \brief Align size to a given power of 2.
   **/
   inline constexpr size_t align_pow2(size_t size, size_t align_pow)

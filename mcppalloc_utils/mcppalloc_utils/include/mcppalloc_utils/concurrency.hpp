@@ -246,7 +246,7 @@ namespace mcppalloc
 #define CGC1_CONCURRENCY_LOCK_ASSUME(...) ::mcppalloc::lock_assume_t CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(__VA_ARGS__);
 #define CGC1_CONCURRENCY_LOCK_GUARD_TAKE(x)                                                                                      \
   ::std::unique_lock<decltype(x)> CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(x, ::std::adopt_lock);                                    \
-  ::mccpalloc::assume_unlock(x);                                                                                                 \
+  ::mcppalloc::assume_unlock(x);                                                                                                 \
   ::mcppalloc::lock_assume_t CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE(x);
 namespace mcppalloc
 {

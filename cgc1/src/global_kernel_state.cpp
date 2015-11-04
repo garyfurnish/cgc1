@@ -5,15 +5,14 @@
 #include <signal.h>
 #include <cgc1/posix.hpp>
 #include <cgc1/cgc1.hpp>
-#include <cgc1/concurrency.hpp>
-#include <cgc1/aligned_allocator.hpp>
+#include <mcppalloc_utils/concurrency.hpp>
+#include <mcppalloc_utils/aligned_allocator.hpp>
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
-#include "allocator.hpp"
 #include <chrono>
 #include <iostream>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+#include <mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc_utils/boost/property_tree/json_parser.hpp>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -21,17 +20,35 @@
 #endif
 
 template <>
-cgc1::details::gc_user_data_t
-    cgc1::details::allocator_block_t<cgc1::cgc_internal_allocator_t<void>, cgc1::details::gc_user_data_t>::s_default_user_data{};
+cgc1::details::gc_user_data_t cgc1::details::gc_allocator_t::block_type::s_default_user_data{};
 template <>
-cgc1::details::user_data_base_t cgc1::details::allocator_block_t<cgc1::cgc_internal_slab_allocator_t<void>,
-                                                                 cgc1::details::user_data_base_t>::s_default_user_data{};
+::mcppalloc::details::user_data_base_t mcppalloc::sparse::details::allocator_block_t<
+    mcppalloc::default_allocator_policy_t<cgc1::cgc_internal_slab_allocator_t<void>>>::s_default_user_data{};
+
+#ifdef __APPLE__
 template <>
-cgc1::details::user_data_base_t
-    cgc1::details::allocator_block_t<std::allocator<void>, cgc1::details::user_data_base_t>::s_default_user_data{};
+pthread_key_t mcppalloc::thread_local_pointer_t<
+    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::s_pkey{0};
+#else
 template <>
-cgc1::details::user_data_base_t cgc1::details::allocator_block_t<cgc1::aligned_allocator_t<void, 8ul>,
-                                                                 cgc1::details::user_data_base_t>::s_default_user_data{};
+thread_local mcppalloc::thread_local_pointer_t<
+    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::pointer_type
+    mcppalloc::thread_local_pointer_t<
+        mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::s_tlks =
+        nullptr;
+#endif
+namespace mcppalloc
+{
+  namespace bitmap_allocator
+  {
+    namespace details
+    {
+      template <>
+      thread_local_pointer_t<typename bitmap_allocator_t<cgc1::details::gc_allocator_policy_t>::thread_allocator_type>
+          bitmap_allocator_t<cgc1::details::gc_allocator_policy_t>::t_thread_allocator{};
+    }
+  }
+}
 
 namespace cgc1
 {
@@ -196,7 +213,7 @@ namespace cgc1
       return ss.str();
     }
 
-    object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
+    gc_sparse_object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
       // During garbage collection we may assume that the GC data is static.
       CGC1_CONCURRENCY_LOCK_ASSUME(gc_allocator()._mutex());
@@ -205,13 +222,13 @@ namespace cgc1
       if (!handle)
         return nullptr;
       // find state for address.
-      object_state_t *os = handle->m_block->find_address(addr);
+      gc_sparse_object_state_t *os = handle->m_block->find_address(addr);
       // make sure is in valid and in use.
       if (!os || !os->in_use())
         return nullptr;
       return os;
     }
-    object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
+    gc_sparse_object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       // forward to thread unsafe version.
@@ -446,7 +463,7 @@ namespace cgc1
     void global_kernel_state_t::wait_for_collection2()
     {
       // this needs both thread mutex and mutex.
-      double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
+      ::mcppalloc::double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
 
       while (!m_collect_finished && m_collect) {
         lock.unlock();
@@ -466,7 +483,8 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       // if no tlks, create one.
       if (tlks == nullptr) {
-        tlks = make_unique_allocator<details::thread_local_kernel_state_t, cgc_internal_malloc_allocator_t<void>>().release();
+        tlks = ::mcppalloc::make_unique_allocator<details::thread_local_kernel_state_t, cgc_internal_malloc_allocator_t<void>>()
+                   .release();
         set_tlks(tlks);
         // make sure gc kernel is initialized.
         _u_initialize();
@@ -513,7 +531,7 @@ namespace cgc1
 #ifndef _WIN32
       details::initialize_thread_suspension();
 #endif
-      m_gc_allocator.initialize(pow2(33), pow2(36));
+      m_gc_allocator.initialize(::mcppalloc::pow2(33), ::mcppalloc::pow2(36));
       //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
       const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
@@ -584,7 +602,7 @@ namespace cgc1
         m_allocators_unavailable_mutex.lock();
         m_allocators_unavailable_mutex.unlock();
       }
-      unique_lock_t<decltype(m_start_world_condition_mutex)> lock(m_start_world_condition_mutex);
+      ::mcppalloc::unique_lock_t<decltype(m_start_world_condition_mutex)> lock(m_start_world_condition_mutex);
       // deadlock potential here if conditional var sets mutexes in kernel
       // so we use our own conditional variable implementation.
       m_start_world_condition.wait(lock, [this]() { return m_collect_finished.load(::std::memory_order_acquire); });
@@ -675,11 +693,12 @@ namespace cgc1
     {
     }
 #endif
-    allocation_failure_action_t gc_allocator_traits_t::on_allocation_failure(const allocation_failure_t &failure)
+    auto gc_allocator_thread_policy_t::on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
+        -> ::mcppalloc::details::allocation_failure_action_t
     {
       g_gks->gc_allocator().initialize_thread()._do_maintenance();
       g_gks->force_collect();
-      return allocation_failure_action_t{false, failure.m_failures < 5};
+      return ::mcppalloc::details::allocation_failure_action_t{false, failure.m_failures < 5};
     }
   }
 }

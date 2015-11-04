@@ -1,3 +1,14 @@
+#include "../cgc1/src/internal_declarations.hpp"
+#include <cgc1/cgc1.hpp>
+#include <mcppalloc_utils/bandit.hpp>
+#include <mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
+#include "../cgc1/src/global_kernel_state.hpp"
+#include "../cgc1/include/gc/gc.h"
+
+using namespace bandit;
+// alias
+static auto &gks = ::cgc1::details::g_gks;
+using namespace ::mcppalloc::literals;
 
 /**
  * \brief Setup for root test.
@@ -5,14 +16,11 @@
  **/
 static CGC1_NO_INLINE void packed_root_test__setup(void *&memory, size_t &old_memory)
 {
-  using allocator_type =
-      ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
-  allocator_type bitmap_allocator(200000, 200000);
-  auto &poa = bitmap_allocator->_bitmap_allocator();
+  auto &poa = gks->_bitmap_allocator();
   auto &ta = poa.initialize_thread();
   memory = ta.allocate(50);
   // hide a pointer away for comparison testing.
-  old_memory = cgc1::hide_pointer(memory);
+  old_memory = ::mcppalloc::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
   AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
   AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
@@ -38,12 +46,12 @@ static void packed_root_test()
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that the we zero the memory so the pointer doesn't linger.
-  cgc1::secure_zero_pointer(memory);
+  ::mcppalloc::secure_zero_pointer(memory);
   auto num_collections = cgc1::debug::num_gc_collections();
   // force collection.
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  index = state->get_index(cgc1::unhide_pointer(old_memory));
+  index = state->get_index(::mcppalloc::unhide_pointer(old_memory));
   AssertThat(state->is_marked(index), IsFalse());
   AssertThat(state->is_free(index), IsTrue());
   // verify that we did perform a collection.
@@ -53,7 +61,7 @@ static void packed_root_test()
 static void packed_linked_list_test()
 {
   ::std::vector<uintptr_t> locations;
-  cgc1::mutex_t debug_mutex;
+  ::mcppalloc::mutex_t debug_mutex;
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
@@ -63,22 +71,22 @@ static void packed_linked_list_test()
   auto test_thread = [&keep_going, &debug_mutex, &locations, &foo]() {
     CGC1_INITIALIZE_THREAD();
     //    void** foo;
-    auto &poa = mcppalloc::bitmap_allocator::details::g_gks->_bitmap_allocator();
+    auto &poa = gks->_bitmap_allocator();
     auto &ta = poa.initialize_thread();
     foo = reinterpret_cast<void **>(ta.allocate(100));
     {
       void **bar = foo;
       for (int i = 0; i < 0; ++i) {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        locations.push_back(cgc1::hide_pointer(bar));
-        cgc1::secure_zero(bar, 100);
+        locations.push_back(::mcppalloc::hide_pointer(bar));
+        ::mcppalloc::secure_zero(bar, 100);
         *bar = ta.allocate(100);
         bar = reinterpret_cast<void **>(*bar);
       }
       {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        // locations.push_back(cgc1::hide_pointer(bar));
-        locations.push_back(cgc1::hide_pointer(foo));
+        // locations.push_back(::mcppalloc::hide_pointer(bar));
+        locations.push_back(::mcppalloc::hide_pointer(foo));
       }
     }
     while (keep_going) {
@@ -97,7 +105,7 @@ static void packed_linked_list_test()
     CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
     for (auto &&loc : locations) {
       if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
-        ::std::cerr << "pointer not marked " << cgc1::unhide_pointer(loc) << ::std::endl;
+        ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
         abort();
       }
       if (cgc1::debug::_cgc_hidden_packed_free(loc))
@@ -106,24 +114,26 @@ static void packed_linked_list_test()
       //      AssertThat(cgc1::debug::_cgc_hidden_packed_free(loc), IsFalse());
     }
   }
-  cgc1::clean_stack(0, 0, 0, 0, 0);
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
   keep_going = false;
   t1.join();
   cgc1::cgc_remove_root(reinterpret_cast<void **>(&foo));
-  cgc1::secure_zero(&foo, sizeof(foo));
+  ::mcppalloc::secure_zero(&foo, sizeof(foo));
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   for (auto &&loc : locations) {
-    auto state = mcppalloc::bitmap_allocator::details::get_state(cgc1::unhide_pointer(loc));
-    auto index = state->get_index(cgc1::unhide_pointer(loc));
+    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+    auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
     AssertThat(state->has_valid_magic_numbers(), IsTrue());
     AssertThat(state->is_marked(index), IsFalse());
     AssertThat(state->is_free(index), IsTrue());
   }
   locations.clear();
 }
-
-it("multiple_slab_test1", []() { multiple_slab_test1(); });
-it("packed_root_test", []() { packed_root_test(); });
-(void) packed_linked_list_test;
-it("packed_linked_list_test", []() { packed_linked_list_test(); });
+void gc_bitmap_tests()
+{
+  describe("GC", []() {
+    it("packed_root_test", []() { packed_root_test(); });
+    it("packed_linked_list_test", []() { packed_linked_list_test(); });
+  });
+}

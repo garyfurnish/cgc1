@@ -1,4 +1,5 @@
 #include <cgc1/declarations.hpp>
+#include <mcppalloc_utils/security.hpp>
 #include <atomic>
 namespace cgc1
 {
@@ -47,7 +48,7 @@ namespace cgc1
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
     // zero the stack.
     int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
-    cgc1::secure_zero(array, bytes);
+    ::mcppalloc::secure_zero(array, bytes);
     assert(*array == 0);
   }
   template void clean_stack<5000>(size_t, size_t, size_t, size_t, size_t);

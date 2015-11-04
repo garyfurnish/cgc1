@@ -4,10 +4,9 @@
 #include <signal.h>
 #include <thread>
 #include <iostream>
-#include <cgc1/posix_slab.hpp>
+#include <mcppalloc_utils/posix_slab.hpp>
 namespace cgc1
 {
-  size_t slab_t::s_page_size = 0;
   namespace details
   {
     extern void thread_gc_handler(int);

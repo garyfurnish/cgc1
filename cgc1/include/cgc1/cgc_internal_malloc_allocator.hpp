@@ -179,11 +179,14 @@ namespace cgc1
     allocator.construct(ptr, ::std::forward<Args>(args)...);
     return ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>(ptr);
   }
+}
+namespace mcppalloc
+{
   /**
    * Tag for dispatch of getting deleter.
   **/
   template <typename T>
-  struct cgc_allocator_deleter_t<T, cgc_internal_malloc_allocator_t<void>> {
-    using type = cgc_internal_malloc_deleter_t;
+  struct cgc_allocator_deleter_t<T, ::cgc1::cgc_internal_malloc_allocator_t<void>> {
+    using type = ::cgc1::cgc_internal_malloc_deleter_t;
   };
 }

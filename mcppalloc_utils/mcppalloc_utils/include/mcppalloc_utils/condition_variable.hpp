@@ -67,7 +67,7 @@ namespace cgc1
       /**
        * \brief Mutex used to signal a waiter.
        **/
-      mutex_t m_flag;
+      ::mcppalloc::mutex_t m_flag;
     };
     /**
      * \brief Type of queue.
@@ -82,7 +82,7 @@ namespace cgc1
     /**
      * \brief Internal protection for queue.
      **/
-    mutex_t m_mutex;
+    ::mcppalloc::mutex_t m_mutex;
   };
 }
 #include "condition_variable_impl.hpp"

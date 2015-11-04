@@ -4,11 +4,11 @@
 #include <vector>
 #include <atomic>
 #include <condition_variable>
-#include <cgc1/concurrency.hpp>
+#include <mcppalloc_utils/concurrency.hpp>
 #include <cgc1/allocated_thread.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include <cgc1/boost/container/flat_set.hpp>
-#include "allocator.hpp"
+#include <mcppalloc_utils/boost/container/flat_set.hpp>
+#include <mcppalloc_sparse/allocator.hpp>
 #include "internal_allocator.hpp"
 #include "gc_allocator.hpp"
 namespace cgc1
@@ -145,7 +145,7 @@ namespace cgc1
       /**
        * \brief Mutex for condition variables and protection.
       **/
-      mutex_t m_mutex;
+      ::mcppalloc::mutex_t m_mutex;
       /**
        * \brief Vector of threads whose stack this thread is responsible for.
       **/
@@ -226,7 +226,7 @@ namespace cgc1
       /**
        * \brief List of objects to be freed.
       **/
-      cgc_internal_vector_t<object_state_t *> m_to_be_freed GUARDED_BY(m_mutex);
+      cgc_internal_vector_t<gc_sparse_object_state_t *> m_to_be_freed GUARDED_BY(m_mutex);
     };
   }
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include <mcppalloc_utils/unsafe_cast.hpp>
+#include <mcppalloc_utils/std.hpp>
 namespace cgc1
 {
   namespace details
@@ -11,7 +13,7 @@ namespace cgc1
     template <typename Allocator>
     void *allocated_thread_details_base_t<Allocator>::_s_run(void *user_data)
     {
-      auto unique = allocator_unique_ptr<this_type, allocator>(unsafe_cast<this_type>(user_data));
+      auto unique = ::mcppalloc::allocator_unique_ptr_t<this_type, allocator>(::mcppalloc::unsafe_cast<this_type>(user_data));
       unique->_run();
       return nullptr;
     }
@@ -39,7 +41,7 @@ namespace cgc1
       return ::std::apply(f, args_tuple);
     };
     using actual_details_type = details::allocated_thread_details_t<allocator, decltype(nf), Args...>;
-    auto details = make_unique_allocator<actual_details_type, allocator>(alloc, ::std::move(nf));
+    auto details = ::mcppalloc::make_unique_allocator<actual_details_type, allocator>(alloc, ::std::move(nf));
     auto details_ptr = details.release();
     try {
       _start(details_ptr);

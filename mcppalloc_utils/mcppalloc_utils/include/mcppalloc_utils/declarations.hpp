@@ -86,8 +86,6 @@ namespace mcppalloc
     return reinterpret_cast<void *>(~sz);
   }
 
-  template <size_t bytes = 5000>
-  extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
   namespace details
   {
     /**
@@ -98,6 +96,8 @@ namespace mcppalloc
       return static_cast<size_t>(2) << (n - 1);
     }
   }
+  using details::pow2;
+
   /**
    * \brief Return inverse for size.
    **/

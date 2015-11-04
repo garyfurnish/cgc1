@@ -1,4 +1,5 @@
 #pragma once
+#include <mcppalloc/user_data_base.hpp>
 namespace cgc1
 {
   namespace details
@@ -6,7 +7,7 @@ namespace cgc1
     /**
    * \brief User data that can be associated with an allocation.
    **/
-    class gc_user_data_t : public user_data_base_t
+    class gc_user_data_t : public ::mcppalloc::details::user_data_base_t
     {
     public:
       /**
@@ -15,6 +16,16 @@ namespace cgc1
        * @param block Block that this allocation belongs to.
        **/
       gc_user_data_t() = default;
+
+      auto is_uncollectable() const noexcept -> bool
+      {
+        return m_uncollectable;
+      }
+      void set_uncollectable(bool val) noexcept
+      {
+        m_uncollectable = val;
+      }
+
       /**
        * \brief Optional finalizer function to run.
       **/

@@ -1,4 +1,5 @@
 #pragma once
+#include <mcppalloc_utils/alignment.hpp>
 namespace mcppalloc
 {
   namespace details

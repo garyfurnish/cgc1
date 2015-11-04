@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <mcppalloc_utils/unsafe_cast.hpp>
 namespace mcppalloc
 {
   namespace slab_allocator
