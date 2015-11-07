@@ -142,6 +142,4 @@ namespace mcppalloc
     }
   }
 }
-#ifdef CGC1_INLINES
 #include "slab_allocator_impl.hpp"
-#endif

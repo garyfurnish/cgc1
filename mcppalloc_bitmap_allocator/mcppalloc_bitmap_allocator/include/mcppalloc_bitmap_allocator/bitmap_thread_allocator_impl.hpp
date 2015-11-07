@@ -1,6 +1,9 @@
 #pragma once
 #include <mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <thread>
 #include <new>
+#include <mcppalloc/allocator_thread_policy.hpp>
+#include <mcppalloc_utils/concurrency.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator

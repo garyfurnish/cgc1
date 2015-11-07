@@ -89,6 +89,4 @@ namespace mcppalloc
     }
   }
 }
-#ifdef CGC1_INLINES
 #include "bitmap_state_impl.hpp"
-#endif

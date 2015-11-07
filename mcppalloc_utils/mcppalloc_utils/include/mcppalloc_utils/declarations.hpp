@@ -14,9 +14,11 @@
 #define CGC1_INLINES
 #define CGC1_OPT_INLINE inline
 #define CGC1_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define CGC1_OPT_ALWAYS_INLINE __attribute__((always_inline)) inline
 #else
 #define CGC1_OPT_INLINE
 #define CGC1_ALWAYS_INLINE
+#define CGC1_OPT_ALWAYS_INLINE inline
 #endif
 #ifndef _WIN32
 #define CGC1_POSIX

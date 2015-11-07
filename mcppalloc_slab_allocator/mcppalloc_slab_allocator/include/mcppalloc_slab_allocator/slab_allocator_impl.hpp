@@ -6,45 +6,45 @@ namespace mcppalloc
   {
     namespace details
     {
-      CGC1_OPT_INLINE slab_allocator_t::slab_allocator_t(size_t size, size_t size_hint)
+      inline slab_allocator_t::slab_allocator_t(size_t size, size_t size_hint)
       {
         if (!m_slab.allocate(size, slab_t::find_hole(size_hint)))
           throw ::std::runtime_error("Unable to allocate slab");
         m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
         m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
       }
-      CGC1_OPT_INLINE void slab_allocator_t::align_next(size_t sz)
+      inline void slab_allocator_t::align_next(size_t sz)
       {
         uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
         auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_alignment;
         allocate_raw(offset);
       }
-      CGC1_OPT_INLINE uint8_t *slab_allocator_t::begin() const
+      inline uint8_t *slab_allocator_t::begin() const
       {
         return m_slab.begin();
       }
-      CGC1_OPT_INLINE uint8_t *slab_allocator_t::end() const
+      inline uint8_t *slab_allocator_t::end() const
       {
         return m_slab.end();
       }
-      CGC1_OPT_INLINE next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_begin()
+      inline next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_begin()
       {
         return make_next_iterator(reinterpret_cast<slab_allocator_object_t *>(begin()));
       }
-      CGC1_OPT_INLINE next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_end()
+      inline next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_end()
       {
         return make_next_iterator(reinterpret_cast<slab_allocator_object_t *>(end()));
       }
-      CGC1_OPT_INLINE next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_current_end()
+      inline next_iterator<slab_allocator_object_t> slab_allocator_t::_u_object_current_end()
       {
         return make_next_iterator(reinterpret_cast<slab_allocator_object_t *>(m_end));
       }
-      CGC1_OPT_INLINE bool slab_allocator_t::_u_empty()
+      inline bool slab_allocator_t::_u_empty()
       {
         return _u_object_current_end() == _u_object_begin();
       }
 
-      CGC1_OPT_INLINE void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
+      inline void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
       {
         if (sz + cs_alignment * 2 > object->object_size(cs_alignment)) {
           // if not enough space to split, just take it all.
@@ -61,7 +61,7 @@ namespace mcppalloc
           return object->object_start(cs_alignment);
         }
       }
-      CGC1_OPT_INLINE void *slab_allocator_t::_u_allocate_raw_at_end(size_t sz)
+      inline void *slab_allocator_t::_u_allocate_raw_at_end(size_t sz)
       {
         // get total needed size.
         size_t total_size = slab_allocator_object_t::needed_size(sizeof(slab_allocator_object_t), sz, cs_alignment);
@@ -90,7 +90,7 @@ namespace mcppalloc
         }
         return object->object_start(cs_alignment);
       }
-      CGC1_OPT_INLINE void *slab_allocator_t::allocate_raw(size_t sz)
+      inline void *slab_allocator_t::allocate_raw(size_t sz)
       {
         // TODO: THIS IS AWFUL as we have to look through everything to see if anything is free.
         // align request.
@@ -147,7 +147,7 @@ namespace mcppalloc
           return lb->object_start(cs_alignment);
         }
       }
-      CGC1_OPT_INLINE void slab_allocator_t::deallocate_raw(void *v)
+      inline void slab_allocator_t::deallocate_raw(void *v)
       {
         CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
@@ -165,15 +165,15 @@ namespace mcppalloc
           m_end = object;
         }
       }
-      CGC1_OPT_INLINE ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
+      inline ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
       {
         return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
       }
-      CGC1_OPT_INLINE auto slab_allocator_t::current_size() const noexcept -> size_t
+      inline auto slab_allocator_t::current_size() const noexcept -> size_t
       {
         return static_cast<size_t>(reinterpret_cast<uint8_t *>(m_end) - m_slab.begin());
       }
-      CGC1_OPT_INLINE void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+      inline void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
       {
         (void)level;
         ptree.put("size", ::std::to_string(m_slab.size()));
