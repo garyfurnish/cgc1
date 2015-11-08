@@ -129,7 +129,7 @@ namespace mcppalloc
         }
       }
       template <typename Allocator_Policy>
-      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz) noexcept -> void *
+      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz) noexcept -> block_type
       {
 
         size_t attempts = 1;
@@ -152,7 +152,7 @@ namespace mcppalloc
 
             m_locals.insert(id, state);
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
-            return v;
+	    return block_type{v,state->real_entry_size()};
           } else {
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
@@ -172,11 +172,11 @@ namespace mcppalloc
             assert(v);
             m_locals.insert(id, state);
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
-            return v;
+	    return block_type{v,state->real_entry_size()};
           }
         }
         m_allocator.allocator_policy().on_allocation(v, ret_size);
-        return v;
+        return block_type{v,ret_size};
       }
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::deallocate(void *v) noexcept -> bool

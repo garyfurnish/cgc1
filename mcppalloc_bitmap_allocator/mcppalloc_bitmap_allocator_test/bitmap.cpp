@@ -225,15 +225,15 @@ static void multiple_slab_test1()
 
   auto &ta = poa.initialize_thread();
   {
-    void *v = ta.allocate(128);
+    void *v = ta.allocate(128).m_ptr;
     AssertThat(v != nullptr, IsTrue());
     AssertThat(ta.deallocate(v), IsTrue());
-    uint8_t *v2 = reinterpret_cast<uint8_t *>(ta.allocate(128));
-    uint8_t *v3 = reinterpret_cast<uint8_t *>(ta.allocate(128));
+    uint8_t *v2 = reinterpret_cast<uint8_t *>(ta.allocate(128).m_ptr);
+    uint8_t *v3 = reinterpret_cast<uint8_t *>(ta.allocate(128).m_ptr);
     AssertThat(reinterpret_cast<void *>(v), Equals(reinterpret_cast<void *>(v2)));
     AssertThat(reinterpret_cast<void *>(v3), Equals(reinterpret_cast<void *>(v2 + 128)));
     ta.deallocate(v2);
-    uint8_t *v4 = reinterpret_cast<uint8_t *>(ta.allocate(128));
+    uint8_t *v4 = reinterpret_cast<uint8_t *>(ta.allocate(128).m_ptr);
     AssertThat(reinterpret_cast<void *>(v2), Equals(reinterpret_cast<void *>(v4)));
     ta.deallocate(v3);
     ta.deallocate(v4);
@@ -247,7 +247,7 @@ static void multiple_slab_test1()
   // ok, now take and check that destroying with a valid block puts it in globals not freed.
   auto &ta2 = poa.initialize_thread();
   {
-    void *v = ta2.allocate(128);
+    void *v = ta2.allocate(128).m_ptr;
     AssertThat(v != nullptr, IsTrue());
   }
   poa.destroy_thread();

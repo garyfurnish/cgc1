@@ -2,6 +2,7 @@
 #include "declarations.hpp"
 #include "bitmap_state.hpp"
 #include "bitmap_package.hpp"
+#include <mcppalloc/block.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -14,6 +15,7 @@ namespace mcppalloc
       public:
         using allocator_policy_type = Allocator_Policy;
         using package_type = bitmap_package_t<allocator_policy_type>;
+	using block_type = block_t<allocator_policy_type>;
         bitmap_thread_allocator_t(bitmap_allocator_t<allocator_policy_type> &allocator);
         bitmap_thread_allocator_t(const bitmap_thread_allocator_t &) = delete;
         bitmap_thread_allocator_t(bitmap_thread_allocator_t &&) noexcept;
@@ -22,7 +24,7 @@ namespace mcppalloc
         ~bitmap_thread_allocator_t();
         using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
 
-        auto allocate(size_t sz) noexcept -> void *;
+        auto allocate(size_t sz) noexcept -> block_type;
         auto deallocate(void *v) noexcept -> bool;
         auto destroy(void *v) noexcept -> bool
         {

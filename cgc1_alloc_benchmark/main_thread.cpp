@@ -8,17 +8,18 @@
 #ifdef BOEHM
 #define GC_THREADS
 #include <gc.h>
+#ifdef CGC1_FAKE_BOEHM
+#error
+#endif
 #else
 #include <cgc1/gc.h>
 
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <cgc1/posix_slab.hpp>
 #include <cgc1/posix.hpp>
 #include <thread>
 #include <signal.h>
-#include "../cgc1/src/allocator_block.hpp"
-#include "../cgc1/src/allocator.hpp"
+#include <mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
@@ -81,7 +82,7 @@ void thread_main()
   go_lk.unlock();
 
   for (size_t i = 0; i < num_thread_alloc; ++i) {
-    auto ret = ts.allocate(alloc_sz);
+    auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
       abort();
     ptrs.emplace_back(ret);
@@ -92,7 +93,7 @@ void thread_main()
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
-    auto ret = ts.allocate(alloc_sz);
+    auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
       abort();
     ptrs.emplace_back(ret);

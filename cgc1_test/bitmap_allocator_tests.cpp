@@ -18,7 +18,7 @@ static CGC1_NO_INLINE void packed_root_test__setup(void *&memory, size_t &old_me
 {
   auto &poa = gks->_bitmap_allocator();
   auto &ta = poa.initialize_thread();
-  memory = ta.allocate(50);
+  memory = ta.allocate(50).m_ptr;
   // hide a pointer away for comparison testing.
   old_memory = ::mcppalloc::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
@@ -73,14 +73,14 @@ static void packed_linked_list_test()
     //    void** foo;
     auto &poa = gks->_bitmap_allocator();
     auto &ta = poa.initialize_thread();
-    foo = reinterpret_cast<void **>(ta.allocate(100));
+    foo = reinterpret_cast<void **>(ta.allocate(100).m_ptr);
     {
       void **bar = foo;
       for (int i = 0; i < 0; ++i) {
         CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
         locations.push_back(::mcppalloc::hide_pointer(bar));
         ::mcppalloc::secure_zero(bar, 100);
-        *bar = ta.allocate(100);
+        *bar = ta.allocate(100).m_ptr;
         bar = reinterpret_cast<void **>(*bar);
       }
       {
