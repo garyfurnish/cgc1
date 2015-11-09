@@ -166,6 +166,10 @@ namespace cgc1
   {
     details::g_gks->force_collect();
   }
+  void cgc_wait_collect()
+  {
+    details::g_gks->wait_for_collection();
+  }
   void cgc_unregister_thread()
   {
     details::g_gks->destroy_current_thread();
@@ -173,6 +177,7 @@ namespace cgc1
   void cgc_shutdown()
   {
     details::g_gks->shutdown();
+    details::g_gks = nullptr;
   }
   void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer)
   {

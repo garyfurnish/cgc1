@@ -23,7 +23,8 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-static const size_t num_alloc = 10000000;
+//static const size_t num_alloc = 10000000;
+static const size_t num_alloc = 1000000;
 static const size_t num_thread = 32;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
@@ -146,6 +147,6 @@ int main()
   t2 = ::std::chrono::high_resolution_clock::now();
   time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
-
+  ::cgc1::cgc_shutdown();
   return 0;
 }

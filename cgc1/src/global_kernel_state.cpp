@@ -127,6 +127,7 @@ namespace cgc1
     void global_kernel_state_t::shutdown()
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      wait_for_finalization();
       m_gc_threads.clear();
     }
     void global_kernel_state_t::enable()
