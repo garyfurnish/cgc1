@@ -1,6 +1,6 @@
 #pragma once
 #ifdef __APPLE__
-namespace cgc1
+namespace mcppalloc
 {
   /**
    * \brief Scoped variable for locking lock.

@@ -1,7 +1,7 @@
 include_directories(../../mcppalloc/mcppalloc/include)
 include_directories(../../mcppalloc_utils/mcppalloc_utils/include)
 include_directories(../mcppalloc_sparse/include/)
-find_path(BANDIT_INCLUDE_PATH bandit/bandit.h ../bandit)
+find_path(BANDIT_INCLUDE_PATH bandit/bandit.h PATHS ../../bandit)
 include_directories(${BANDIT_INCLUDE_PATH})
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_compile_options(-fPIE)
