@@ -3,14 +3,14 @@
 #include <atomic>
 #include <condition_variable>
 #include <vector>
-#include <cgc1/concurrency.hpp>
+#include <mcppalloc_utils/concurrency.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
 #include "internal_allocator.hpp"
-#include "allocator.hpp"
+#include <mcppalloc_sparse/allocator.hpp>
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
-#include "slab_allocator.hpp"
-#include "packed_object_allocator.hpp"
+#include <mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include "global_kernel_state_param.hpp"
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -26,8 +26,16 @@ namespace cgc1
     {
     public:
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
-      using internal_allocator_t = allocator_t<cgc_internal_allocator_allocator_t, allocator_no_traits_t>;
+      using internal_allocator_policy_type = ::mcppalloc::default_allocator_policy_t<cgc_internal_allocator_allocator_t>;
+      using internal_allocator_t = ::mcppalloc::sparse::allocator_t<internal_allocator_policy_type>;
+      using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>;
+      using internal_slab_allocator_type = mcppalloc::slab_allocator::details::slab_allocator_t;
       using duration_type = ::std::chrono::duration<double>;
+#ifdef __APPLE__
+      using mutex_type = ::mcppalloc::spinlock_t;
+#else
+      using mutex_type = ::mcppalloc::mutex_t;
+#endif
       /**
        * \brief Constructor
        * @param param Initialization Parameters.
@@ -41,7 +49,7 @@ namespace cgc1
       /**
        * \brief Perform shutdown work that must be done before destruction.
       **/
-      void shutdown() REQUIRES(!m_mutex);
+      void shutdown() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Enable garbage collection.
        *
@@ -95,7 +103,7 @@ namespace cgc1
       /**
        * \brief Return the packed object allocator.
        **/
-      auto _packed_object_allocator() const noexcept -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &;
+      auto _bitmap_allocator() const noexcept -> bitmap_allocator_type &;
       /**
        * \brief Return the internal allocator that can be touched during GC.
       **/
@@ -103,7 +111,7 @@ namespace cgc1
       /**
        * \brief Return the internal slab allocator.
       **/
-      auto _internal_slab_allocator() const noexcept -> slab_allocator_t &;
+      auto _internal_slab_allocator() const noexcept -> internal_slab_allocator_type &;
       /**
        * \brief Return the thread local kernel state for the current thread.
        *
@@ -121,7 +129,7 @@ namespace cgc1
       /**
        * \brief Wait for finalization of the last collection to finish.
       **/
-      void wait_for_finalization() REQUIRES(!m_thread_mutex);
+      void wait_for_finalization() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Wait for ongoing collection to finish.
        *
@@ -165,20 +173,20 @@ namespace cgc1
       /**
        * \brief Return true if the object state is valid, false otherwise.
       **/
-      bool is_valid_object_state(const object_state_t *os) const;
+      bool is_valid_object_state(const gc_sparse_object_state_t *os) const;
       /**
        * \brief Find a valid object state for the given addr.
        *
        * This does not need a mutex held if this is called during garbage collection because all of the relevant state is frozen.
        * @return nullptr if not found.
       **/
-      object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex);
+      gc_sparse_object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex);
       /**
        * \brief Find a valid object state for the given addr.
        *
        * @return nullptr if not found.
       **/
-      object_state_t *find_valid_object_state(void *addr) const REQUIRES(!m_mutex);
+      gc_sparse_object_state_t *find_valid_object_state(void *addr) const REQUIRES(!m_mutex);
 
       /**
        * \brief Return time for clear phase of gc.
@@ -201,7 +209,7 @@ namespace cgc1
        **/
       auto total_collect_time_span() const -> duration_type;
 
-      mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
+      RETURN_CAPABILITY(m_mutex) auto _mutex() const -> mutex_type &;
 
       auto slow_slab_begin() const noexcept -> uint8_t *;
       auto slow_slab_end() const noexcept -> uint8_t *;
@@ -250,7 +258,7 @@ namespace cgc1
       /**
        * \brief Internal slab allocator used for internal allocator.
       **/
-      mutable slab_allocator_t m_slab_allocator;
+      mutable internal_slab_allocator_type m_slab_allocator;
       /**
        * \brief Internal allocator that can be touched during GC.
       **/
@@ -263,16 +271,16 @@ namespace cgc1
       /**
        * \brief Packed object allocator for fast allocation.
        **/
-      mutable packed_object_allocator_t<gc_packed_object_allocator_policy_t> m_packed_object_allocator;
+      mutable bitmap_allocator_type m_bitmap_allocator;
       /**
        * \brief Main mutex for state.
        **/
-      mutable mutex_t m_mutex;
+      mutable mutex_type m_mutex;
       /**
        * \brief Mutex for resuming world.
        *
        **/
-      mutable mutex_t m_start_world_condition_mutex;
+      mutable ::mcppalloc::mutex_t m_start_world_condition_mutex;
       /**
        * Number of paused threads in a collect cycle.
       **/
@@ -302,15 +310,15 @@ namespace cgc1
       /**
        * \brief Mutex for protecting m_threads.
       **/
-      mutable mutex_t m_thread_mutex;
+      mutable mutex_type m_thread_mutex;
       /**
        * \brief This mutex is locked when mutexes are unavailable.
        **/
-      mutable mutex_t m_allocators_unavailable_mutex;
+      mutable ::mcppalloc::mutex_t m_allocators_unavailable_mutex;
       /**
        * \brief Vector of pointers to roots.
        **/
-      rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
+      ::mcppalloc::rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
        * \brief Vector of all threads registered with the kernel.
        *
@@ -322,8 +330,8 @@ namespace cgc1
        *
        * Not necesarily a one to one map.
       **/
-      rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>, cgc_internal_malloc_allocator_t<void>>
-          m_gc_threads;
+      ::mcppalloc::rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>,
+                                   cgc_internal_malloc_allocator_t<void>> m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.
        *

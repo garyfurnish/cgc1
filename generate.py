@@ -35,24 +35,24 @@ def generate_linux():
     ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
     printing_mkdir("unixmake_gcc_release")
     printing_chdir("unixmake_gcc_release")
-    do_cmake(current_directory, "Unix Makefiles", ddict)
+    do_cmake(current_directory, "Ninja", ddict)
     printing_chdir("../")
     printing_mkdir("unixmake_gcc_debug")
     printing_chdir("unixmake_gcc_debug")
     ddict["CMAKE_BUILD_TYPE"]="Debug"
-    do_cmake(current_directory, "Unix Makefiles", ddict)
+    do_cmake(current_directory, "Ninja", ddict)
     ddict["CMAKE_C_COMPILER"] = clang_install_location+'/clang'
     ddict["CMAKE_CXX_COMPILER"] = clang_install_location+'/clang++'
     printing_chdir("../")
     printing_mkdir("unixmake_clang_release")
     printing_chdir("unixmake_clang_release")
     ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
-    do_cmake(current_directory, "Unix Makefiles", ddict)
+    do_cmake(current_directory, "Ninja", ddict)
     printing_chdir("../")
     printing_mkdir("unixmake_clang_debug")
     printing_chdir("unixmake_clang_debug")
     ddict["CMAKE_BUILD_TYPE"]="Debug"
-    do_cmake(current_directory, "Unix Makefiles", ddict)
+    do_cmake(current_directory, "Ninja", ddict)
     ddict["CMAKE_C_COMPILER"] = gcc_install_location+'/gcc'
     ddict["CMAKE_CXX_COMPILER"] = gcc_install_location+'/g++'
     ddict["CMAKE_CXX_FLAGS"] = ddict["CMAKE_CXX_FLAGS"] + "-O0 -fno-inline -fprofile-arcs -ftest-coverage -DCGC1_NO_INLINES"
@@ -62,6 +62,6 @@ def generate_linux():
     printing_chdir("../")
     printing_mkdir("unixmake_gcc_gcov")
     printing_chdir("unixmake_gcc_gcov")
-    do_cmake(current_directory, "Unix Makefiles", ddict)
+    do_cmake(current_directory, "Ninja", ddict)
 
 generate_linux()

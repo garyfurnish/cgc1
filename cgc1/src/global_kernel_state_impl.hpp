@@ -10,16 +10,15 @@ namespace cgc1
     {
       return m_gc_allocator;
     }
-    inline auto global_kernel_state_t::_packed_object_allocator() const noexcept
-        -> packed_object_allocator_t<gc_packed_object_allocator_policy_t> &
+    inline auto global_kernel_state_t::_bitmap_allocator() const noexcept -> bitmap_allocator_type &
     {
-      return m_packed_object_allocator;
+      return m_bitmap_allocator;
     }
     inline auto global_kernel_state_t::_internal_allocator() const noexcept -> internal_allocator_t &
     {
       return m_cgc_allocator;
     }
-    inline auto global_kernel_state_t::_internal_slab_allocator() const noexcept -> slab_allocator_t &
+    inline auto global_kernel_state_t::_internal_slab_allocator() const noexcept -> internal_slab_allocator_type &
     {
       return m_slab_allocator;
     }
@@ -38,14 +37,15 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_freed_in_last_collection.insert(m_freed_in_last_collection.end(), container.begin(), container.end());
     }
-    inline bool global_kernel_state_t::is_valid_object_state(const object_state_t *os) const
+    inline bool global_kernel_state_t::is_valid_object_state(const gc_sparse_object_state_t *os) const
     {
       // We may assume this because the internal allocator may only grow.
       // At worse this may be falsely negative, but then it is undef behavior race condition.
       CGC1_CONCURRENCY_LOCK_ASSUME(_internal_allocator()._mutex());
-      return details::is_valid_object_state(os, _internal_allocator()._u_begin(), _internal_allocator()._u_current_end());
+      return ::mcppalloc::sparse::details::is_valid_object_state(os, _internal_allocator()._u_begin(),
+                                                                 _internal_allocator()._u_current_end());
     }
-    inline mutex_t &global_kernel_state_t::_mutex() const RETURN_CAPABILITY(m_mutex)
+    inline auto global_kernel_state_t::_mutex() const -> mutex_type &
     {
       return m_mutex;
     }
@@ -59,11 +59,11 @@ namespace cgc1
     }
     inline auto global_kernel_state_t::fast_slab_begin() const noexcept -> uint8_t *
     {
-      return m_packed_object_allocator.begin();
+      return m_bitmap_allocator.begin();
     }
     inline auto global_kernel_state_t::fast_slab_end() const noexcept -> uint8_t *
     {
-      return m_packed_object_allocator.end();
+      return m_bitmap_allocator.end();
     }
   }
 }

@@ -5,17 +5,18 @@
 #ifdef BOEHM
 #define GC_THREADS
 #include <gc.h>
+#ifdef CGC1_FAKE_BOEHM
+#error
+#endif
 #else
 #include <cgc1/gc.h>
 
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <cgc1/posix_slab.hpp>
 #include <cgc1/posix.hpp>
 #include <thread>
 #include <signal.h>
-#include "../cgc1/src/allocator_block.hpp"
-#include "../cgc1/src/allocator.hpp"
+#include <mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/global_kernel_state.hpp"
 
 #endif
@@ -53,26 +54,26 @@ int main()
   auto &ts = allocator.initialize_thread();
   ::std::cout << ts.to_json(2) << ::std::endl;
   for (size_t i = 0; i < num_alloc; ++i) {
-    auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
+    auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
     if (!ret)
       abort();
     for (size_t li = 0; li < 8; ++li)
-      ret[li] = ts.allocate(alloc_sz);
-    cgc1::secure_zero(&ret, sizeof(ret));
+      ret[li] = ts.allocate(alloc_sz).m_ptr;
+    ::mcppalloc::secure_zero(&ret, sizeof(ret));
   }
 
 #else
   ::std::cout << "Using cgc1\n";
   CGC1_INITIALIZE_THREAD();
-  auto &allocator = cgc1::details::g_gks->_packed_object_allocator();
+  auto &allocator = cgc1::details::g_gks->_bitmap_allocator();
 
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
-    auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz));
+    auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
     if (!ret)
       abort();
     for (size_t li = 0; li < 8; ++li) {
-      if (!(ret[li] = ts.allocate(alloc_sz)))
+      if (!(ret[li] = ts.allocate(alloc_sz).m_ptr))
         abort();
     }
   }
@@ -112,5 +113,8 @@ int main()
   ::std::chrono::duration<double> teardown = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t3 - t2);
   ::std::cout << "Setup Time elapsed: " << setup.count() << ::std::endl;
   ::std::cout << "Teardown Time elapsed: " << teardown.count() << ::std::endl;
+#ifndef BOEHM
+  ::cgc1::cgc_shutdown();
+#endif
   return 0;
 }

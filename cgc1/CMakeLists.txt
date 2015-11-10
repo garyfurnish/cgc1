@@ -1,22 +1,18 @@
+include_directories(../mcppalloc/mcppalloc/include)
+include_directories(../mcppalloc_utils/mcppalloc_utils/include)
+include_directories(../mcppalloc_sparse/mcppalloc_sparse/include/)
+include_directories(../mcppalloc_bitmap/mcppalloc_bitmap/include)
+include_directories(../mcppalloc_slab_allocator/mcppalloc_slab_allocator/include)
+include_directories(../mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator/include/)
+
 include_directories(include)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-#  add_compile_options(-fno-rtti)
   add_compile_options(-fPIC)
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 list (APPEND SRC_FILES 
 include/cgc1/cgc1.hpp
 include/cgc1/cgc_internal_malloc_allocator.hpp
-include/cgc1/concurrency.hpp
 include/cgc1/declarations.hpp
-include/cgc1/posix.hpp
-include/cgc1/posix_slab.hpp
-include/cgc1/posix_slab_impl.hpp
-src/allocator.hpp
-src/allocator_block.hpp
-src/allocator_block_impl.hpp
-src/allocator_block_set.hpp
-src/allocator_block_set_impl.hpp
-src/allocator_impl.hpp
 src/gc_allocator.cpp
 src/gc_allocator.hpp
 src/gc_thread.cpp
@@ -29,17 +25,7 @@ src/global_kernel_state_param.hpp
 src/internal_allocator.hpp
 src/internal_declarations.hpp
 src/kernel.cpp
-src/object_state.hpp
-src/packed_object_allocator.cpp
-src/packed_object_state.cpp
-src/packed_object_package.cpp
-src/packed_object_thread_allocator.cpp
 src/posix.cpp
-src/slab_allocator.cpp src/object_state.cpp
-src/slab_allocator.hpp
-src/slab_allocator_impl.hpp src/object_state_impl.hpp
-src/thread_allocator.hpp
-src/thread_allocator_impl.hpp
 src/thread_local_kernel_state.cpp
 src/thread_local_kernel_state.hpp
 src/thread_local_kernel_state_impl.hpp

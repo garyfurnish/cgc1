@@ -1,5 +1,5 @@
 #include "global_kernel_state_param.hpp"
-#include <cgc1/boost/property_tree/ptree.hpp>
+#include <mcppalloc_utils/boost/property_tree/ptree.hpp>
 namespace cgc1
 {
   global_kernel_state_param_t::global_kernel_state_param_t() = default;

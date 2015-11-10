@@ -1,4 +1,5 @@
 #pragma once
+#define CGC1_FAKE_BOEHM
 /*
  * Boehm GC compatability header.
  */

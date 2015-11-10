@@ -1,6 +1,7 @@
 #pragma once
 #include "cgc1_dll.hpp"
 #include <stdint.h>
+#define CGC1_FAKE_BOEHM
 #define USE_CGC1
 #ifndef _WIN32
 #ifndef cgc1_builtin_current_stack

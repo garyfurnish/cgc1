@@ -1,14 +1,17 @@
-#include "../cgc1/src/slab_allocator.hpp"
-#include "../cgc1/src/allocator_block.hpp"
-#include "bandit.hpp"
+#include <mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc_utils/unsafe_cast.hpp>
+#include <mcppalloc_utils/bandit.hpp>
+#include <mcppalloc_utils/container.hpp>
+#include "../cgc1/src/internal_allocator.hpp"
 using namespace bandit;
-using cgc1::align;
+using ::mcppalloc::unsafe_cast;
+using ::mcppalloc::align;
 void slab_allocator_bandit_tests()
 {
   describe("Slab Allocator", []() {
     it("sa_test1", []() {
-      using cgc1::details::slab_allocator_object_t;
-      cgc1::details::slab_allocator_t slab(500000, 5000000);
+      using ::mcppalloc::slab_allocator::details::slab_allocator_object_t;
+      ::mcppalloc::slab_allocator::details::slab_allocator_t slab(500000, 5000000);
       using slab_type = decltype(slab);
       uint8_t *alloc1 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
       AssertThat(alloc1 == slab.begin() + slab_type::alignment(), IsTrue());
@@ -105,10 +108,10 @@ void slab_allocator_bandit_tests()
 
     });
     it("test2,", []() {
-      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
-      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
-      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
-      cgc1::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
       for (size_t i = 0; i < 1000; ++i) {
         vec.push_back(i);
         vec2.push_back(i);

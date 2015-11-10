@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <memory>
 #include <vector>
+#include <mcppalloc_utils/make_unique.hpp>
 namespace cgc1
 {
   namespace details
@@ -209,10 +210,6 @@ namespace cgc1
     }
   };
   static_assert(::std::is_nothrow_move_assignable<cgc_internal_deleter_t>::value, "");
-  template <typename T>
-  struct cgc_allocator_deleter_t<T, cgc_internal_allocator_t<void>> {
-    using type = cgc_internal_deleter_t;
-  };
   struct cgc_internal_slab_deleter_t {
     template <typename T>
     void operator()(T *t) const
@@ -222,10 +219,20 @@ namespace cgc1
       allocator.deallocate(t, 1);
     }
   };
+}
+namespace mcppalloc
+{
   template <typename T>
-  struct cgc_allocator_deleter_t<T, cgc_internal_slab_allocator_t<void>> {
-    using type = cgc_internal_slab_deleter_t;
+  struct cgc_allocator_deleter_t<T, ::cgc1::cgc_internal_allocator_t<void>> {
+    using type = ::cgc1::cgc_internal_deleter_t;
   };
+  template <typename T>
+  struct cgc_allocator_deleter_t<T, ::cgc1::cgc_internal_slab_allocator_t<void>> {
+    using type = ::cgc1::cgc_internal_slab_deleter_t;
+  };
+}
+namespace cgc1
+{
   template <typename T>
   using cgc_internal_unique_ptr_t = ::std::unique_ptr<T, cgc_internal_deleter_t>;
   template <typename T>
@@ -250,13 +257,14 @@ namespace cgc1
   {
     details::internal_slab_deallocate(p);
   }
-  static_assert(::std::is_same<cgc_internal_deleter_t, cgc_allocator_deleter_t<int, cgc_internal_allocator_t<void>>::type>::value,
+  static_assert(::std::is_same<cgc_internal_deleter_t,
+                               ::mcppalloc::cgc_allocator_deleter_t<int, cgc_internal_allocator_t<void>>::type>::value,
                 "Error with internal deleter");
-  static_assert(
-      ::std::is_same<cgc_internal_slab_deleter_t, cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
-      "Error with internal deleter");
+  static_assert(::std::is_same<cgc_internal_slab_deleter_t,
+                               ::mcppalloc::cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
+                "Error with internal deleter");
 }
-#include <cgc1/condition_variable.hpp>
+#include <mcppalloc_utils/condition_variable.hpp>
 namespace cgc1
 {
   using condition_variable_any_t = internal_condition_variable_t<cgc_internal_allocator_t<void>>;

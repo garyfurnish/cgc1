@@ -32,14 +32,14 @@ namespace cgc1
 
     auto _cgc_hidden_packed_marked(uintptr_t loc) -> bool
     {
-      auto state = cgc1::details::get_state(cgc1::unhide_pointer(loc));
-      auto index = state->get_index(cgc1::unhide_pointer(loc));
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+      auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
       return state->is_marked(index);
     }
     auto _cgc_hidden_packed_free(uintptr_t loc) -> bool
     {
-      auto state = cgc1::details::get_state(cgc1::unhide_pointer(loc));
-      auto index = state->get_index(cgc1::unhide_pointer(loc));
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+      auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
       return state->is_free(index);
     }
   }
@@ -54,13 +54,18 @@ namespace cgc1
   void *cgc_malloc(size_t sz)
   {
     auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    return ta.allocate(sz).m_ptr;
+  }
+  auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
+  {
+    auto &ta = details::g_gks->gc_allocator().initialize_thread();
     return ta.allocate(sz);
   }
   uintptr_t cgc_hidden_malloc(size_t sz)
   {
     void *addr = cgc_malloc(sz);
-    secure_zero(addr, sz);
-    return hide_pointer(addr);
+    ::mcppalloc::secure_zero(addr, sz);
+    return ::mcppalloc::hide_pointer(addr);
   }
   void *cgc_realloc(void *v, size_t sz)
   {
@@ -83,12 +88,12 @@ namespace cgc1
     if (!addr)
       return nullptr;
     if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end()) {
-      auto state = details::get_state(addr);
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers())
         return state->begin() + state->get_index(addr) * state->real_entry_size();
       return nullptr;
     }
-    details::object_state_t *os = details::object_state_t::from_object_start(addr);
+    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
     if (!details::g_gks->is_valid_object_state(os)) {
       os = details::g_gks->find_valid_object_state(addr);
       if (!os)
@@ -104,12 +109,12 @@ namespace cgc1
     if (!start)
       return 0;
     if (start >= details::g_gks->fast_slab_begin() && start < details::g_gks->fast_slab_end()) {
-      auto state = details::get_state(addr);
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers())
         return state->declared_entry_size();
       return 0;
     }
-    details::object_state_t *os = details::object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     if (os)
       return os->object_size();
     else
@@ -161,6 +166,11 @@ namespace cgc1
   {
     details::g_gks->force_collect();
   }
+  void cgc_wait_collect()
+  {
+    details::g_gks->wait_for_collection();
+    details::g_gks->_mutex().unlock();
+  }
   void cgc_unregister_thread()
   {
     details::g_gks->destroy_current_thread();
@@ -168,6 +178,7 @@ namespace cgc1
   void cgc_shutdown()
   {
     details::g_gks->shutdown();
+    details::g_gks = nullptr;
   }
   void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer)
   {
@@ -176,11 +187,11 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return;
-    details::object_state_t *os = details::object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
-    if (ud->m_is_default) {
-      ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
-      ud->m_is_default = false;
+    if (ud->is_default()) {
+      ud = ::mcppalloc::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
+      ud->set_is_default(false);
       os->set_user_data(ud);
     }
     ud->m_finalizer = finalizer;
@@ -192,14 +203,14 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return;
-    details::object_state_t *os = details::object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
-    if (ud->m_is_default) {
-      ud = make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
-      ud->m_is_default = false;
+    if (ud->is_default()) {
+      ud = ::mcppalloc::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
+      ud->set_is_default(false);
       os->set_user_data(ud);
     }
-    ud->m_uncollectable = is_uncollectable;
+    ud->set_uncollectable(is_uncollectable);
     set_complex(os, true);
   }
   void cgc_set_atomic(void *addr, bool is_atomic)
@@ -209,7 +220,7 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return;
-    details::object_state_t *os = details::object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     set_atomic(os, is_atomic);
   }
 }

@@ -1,6 +1,5 @@
 #include "thread_local_kernel_state.hpp"
-#include "object_state.hpp"
-#include "allocator.hpp"
+#include <mcppalloc_sparse/allocator.hpp>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>

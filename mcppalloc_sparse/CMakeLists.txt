@@ -1,0 +1,1 @@
+add_subdirectory(mcppalloc_sparse_test)

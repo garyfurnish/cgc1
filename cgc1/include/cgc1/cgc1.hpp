@@ -148,6 +148,10 @@ namespace cgc1
    * \brief Force a collection.
   **/
   extern CGC1_DLL_PUBLIC void cgc_force_collect();
+  /**
+   * \brief Wait for collection to finish.
+  **/
+  extern CGC1_DLL_PUBLIC void cgc_wait_collect();
   namespace debug
   {
     /**

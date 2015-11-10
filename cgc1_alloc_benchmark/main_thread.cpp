@@ -8,26 +8,28 @@
 #ifdef BOEHM
 #define GC_THREADS
 #include <gc.h>
+#ifdef CGC1_FAKE_BOEHM
+#error
+#endif
 #else
 #include <cgc1/gc.h>
 
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <cgc1/posix_slab.hpp>
 #include <cgc1/posix.hpp>
 #include <thread>
 #include <signal.h>
-#include "../cgc1/src/allocator_block.hpp"
-#include "../cgc1/src/allocator.hpp"
+#include <mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-static const size_t num_alloc = 10000000;
-static const size_t num_thread = 32;
+// static const size_t num_alloc = 10000000;
+static const size_t num_alloc = 1000000;
+static const size_t num_thread = ::std::thread::hardware_concurrency() * 4;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
-static ::std::atomic<int> done{0};
+static ::std::atomic<size_t> done{0};
 
 static ::std::condition_variable done_cv;
 static ::std::condition_variable start_cv;
@@ -74,14 +76,14 @@ void thread_main()
   for (size_t i = 0; i < ts_type::c_bins; ++i)
     ts.set_allocator_multiple(i, ts.get_allocator_multiple(i) * 256);
 #else
-  auto &ts = cgc1::details::g_gks->_packed_object_allocator().initialize_thread();
+  auto &ts = cgc1::details::g_gks->_bitmap_allocator().initialize_thread();
 #endif
   ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   start_cv.wait(go_lk, []() { return go.load(); });
   go_lk.unlock();
 
   for (size_t i = 0; i < num_thread_alloc; ++i) {
-    auto ret = ts.allocate(alloc_sz);
+    auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
       abort();
     ptrs.emplace_back(ret);
@@ -92,13 +94,15 @@ void thread_main()
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
-    auto ret = ts.allocate(alloc_sz);
+    auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
       abort();
     ptrs.emplace_back(ret);
   }
   ++done;
+  cv_mutex.lock();
   done_cv.notify_all();
+  cv_mutex.unlock();
   cgc1::cgc_unregister_thread();
 #endif
 }
@@ -124,8 +128,10 @@ int main()
   }
 
   ::std::chrono::high_resolution_clock::time_point t1 = ::std::chrono::high_resolution_clock::now();
+  ::std::unique_lock<::std::mutex> go_lk(go_mutex);
   go = true;
   start_cv.notify_all();
+  go_lk.unlock();
   ::std::unique_lock<::std::mutex> cv_lk(cv_mutex);
   done_cv.wait(cv_lk, []() { return done == num_thread; });
   ::std::chrono::high_resolution_clock::time_point t2 = ::std::chrono::high_resolution_clock::now();
@@ -145,6 +151,8 @@ int main()
   t2 = ::std::chrono::high_resolution_clock::now();
   time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
-
+#ifndef BOEHM
+  ::cgc1::cgc_shutdown();
+#endif
   return 0;
 }
