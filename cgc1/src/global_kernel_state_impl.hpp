@@ -45,7 +45,7 @@ namespace cgc1
       return ::mcppalloc::sparse::details::is_valid_object_state(os, _internal_allocator()._u_begin(),
                                                                  _internal_allocator()._u_current_end());
     }
-    inline auto global_kernel_state_t::_mutex() const -> mutex_type&
+    inline auto global_kernel_state_t::_mutex() const -> mutex_type &
     {
       return m_mutex;
     }

@@ -49,7 +49,7 @@ namespace cgc1
       /**
        * \brief Perform shutdown work that must be done before destruction.
       **/
-      void shutdown() REQUIRES(!m_mutex);
+      void shutdown() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Enable garbage collection.
        *
@@ -129,7 +129,7 @@ namespace cgc1
       /**
        * \brief Wait for finalization of the last collection to finish.
       **/
-      void wait_for_finalization() REQUIRES(!m_thread_mutex);
+      void wait_for_finalization() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Wait for ongoing collection to finish.
        *
@@ -209,7 +209,7 @@ namespace cgc1
        **/
       auto total_collect_time_span() const -> duration_type;
 
-      RETURN_CAPABILITY(m_mutex) auto _mutex() const -> mutex_type&;
+      RETURN_CAPABILITY(m_mutex) auto _mutex() const -> mutex_type &;
 
       auto slow_slab_begin() const noexcept -> uint8_t *;
       auto slow_slab_end() const noexcept -> uint8_t *;

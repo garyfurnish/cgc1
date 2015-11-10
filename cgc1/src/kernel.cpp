@@ -169,6 +169,7 @@ namespace cgc1
   void cgc_wait_collect()
   {
     details::g_gks->wait_for_collection();
+    details::g_gks->_mutex().unlock();
   }
   void cgc_unregister_thread()
   {

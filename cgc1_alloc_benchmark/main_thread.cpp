@@ -23,15 +23,13 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #endif
 
-//static const size_t num_alloc = 10000000;
+// static const size_t num_alloc = 10000000;
 static const size_t num_alloc = 1000000;
-static const size_t num_thread = ::std::thread::hardware_concurrency()*4;
+static const size_t num_thread = ::std::thread::hardware_concurrency() * 4;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;
 static ::std::atomic<bool> go{false};
 static ::std::atomic<size_t> done{0};
-
-
 
 static ::std::condition_variable done_cv;
 static ::std::condition_variable start_cv;
@@ -153,6 +151,8 @@ int main()
   t2 = ::std::chrono::high_resolution_clock::now();
   time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
+#ifndef BOEHM
   ::cgc1::cgc_shutdown();
+#endif
   return 0;
 }

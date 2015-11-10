@@ -113,6 +113,8 @@ int main()
   ::std::chrono::duration<double> teardown = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t3 - t2);
   ::std::cout << "Setup Time elapsed: " << setup.count() << ::std::endl;
   ::std::cout << "Teardown Time elapsed: " << teardown.count() << ::std::endl;
+#ifndef BOEHM
   ::cgc1::cgc_shutdown();
+#endif
   return 0;
 }

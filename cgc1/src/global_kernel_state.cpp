@@ -128,7 +128,7 @@ namespace cgc1
     {
       disable();
       wait_for_finalization();
-      mcppalloc::double_lock_t<decltype(m_mutex),decltype(m_thread_mutex)> guard(m_mutex,m_thread_mutex);
+      mcppalloc::double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> guard(m_mutex, m_thread_mutex);
       m_gc_threads.clear();
     }
     void global_kernel_state_t::enable()
@@ -293,7 +293,6 @@ namespace cgc1
     void global_kernel_state_t::wait_for_finalization()
     {
       wait_for_collection2();
-      CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
       CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       m_mutex.unlock();
       for (auto &gc_thread : m_gc_threads) {
@@ -320,8 +319,8 @@ namespace cgc1
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
         abort();
       }
-      if(!enabled())
-	return;
+      if (!enabled())
+        return;
       bool expected = false;
       m_collect.compare_exchange_strong(expected, true);
       if (expected) {

@@ -15,7 +15,7 @@ namespace mcppalloc
       public:
         using allocator_policy_type = Allocator_Policy;
         using package_type = bitmap_package_t<allocator_policy_type>;
-	using block_type = block_t<allocator_policy_type>;
+        using block_type = block_t<allocator_policy_type>;
         bitmap_thread_allocator_t(bitmap_allocator_t<allocator_policy_type> &allocator);
         bitmap_thread_allocator_t(const bitmap_thread_allocator_t &) = delete;
         bitmap_thread_allocator_t(bitmap_thread_allocator_t &&) noexcept;
