@@ -391,6 +391,7 @@ namespace mcppalloc
     /**
      * \brief Underlying lockable.
      **/
-    Lockable1 *m_lock1, *m_lock2;
+    Lockable1 *m_lock1;
+    Lockable2 *m_lock2;
   };
 }

@@ -31,6 +31,11 @@ namespace cgc1
       using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>;
       using internal_slab_allocator_type = mcppalloc::slab_allocator::details::slab_allocator_t;
       using duration_type = ::std::chrono::duration<double>;
+#ifdef __APPLE__
+      using mutex_type = ::mcppalloc::spinlock_t;
+#else
+      using mutex_type = ::mcppalloc::mutex_t;
+#endif
       /**
        * \brief Constructor
        * @param param Initialization Parameters.
@@ -204,7 +209,7 @@ namespace cgc1
        **/
       auto total_collect_time_span() const -> duration_type;
 
-      ::mcppalloc::mutex_t &_mutex() const RETURN_CAPABILITY(m_mutex);
+      RETURN_CAPABILITY(m_mutex) auto _mutex() const -> mutex_type&;
 
       auto slow_slab_begin() const noexcept -> uint8_t *;
       auto slow_slab_end() const noexcept -> uint8_t *;
@@ -270,7 +275,7 @@ namespace cgc1
       /**
        * \brief Main mutex for state.
        **/
-      mutable ::mcppalloc::mutex_t m_mutex;
+      mutable mutex_type m_mutex;
       /**
        * \brief Mutex for resuming world.
        *
@@ -305,7 +310,7 @@ namespace cgc1
       /**
        * \brief Mutex for protecting m_threads.
       **/
-      mutable ::mcppalloc::mutex_t m_thread_mutex;
+      mutable mutex_type m_thread_mutex;
       /**
        * \brief This mutex is locked when mutexes are unavailable.
        **/

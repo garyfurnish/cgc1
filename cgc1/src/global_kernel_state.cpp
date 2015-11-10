@@ -126,8 +126,9 @@ namespace cgc1
     }
     void global_kernel_state_t::shutdown()
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      disable();
       wait_for_finalization();
+      mcppalloc::double_lock_t<decltype(m_mutex),decltype(m_thread_mutex)> guard(m_mutex,m_thread_mutex);
       m_gc_threads.clear();
     }
     void global_kernel_state_t::enable()
@@ -291,6 +292,10 @@ namespace cgc1
     }
     void global_kernel_state_t::wait_for_finalization()
     {
+      wait_for_collection2();
+      CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
+      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
+      m_mutex.unlock();
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_finalization_finished();
       }
@@ -315,6 +320,8 @@ namespace cgc1
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
         abort();
       }
+      if(!enabled())
+	return;
       bool expected = false;
       m_collect.compare_exchange_strong(expected, true);
       if (expected) {
@@ -463,7 +470,7 @@ namespace cgc1
     }
     void global_kernel_state_t::wait_for_collection2()
     {
-      // this needs both thread mutex and mutex.
+      // this needs both thread mutex and mutex.t
       ::mcppalloc::double_lock_t<decltype(m_mutex), decltype(m_thread_mutex)> lock(m_mutex, m_thread_mutex);
 
       while (!m_collect_finished && m_collect) {
