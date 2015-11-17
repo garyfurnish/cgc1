@@ -1,1 +1,1 @@
-INSTALL(DIRECTORY "include/mcppalloc_utils" DESTINATION "include")
+INSTALL(DIRECTORY "include/mcppalloc" DESTINATION "include")

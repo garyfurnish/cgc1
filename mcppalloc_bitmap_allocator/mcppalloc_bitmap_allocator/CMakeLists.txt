@@ -1,1 +1,1 @@
-INSTALL(DIRECTORY "include/mcppalloc_bitmap_allocator" DESTINATION "include")
+INSTALL(DIRECTORY "include/mcppalloc" DESTINATION "include")

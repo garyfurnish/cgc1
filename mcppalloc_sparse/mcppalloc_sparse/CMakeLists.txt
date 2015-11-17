@@ -1,1 +1,1 @@
-INSTALL(DIRECTORY "include/mcppalloc_sparse" DESTINATION "include")
+INSTALL(DIRECTORY "include/mcppalloc" DESTINATION "include")

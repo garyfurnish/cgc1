@@ -484,7 +484,7 @@ namespace cgc1
       m_thread_mutex.unlock();
       m_mutex.unlock();
       if (do_local_finalization) {
-        local_thread_finalization();
+        wait_for_finalization();
       }
     }
     void global_kernel_state_t::_add_num_freed_in_last_collection(size_t num_freed) noexcept

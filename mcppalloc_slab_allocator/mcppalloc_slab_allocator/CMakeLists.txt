@@ -1,1 +1,1 @@
-INSTALL(DIRECTORY "include/mcppalloc_slab_allocator" DESTINATION "include")
+INSTALL(DIRECTORY "include/mcppalloc" DESTINATION "include")
