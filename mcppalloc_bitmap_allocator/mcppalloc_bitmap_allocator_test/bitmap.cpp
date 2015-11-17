@@ -94,7 +94,8 @@ static void bitmap_state_test0()
   for (size_t i = 1; i < 255; ++i) {
     if (i % 2 && (i < 64 || (i >= 200))) {
       AssertThat(ps->is_marked(i), IsTrue());
-    } else {
+    }
+    else {
       AssertThat(ps->is_marked(i), IsFalse());
     }
   }
@@ -131,7 +132,8 @@ static void bitmap_state_test0()
   for (size_t i = 0; i < ptrs.size(); ++i) {
     if (i % 3) {
       AssertThat(ps->is_free(i), IsTrue());
-    } else {
+    }
+    else {
       AssertThat(ps->is_free(i), IsFalse());
     }
   }

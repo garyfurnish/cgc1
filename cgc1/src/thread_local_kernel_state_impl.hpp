@@ -106,7 +106,8 @@ namespace cgc1
         void *os = gc_sparse_object_state_t::from_object_start(*v);
         if (os >= ibegin && os < iend) {
           container.emplace_back(v);
-        } else if (*v >= fast_slab_begin && *v < fast_slab_end) {
+        }
+        else if (*v >= fast_slab_begin && *v < fast_slab_end) {
           container.emplace_back(v);
         }
       }

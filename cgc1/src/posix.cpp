@@ -28,7 +28,8 @@ namespace cgc1
     if (handler) {
       details::s_signal_handlers[signum] = handler;
       signal(signum, [](int lsignum) { details::s_signal_handlers[lsignum](lsignum); });
-    } else {
+    }
+    else {
       signal(signum, SIG_IGN);
       details::s_signal_handlers[signum] = handler;
     }

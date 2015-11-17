@@ -23,8 +23,7 @@ namespace mcppalloc
         return m_slab;
       }
       template <typename Allocator_Policy>
-      bitmap_allocator_t<Allocator_Policy>::bitmap_allocator_t(size_t size, size_t size_hint)
-          : m_slab(size, size_hint)
+      bitmap_allocator_t<Allocator_Policy>::bitmap_allocator_t(size_t size, size_t size_hint) : m_slab(size, size_hint)
       {
         m_slab.align_next(c_bitmap_block_size);
       }

@@ -32,11 +32,19 @@ namespace cgc1
       return *it;
     }
     template <typename Container>
-    inline void global_kernel_state_t::_add_freed_in_last_collection(Container &container)
+    void global_kernel_state_t::_add_freed_in_last_collection(Container &container)
     {
       CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_freed_in_last_collection.insert(m_freed_in_last_collection.end(), container.begin(), container.end());
     }
+    template <typename Container>
+    void global_kernel_state_t::_add_need_special_finalizing_collection(Container &container)
+    {
+      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      m_need_special_finalizing_collection_sparse.insert(m_need_special_finalizing_collection_sparse.end(), container.begin(),
+                                                         container.end());
+    }
+
     inline bool global_kernel_state_t::is_valid_object_state(const gc_sparse_object_state_t *os) const
     {
       // We may assume this because the internal allocator may only grow.

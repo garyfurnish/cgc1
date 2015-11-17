@@ -72,8 +72,11 @@ namespace cgc1
       void collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Force a garbage collection.
+       *
+       * @param do_local_finalization Should the thread do local finalization.
       **/
-      void force_collect() REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
+      void force_collect(bool do_local_finalization = true)
+          REQUIRES(!m_mutex, !m_thread_mutex, !m_allocators_unavailable_mutex, !m_start_world_condition_mutex);
       /**
        * \brief Return the number of collections that have happened.
        *
@@ -129,7 +132,11 @@ namespace cgc1
       /**
        * \brief Wait for finalization of the last collection to finish.
       **/
-      void wait_for_finalization() REQUIRES(!m_mutex, !m_thread_mutex);
+      void wait_for_finalization(bool do_local_finalization = true) REQUIRES(!m_mutex, !m_thread_mutex);
+      /**
+       * \brief Attempt to do some GKS finalization in this thread.
+       **/
+      void local_thread_finalization() REQUIRES(!m_mutex);
       /**
        * \brief Wait for ongoing collection to finish.
        *
@@ -147,10 +154,15 @@ namespace cgc1
       **/
       void wait_for_collection2() ACQUIRE(m_mutex, m_thread_mutex) NO_THREAD_SAFETY_ANALYSIS;
       /**
-       * \brief Add pointers that were freed in the last collection.
+       * \brief Add object states that were freed in the last collection.
       **/
       template <typename Container>
       void _add_freed_in_last_collection(Container &container) REQUIRES(!m_mutex);
+      /**
+       * \brief Add object states that need special finalizing.
+       **/
+      template <typename Container>
+      void _add_need_special_finalizing_collection(Container &container) REQUIRES(!m_mutex);
       /**
        * \brief Add number of pointers that were freed in last collection.
        *
@@ -256,6 +268,18 @@ namespace cgc1
       **/
       void _u_setup_gc_threads() REQUIRES(m_mutex, m_thread_mutex);
       /**
+       * \brief Attempt to do some GKS finalization in this thread.
+       **/
+      void _local_thread_finalization_sparse() REQUIRES(!m_mutex);
+      /**
+       * \brief Get a vector of sparse states that need to be finalized by this thread.
+       **/
+      REQUIRES(m_mutex) auto _u_get_local_finalization_vector_sparse() -> cgc_internal_vector_t<gc_sparse_object_state_t *>;
+      /**
+       * \brief Do local finalization on a vector of sparse states.
+       **/
+      void _do_local_finalization_sparse(cgc_internal_vector_t<gc_sparse_object_state_t *> &vec) REQUIRES(!m_mutex);
+      /**
        * \brief Internal slab allocator used for internal allocator.
       **/
       mutable internal_slab_allocator_type m_slab_allocator;
@@ -339,6 +363,12 @@ namespace cgc1
        * Otherwise this is just ones to be finalized.
       **/
       cgc_internal_vector_t<uintptr_t> m_freed_in_last_collection GUARDED_BY(m_mutex);
+      /**
+       * \brief List of pointers that need special finalizing.
+       *
+       * The idea is that the finalizers for these need to run in a special thread(s).
+       **/
+      cgc_internal_vector_t<gc_sparse_object_state_t *> m_need_special_finalizing_collection_sparse GUARDED_BY(m_mutex);
       /**
        * \brief True while a garbage collection is running or trying to run, otherwise false.
       **/

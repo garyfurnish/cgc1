@@ -153,7 +153,8 @@ namespace mcppalloc
             m_locals.insert(id, state);
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
             return block_type{v, state->real_entry_size()};
-          } else {
+          }
+          else {
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
               ::mcppalloc::details::allocation_failure_t failure{attempts};

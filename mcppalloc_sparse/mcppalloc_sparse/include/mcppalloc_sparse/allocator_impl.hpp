@@ -279,7 +279,8 @@ namespace mcppalloc
         if (lb != m_blocks.end() && lb->m_begin == block.begin()) {
           // erase if found.
           m_blocks.erase(lb);
-        } else {
+        }
+        else {
           // This should never happen, so memory corruption issue if it has, so kill the program.
           ::std::cerr << __FILE__ << " " << __LINE__ << "Unable to find allocator block to unregister\n" << ::std::endl;
           abort();
@@ -330,7 +331,8 @@ namespace mcppalloc
             if (block_handle.m_block == next_old_block) {
               // another contiguous block found.
               contiguous++;
-            } else {
+            }
+            else {
               // if here, next block is not contiguous so move first.
               // move first
               _u_move_registered_blocks_contiguous(contiguous, begin + static_cast<ptrdiff_t>(contig_start), lb);
@@ -373,7 +375,8 @@ namespace mcppalloc
             auto new_location_offset = static_cast<ptrdiff_t>(contiguous - i);
             (ub - ub_offset)->m_block = &*(new_location + new_location_offset);
           }
-        } else {
+        }
+        else {
           ::std::cerr << "During move, UB <=lb";
           abort();
         }
@@ -399,14 +402,16 @@ namespace mcppalloc
           // sanity check uniqueness.
           if (lb->m_block == old_block) {
             _u_move_registered_blocks_contiguous(1, new_block, lb);
-          } else {
+          }
+          else {
             // Uniqueness of block failed.
             ::std::cerr << "CGC1: Unable to find block to move\n";
             ::std::cerr << old_block << " " << new_block << ::std::endl;
             // This should never happen, so memory corruption issue if it has, so kill the program.
             abort();
           }
-        } else {
+        }
+        else {
           // couldn't find old block
           ::std::cerr << "CGC1: Unable to find block to move, lb is end\n";
           // This should never happen, so memory corruption issue if it has, so kill the program.
@@ -470,7 +475,8 @@ namespace mcppalloc
           m_current_end = pair.first;
           assert(m_current_end <= m_slab.end());
           return;
-        } else {
+        }
+        else {
           auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), pair, system_memory_range_t::size_comparator());
           m_free_list.insert(ub, pair);
         }

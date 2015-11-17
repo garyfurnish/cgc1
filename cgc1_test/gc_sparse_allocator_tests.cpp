@@ -179,8 +179,10 @@ static void finalizer_test()
   size_t old_memory;
   std::atomic<bool> finalized;
   finalizer_test__setup(finalized, old_memory);
-  cgc1::cgc_force_collect();
-  gks->wait_for_finalization();
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  cgc1::cgc_force_collect(true);
+  cgc1::cgc_wait_finalization();
+
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
   auto last_collect = gks->_d_freed_in_last_collection();
   AssertThat(last_collect.size(), Equals(1_sz));
@@ -194,6 +196,37 @@ static void finalizer_test()
   AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
   cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
 }
+static CGC1_NO_INLINE void finalizer_test2__setup(::std::atomic<bool> &finalized, size_t &old_memory)
+{
+  auto &ta = gks->gc_allocator().initialize_thread();
+  void *memory = ta.allocate(50).m_ptr;
+  old_memory = ::mcppalloc::hide_pointer(memory);
+  finalized = false;
+  cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; }, true);
+  ::mcppalloc::secure_zero_pointer(memory);
+}
+static void finalizer_test2()
+{
+  size_t old_memory;
+  std::atomic<bool> finalized{false};
+  finalizer_test2__setup(finalized, old_memory);
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  cgc1::cgc_force_collect(false);
+  cgc1::cgc_wait_finalization(false);
+#ifdef CGC1_DEBUG_VERBOSE_TRACK
+  auto last_collect = gks->_d_freed_in_last_collection();
+  AssertThat(last_collect.size(), Equals(1_sz));
+  AssertThat(last_collect[0] == old_memory, IsTrue());
+#endif
+  AssertThat(finalized.load(), IsTrue());
+  AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
+  // test bad parameters
+  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
+  AssertThat(cgc1::cgc_start(nullptr) == nullptr, IsTrue());
+  AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
+  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
+}
+
 static CGC1_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
@@ -641,6 +674,11 @@ void gc_bandit_tests()
     it("finalizers", []() {
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
       finalizer_test();
+      ::cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
+    it("finalizer2", []() {
+      ::cgc1::clean_stack(0, 0, 0, 0, 0);
+      finalizer_test2();
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("atomic", []() {

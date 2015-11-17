@@ -11,7 +11,8 @@ namespace mcppalloc
     const auto plb = ub - 1;
     if (ub == begin || comparator(*plb, val)) {
       return ub;
-    } else {
+    }
+    else {
       return plb;
     }
   }

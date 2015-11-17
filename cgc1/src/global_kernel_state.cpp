@@ -290,7 +290,7 @@ namespace cgc1
       m_gc_threads.back()->set_root_iterators(m_roots.data() + roots_per_thread * (num_gc_threads - 1),
                                               m_roots.data() + num_roots);
     }
-    void global_kernel_state_t::wait_for_finalization()
+    void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
     {
       wait_for_collection2();
       CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
@@ -298,7 +298,52 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_finalization_finished();
       }
+      if (do_local_finalization)
+        local_thread_finalization();
     }
+    void global_kernel_state_t::local_thread_finalization()
+    {
+      _local_thread_finalization_sparse();
+    }
+    void global_kernel_state_t::_local_thread_finalization_sparse()
+    {
+      cgc_internal_vector_t<gc_sparse_object_state_t *> vec;
+      {
+        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        vec = _u_get_local_finalization_vector_sparse();
+      }
+      _do_local_finalization_sparse(vec);
+    }
+    auto global_kernel_state_t::_u_get_local_finalization_vector_sparse() -> cgc_internal_vector_t<gc_sparse_object_state_t *>
+    {
+      auto ret = ::std::move(m_need_special_finalizing_collection_sparse);
+      // explicitly put in known good state.
+      m_need_special_finalizing_collection_sparse.clear();
+      return ret;
+    }
+    void global_kernel_state_t::_do_local_finalization_sparse(cgc_internal_vector_t<gc_sparse_object_state_t *> &vec)
+    {
+      cgc_internal_vector_t<uintptr_t> to_be_freed;
+      for (auto &&os : vec) {
+        gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
+        if (cgc1_likely(ud)) {
+          if (cgc1_unlikely(ud->is_default())) {
+          }
+          else {
+            // if it has a finalizer that can run in this thread, finalize.
+            if (ud->m_finalizer) {
+              ud->m_finalizer(os->object_start());
+            }
+            unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
+          }
+        }
+        mcppalloc::secure_zero(os->object_start(), os->object_size());
+        to_be_freed.emplace_back(::mcppalloc::hide_pointer(os->object_start()));
+      }
+      _add_freed_in_last_collection(to_be_freed);
+      gc_allocator().bulk_destroy_memory(vec);
+    }
+
     void global_kernel_state_t::collect()
     {
       // make sure all threads are done finalizing already.
@@ -313,7 +358,7 @@ namespace cgc1
       // force a collection.
       force_collect();
     }
-    void global_kernel_state_t::force_collect()
+    void global_kernel_state_t::force_collect(bool do_local_finalization)
     {
       if (cgc1_unlikely(!get_tlks())) {
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
@@ -438,6 +483,9 @@ namespace cgc1
       m_collect = false;
       m_thread_mutex.unlock();
       m_mutex.unlock();
+      if (do_local_finalization) {
+        local_thread_finalization();
+      }
     }
     void global_kernel_state_t::_add_num_freed_in_last_collection(size_t num_freed) noexcept
     {
@@ -495,7 +543,8 @@ namespace cgc1
         set_tlks(tlks);
         // make sure gc kernel is initialized.
         _u_initialize();
-      } else
+      }
+      else
         abort();
       // set very top of stack.
       tlks->set_top_of_stack(top_of_stack);
@@ -634,13 +683,15 @@ namespace cgc1
             // success suspending thread.
             state->set_in_signal_handler(true);
             break;
-          } else if (ret < 0) {
+          }
+          else if (ret < 0) {
             // give everything else a chance to go.
             m_mutex.unlock();
             m_gc_allocator._mutex().unlock();
             m_cgc_allocator._mutex().unlock();
             ::std::lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex());
-          } else {
+          }
+          else {
             ::std::cerr << "Suspend thread failed\n";
             abort();
           }

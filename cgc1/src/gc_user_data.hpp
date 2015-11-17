@@ -25,7 +25,20 @@ namespace cgc1
       {
         m_uncollectable = val;
       }
-
+      /**
+       * \brief Return if finalizer is allowed to run in arbitrary thread.
+       **/
+      auto allow_arbitrary_finalizer_thread() const noexcept -> bool
+      {
+        return m_allow_arbitrary_finalizer_thread;
+      }
+      /**
+       * \brief Set if finalizer is allowed to run in arbitrary thread.
+       **/
+      void set_allow_arbitrary_finalizer_thread(bool allow) noexcept
+      {
+        m_allow_arbitrary_finalizer_thread = allow;
+      }
       /**
        * \brief Optional finalizer function to run.
       **/
@@ -35,9 +48,14 @@ namespace cgc1
       /**
        * \brief True if uncollectable, false otherwise.
        *
-       * Only used for gc_type.
       **/
       bool m_uncollectable = false;
+      /**
+       * \brief Allow arbitrary finalization thread.
+       *
+       * True if an arbittrary finalization thread can be used, false otherwise.
+       **/
+      bool m_allow_arbitrary_finalizer_thread = false;
     };
   }
 }

@@ -50,7 +50,8 @@ namespace mcppalloc
           // if not enough space to split, just take it all.
           object->set_in_use(true);
           return object->object_start(cs_alignment);
-        } else {
+        }
+        else {
           // else create a new object state at the right place.
           auto new_next = reinterpret_cast<slab_allocator_object_t *>(object->object_start(cs_alignment) + sz);
           // set new object state.
@@ -83,7 +84,8 @@ namespace mcppalloc
           // have used all space so no object state afterwards.
           m_end = _u_object_end();
           object->set_next_valid(false);
-        } else {
+        }
+        else {
           // ok, we haven't used all the space, so lets put a object state afterwards.
           object->set_next_valid(true);
           m_end->set_all(&*_u_object_end(), false, false);
@@ -138,10 +140,12 @@ namespace mcppalloc
           // no precise fit, either split or allocate more memory.
           if (ub == _u_object_end()) {
             return _u_allocate_raw_at_end(sz);
-          } else {
+          }
+          else {
             return _u_split_allocate(&*ub, sz);
           }
-        } else {
+        }
+        else {
           // precise fit, use it.
           lb->set_in_use(true);
           return lb->object_start(cs_alignment);

@@ -162,14 +162,18 @@ namespace cgc1
   {
     details::g_gks->collect();
   }
-  void cgc_force_collect()
+  void cgc_force_collect(bool do_local_finalization)
   {
-    details::g_gks->force_collect();
+    details::g_gks->force_collect(do_local_finalization);
   }
   void cgc_wait_collect()
   {
     details::g_gks->wait_for_collection();
     details::g_gks->_mutex().unlock();
+  }
+  void cgc_wait_finalization(bool do_local_finalization)
+  {
+    details::g_gks->wait_for_finalization(do_local_finalization);
   }
   void cgc_unregister_thread()
   {
@@ -180,7 +184,7 @@ namespace cgc1
     details::g_gks->shutdown();
     details::g_gks = nullptr;
   }
-  void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer)
+  void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread)
   {
     if (!addr)
       return;
@@ -192,6 +196,7 @@ namespace cgc1
     if (ud->is_default()) {
       ud = ::mcppalloc::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
       ud->set_is_default(false);
+      ud->set_allow_arbitrary_finalizer_thread(allow_arbitrary_finalizer_thread);
       os->set_user_data(ud);
     }
     ud->m_finalizer = finalizer;
@@ -266,7 +271,7 @@ CGC1_DLL_PUBLIC void GC_register_finalizer(void *addr, void (*finalizer)(void *,
     abort();
   }
   auto real_finalizer = [finalizer, user_data](void *ptr) { finalizer(ptr, user_data); };
-  cgc1::cgc_register_finalizer(addr, real_finalizer);
+  cgc1::cgc_register_finalizer(addr, real_finalizer, false);
 }
 CGC1_DLL_PUBLIC int GC_get_heap_size()
 {

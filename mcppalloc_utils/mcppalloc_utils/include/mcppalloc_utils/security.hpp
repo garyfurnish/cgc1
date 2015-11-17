@@ -6,6 +6,9 @@ namespace mcppalloc
    **/
   inline void secure_zero(void *s, size_t n)
   {
+#ifdef _WIN32
+    SecureZeroMemory(s, n);
+#else
     volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
     while (n >= sizeof(size_t) * 8) {
       *p_sz++ = 0;
@@ -26,6 +29,7 @@ namespace mcppalloc
 
     while (n--)
       *p++ = 0;
+#endif
   }
   /**
    * \brief Secure zero a pointer (the address, not the pointed to object).

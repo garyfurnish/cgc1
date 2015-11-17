@@ -180,7 +180,8 @@ namespace mcppalloc
         if (cgc1_unlikely(is_free(i))) {
           if (cgc1_likely(retries < 15)) {
             goto RESTART;
-          } else
+          }
+          else
             abort();
         }
         assert(memory_address);
