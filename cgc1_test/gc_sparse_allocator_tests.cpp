@@ -1,11 +1,11 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <thread>
 #include <chrono>
 #include <string.h>
 #include <signal.h>
-#include <mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/internal_allocator.hpp"
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_stream.hpp"

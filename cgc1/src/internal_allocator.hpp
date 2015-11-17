@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <memory>
 #include <vector>
-#include <mcppalloc_utils/make_unique.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
 namespace cgc1
 {
   namespace details
@@ -264,7 +264,7 @@ namespace cgc1
                                ::mcppalloc::cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
                 "Error with internal deleter");
 }
-#include <mcppalloc_utils/condition_variable.hpp>
+#include <mcppalloc/mcppalloc_utils/condition_variable.hpp>
 namespace cgc1
 {
   using condition_variable_any_t = internal_condition_variable_t<cgc_internal_allocator_t<void>>;

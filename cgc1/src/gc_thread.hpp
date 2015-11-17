@@ -4,11 +4,11 @@
 #include <vector>
 #include <atomic>
 #include <condition_variable>
-#include <mcppalloc_utils/concurrency.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <cgc1/allocated_thread.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include <mcppalloc_utils/boost/container/flat_set.hpp>
-#include <mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "internal_allocator.hpp"
 #include "gc_allocator.hpp"
 namespace cgc1

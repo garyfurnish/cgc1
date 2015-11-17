@@ -16,7 +16,7 @@
 #include <cgc1/posix.hpp>
 #include <thread>
 #include <signal.h>
-#include <mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/global_kernel_state.hpp"
 
 #endif

@@ -4,7 +4,7 @@
 #include <signal.h>
 #include <thread>
 #include <iostream>
-#include <mcppalloc_utils/posix_slab.hpp>
+#include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
 namespace cgc1
 {
   namespace details

@@ -1,7 +1,7 @@
 #pragma once
 #include "internal_allocator.hpp"
-#include <mcppalloc_sparse/allocator.hpp>
-#include <mcppalloc_utils/security.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/security.hpp>
 #include "gc_user_data.hpp"
 namespace cgc1
 {

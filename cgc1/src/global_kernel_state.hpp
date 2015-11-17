@@ -3,14 +3,14 @@
 #include <atomic>
 #include <condition_variable>
 #include <vector>
-#include <mcppalloc_utils/concurrency.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
 #include "internal_allocator.hpp"
-#include <mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
-#include <mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include "global_kernel_state_param.hpp"
 
 #include <boost/property_tree/ptree_fwd.hpp>

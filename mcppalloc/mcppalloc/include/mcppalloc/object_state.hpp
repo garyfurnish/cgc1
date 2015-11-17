@@ -1,6 +1,6 @@
 #pragma once
 #include "declarations.hpp"
-#include <mcppalloc_utils/alignment.hpp>
+#include <mcppalloc/mcppalloc_utils/alignment.hpp>
 #include "allocator_policy.hpp"
 #include "default_allocator_policy.hpp"
 namespace mcppalloc

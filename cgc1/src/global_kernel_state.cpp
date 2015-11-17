@@ -5,14 +5,14 @@
 #include <signal.h>
 #include <cgc1/posix.hpp>
 #include <cgc1/cgc1.hpp>
-#include <mcppalloc_utils/concurrency.hpp>
-#include <mcppalloc_utils/aligned_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
 #include <chrono>
 #include <iostream>
-#include <mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <mcppalloc_utils/boost/property_tree/json_parser.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
 
 #ifdef _WIN32
 #define NOMINMAX
