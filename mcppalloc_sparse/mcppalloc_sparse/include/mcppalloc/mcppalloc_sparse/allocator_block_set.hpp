@@ -191,6 +191,8 @@ namespace mcppalloc
         void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
       private:
+        static const constexpr uint64_t cs_magic_prefix = 0x54a89202;
+        const volatile uint64_t m_magic_prefix{cs_magic_prefix};
         allocator_block_type *m_last_block = nullptr;
 
       public:
@@ -222,6 +224,18 @@ namespace mcppalloc
          * \brief Number of memory addresses destroyed since last free empty blocks operation.
          **/
         size_t m_num_destroyed_since_free = 0;
+        static const struct {
+          auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
+          {
+            if (r.first < it.first)
+              return true;
+            else if (r.first == it.first)
+              return r.second < it.second;
+            else
+              return false;
+          }
+
+        } abrvr_compare;
       };
     }
   }
