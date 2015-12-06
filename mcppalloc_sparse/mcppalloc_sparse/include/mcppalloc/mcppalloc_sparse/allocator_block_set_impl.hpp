@@ -12,7 +12,6 @@ namespace mcppalloc
     {
 
       // size comparison for available blocks.
-      //      static const auto abrvr_compare = [](const sized_block_ref_t &r, const sized_block_ref_t&xit) { return r < it; };
       // begin compare for block ordering.
       static const auto begin_compare = [](auto &&r, auto &&it) { return r.begin() < it.begin(); };
       static const auto begin_val_compare = [](auto &&r, auto &&val) { return r.begin() < val; };
@@ -48,6 +47,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_block_set_t<Allocator_Policy>::regenerate_available_blocks()
       {
+        allocator_block_vector_t blocks;
         // clear available blocks.
         m_available_blocks.clear();
         for (auto &block : m_blocks) {
@@ -58,11 +58,10 @@ namespace mcppalloc
           }
           if (!block.full()) {
             sized_block_ref_t pair = ::std::make_pair(block.max_alloc_available(), &block);
-            m_available_blocks.emplace_back(::std::move(pair));
+            blocks.emplace_back(::std::move(pair));
           }
         }
-        // since available blocks is always sorted, sort it.
-        ::std::sort(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare);
+        m_available_blocks.insert(blocks.begin(), blocks.end());
         _verify();
       }
       template <typename Allocator_Policy>
@@ -126,10 +125,11 @@ namespace mcppalloc
           ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
           ::std::cerr << "available blocks not sorted\n";
           ::std::cerr << "bad: \n";
-          for (size_t i = 0; i < m_available_blocks.size() - 1; ++i)
-            if (!abrvr_compare(m_available_blocks[i], m_available_blocks[i + 1]))
-              ::std::cerr << i << " " << m_available_blocks[i].first << " " << m_available_blocks[i].second << " "
-                          << m_available_blocks[i + 1].first << " " << m_available_blocks[i + 1].second << ::std::endl;
+          for (auto it = m_available_blocks.begin(); it != m_available_blocks.end() - 1; ++it) {
+            if (!abrvr_compare(*it, *(it + 1)))
+              ::std::cerr << static_cast<size_t>(it - m_available_blocks.begin()) << " " << it->first << " " << it->second << " "
+                          << (it + 1)->first << " " << (it + 1)->second;
+          }
           ::std::cerr << "all: \n";
           for (auto &&ab : m_available_blocks)
             ::std::cerr << ab.first << " " << &ab.second << " ";
@@ -157,8 +157,10 @@ namespace mcppalloc
           }
         }
         // lb is >= sz.
+        // THIS IS WRONG COMPARE!!!!!
+
         auto lower_bound = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(),
-                                              sized_block_ref_t(sz, nullptr), abrvr_compare);
+                                              sized_block_ref_t(sz, nullptr), abrvr_size_compare);
         // no place to put it in available blocks, put it in last block.
         if (lower_bound == m_available_blocks.end()) {
           if (!m_blocks.empty()) {
@@ -176,22 +178,24 @@ namespace mcppalloc
         if (cgc1_unlikely(!ret.m_ptr)) {
           // this shouldn't happen
           // so memory corruption, abort.
-          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption." << ::std::endl;
-          ::std::cerr << "was trying to allocate bytes: " << sz << ::std::endl;
+          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption."
+                      << "\n";
+          ::std::cerr << "was trying to allocate bytes: " << sz << "\n";
           ::std::cerr << "min/max allocation sizes: (" << allocator_min_size() << ", " << allocator_max_size() << ")\n";
-          //        ::std::cerr << to_json(*lower_bound->second, 2) << ::std::endl;
+          //        ::std::cerr << to_json(*lower_bound->second, 2) << "\n";
           auto &block = *lower_bound->second;
-          ::std::cerr << "available:  " << lower_bound->first << ::std::endl;
-          ::std::cerr << &block << " " << block.valid() << " " << block.last_max_alloc_available() << ::std::endl;
-          ::std::cerr << block.secondary_memory_used() << " " << block.memory_size() << " " << block.full() << ::std::endl;
-          ::std::cerr << "recomp max alloc " << block.max_alloc_available() << ::std::endl;
-          ::std::cerr << "free list size " << block.m_free_list.size() << ::std::endl;
+          ::std::cerr << "available:  " << lower_bound->first << "\n";
+          ::std::cerr << &block << " " << block.valid() << " " << block.last_max_alloc_available() << "\n";
+          ::std::cerr << block.secondary_memory_used() << " " << block.memory_size() << " " << block.full() << "\n";
+          ::std::cerr << "recomp max alloc " << block.max_alloc_available() << "\n";
+          ::std::cerr << "free list size " << block.m_free_list.size() << "\n";
           abort();
           return ret;
         }
         // ok, so we have allocated the memory.
         auto it = lower_bound;
         auto new_max_alloc = it->second->max_alloc_available();
+        new_max_alloc = it->second->max_alloc_available();
         // see if there is allocation left in block.
         if (new_max_alloc == 0) {
           m_available_blocks.erase(it);
@@ -208,30 +212,24 @@ namespace mcppalloc
           ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error\n";
           abort();
         }
-
         // find new insertion point.
         // want UB because we need > size.
+        if (it == m_available_blocks.end())
+          abort();
         sized_block_ref_t new_pair(new_max_alloc, it->second);
         // this must be +1 because it could stay in the same place.
-        auto new_ub = ::std::upper_bound(m_available_blocks.begin(), it + 1, new_pair, abrvr_compare);
+        //        auto new_ub = ::std::upper_bound(m_available_blocks.begin(), it + 1, new_pair, abrvr_compare);
         it->first = new_max_alloc;
-        assert(it->first == it->second->last_max_alloc_available());
-        // if its in same place, we are done.
-        if (new_ub == it) {
-          _verify();
-          return ret;
-        }
-        // otherwise rotate the list to move it to the new_ub position.
-        // TODO: this if statement can be removed once debugging is complete
-        if (cgc1_unlikely(new_ub > it + 1)) {
+        if (cgc1_unlikely(it->first != it->second->last_max_alloc_available())) {
           ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error\n";
           abort();
         }
-        //	m_available_blocks.erase(it);
-        //	m_available_blocks.emplace(new_ub,new_pair);
-        ::std::rotate(new_ub, it, it + 1);
+        auto block = it->second;
+        it = m_available_blocks.erase(it);
+        // this is here for debug
         _verify();
-
+        m_available_blocks.emplace(new_max_alloc, block);
+        _verify();
         return ret;
       }
       template <typename Allocator_Policy>
@@ -243,17 +241,16 @@ namespace mcppalloc
         size_t prev_last_max_alloc_available = 0;
         if (it != m_blocks.end() && it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
           if (&*it != &last_block() && !it->full()) {
-            typename allocator_block_reference_vector_t::iterator ab_it2;
             //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
             //	    [&it](auto &ab) { return ab.second == &*it; });
             sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
-            ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
+            auto ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
             // TODO: THIS IS BROKEN.  WE PATCH AROUND IT, BUT THIS REALLY NEEDS FIXING BEFORE 1.0
             auto ab_it3 = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
                                          [&pair2](auto &&lit) { return lit.second == pair2.second; });
             if (cgc1_unlikely(ab_it2 != ab_it3)) {
-              //        ::std::cerr << __FILE__ << " " << __LINE__
-              //            << " Consistency error, ABS available blocks first does not equal prev last malloc available.";
+              ::std::cerr << __FILE__ << " " << __LINE__
+                          << " Consistency error, ABS available blocks first does not equal prev last malloc available.";
               //              abort();
               ab_it2 = ab_it3;
             }
@@ -291,8 +288,7 @@ namespace mcppalloc
             else {
             NOT_FOUND:
               sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
-              auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-              m_available_blocks.emplace(ub, ::std::move(pair));
+              m_available_blocks.emplace(::std::move(pair));
               _verify();
             }
           }
@@ -325,7 +321,8 @@ namespace mcppalloc
           // if moved on emplacement.
           if (cgc1_unlikely(&m_blocks.front() != bbegin)) {
             // this should not happen, if it does the world is inconsistent and everything can only end with memory corruption.
-            ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement" << ::std::endl;
+            ::std::cerr << __FILE__ << " " << __LINE__ << "ABS blocks moved on emplacement"
+                        << "\n";
             abort();
           }
           for (auto &&pair : m_available_blocks) {
@@ -345,8 +342,7 @@ namespace mcppalloc
           assert(m_last_block);
           auto pair = ::std::make_pair(m_last_block->max_alloc_available(), m_last_block);
           if (pair.first) {
-            auto avail_ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair, abrvr_compare);
-            m_available_blocks.emplace(avail_ub, pair);
+            m_available_blocks.insert(pair);
           }
           assert(::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare));
           m_last_block = &*moved_begin;
@@ -393,8 +389,9 @@ namespace mcppalloc
         unlock_func();
         if (&last_block() == &*it) {
           if (!m_available_blocks.empty()) {
-            m_last_block = m_available_blocks.back().second;
-            m_available_blocks.pop_back();
+            auto back_it = m_available_blocks.end() - 1;
+            m_last_block = back_it->second;
+            m_available_blocks.erase(back_it);
           }
           else
             m_last_block = nullptr;

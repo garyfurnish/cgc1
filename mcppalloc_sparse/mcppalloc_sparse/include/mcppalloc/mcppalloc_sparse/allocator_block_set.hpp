@@ -2,6 +2,7 @@
 #include <mcppalloc/object_state.hpp>
 #include "allocator_block.hpp"
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <boost/container/flat_set.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -26,6 +27,31 @@ namespace mcppalloc
         using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;
         using sized_block_ref_t = typename ::std::pair<size_t, allocator_block_type *>;
         using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
+
+        const struct abrvr_compare_type {
+          constexpr auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
+          {
+            if (r.first < it.first)
+              return true;
+            else if (r.first == it.first)
+              return r.second < it.second;
+            else
+              return false;
+          }
+
+        } abrvr_compare{};
+        const struct abrvr_size_compare_type {
+          constexpr auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
+          {
+            return r.first < it.first;
+          }
+
+        } abrvr_size_compare{};
+
+        using allocator_block_flat_set_t =
+            ::boost::container::flat_set<sized_block_ref_t,
+                                         abrvr_compare_type,
+                                         typename ::std::allocator_traits<allocator>::template rebind_alloc<sized_block_ref_t>>;
         using block_type = block_t<allocator_policy_type>;
         explicit allocator_block_set_t() = default;
         allocator_block_set_t(const allocator_block_set_t &) = delete;
@@ -205,7 +231,7 @@ namespace mcppalloc
          * First part of an element is memory available in that block.
          * Second part is a pointer to the block.
         **/
-        allocator_block_reference_vector_t m_available_blocks;
+        allocator_block_flat_set_t m_available_blocks;
         /**
          * \brief All blocks.
         **/
@@ -224,18 +250,6 @@ namespace mcppalloc
          * \brief Number of memory addresses destroyed since last free empty blocks operation.
          **/
         size_t m_num_destroyed_since_free = 0;
-        static const struct {
-          auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
-          {
-            if (r.first < it.first)
-              return true;
-            else if (r.first == it.first)
-              return r.second < it.second;
-            else
-              return false;
-          }
-
-        } abrvr_compare;
       };
     }
   }
