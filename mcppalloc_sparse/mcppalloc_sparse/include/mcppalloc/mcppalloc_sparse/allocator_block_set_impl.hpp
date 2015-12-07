@@ -104,6 +104,12 @@ namespace mcppalloc
             ::std::cerr << block.secondary_memory_used() << " " << block.memory_size() << " " << block.full() << ::std::endl;
             ::std::cerr << "recomp max alloc " << block.max_alloc_available() << ::std::endl;
             ::std::cerr << "free list size " << block.m_free_list.size() << ::std::endl;
+
+            ::std::cerr << "available blocks\n";
+            for (auto pair : m_available_blocks) {
+              ::std::cerr << pair.first << " " << pair.second << "\n";
+            }
+
             abort();
             return;
           }
@@ -243,38 +249,28 @@ namespace mcppalloc
           if (&*it != &last_block() && !it->full()) {
             //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
             //	    [&it](auto &ab) { return ab.second == &*it; });
+            // find the block.
             sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
-            auto ab_it2 = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(), pair2, abrvr_compare);
+            auto ab_it2 = m_available_blocks.lower_bound(pair2);
             // TODO: THIS IS BROKEN.  WE PATCH AROUND IT, BUT THIS REALLY NEEDS FIXING BEFORE 1.0
-            auto ab_it3 = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-                                         [&pair2](auto &&lit) { return lit.second == pair2.second; });
-            if (cgc1_unlikely(ab_it2 != ab_it3)) {
-              ::std::cerr << __FILE__ << " " << __LINE__
-                          << " Consistency error, ABS available blocks first does not equal prev last malloc available.";
-              //              abort();
-              ab_it2 = ab_it3;
-            }
-            auto ab_it = ab_it2;
+            // NOT clear to me what this ccode does.
             if (ab_it2 != m_available_blocks.end()) {
-#if CGC1_DEBUG_LEVEL > 1
-              while (ab_it2->first == pair2.first) {
-                if (ab_it2->second == &*it)
-                  break;
-                ab_it2++;
-              }
-#endif
-              if (ab_it2->second != &*it)
+              if (ab_it2->second != &*it) {
                 goto NOT_FOUND;
-              (void)ab_it;
-              assert(ab_it == ab_it2);
-
-              auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
-              sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
+              }
+              //              auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
+              //     auto new_sz = ::std::max(ab_it2->first, it->max_alloc_available());
+              //              sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
+              sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
               //            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair,
               //            abrvr_compare);
               auto ub = ::std::upper_bound(ab_it2, m_available_blocks.end(), pair, abrvr_compare);
-              assert(ab_it2 < ub);
               if (ub - 1 == ab_it2) {
+                // DEBUG
+                if (cgc1_unlikely((ub - 1)->second != &*it)) {
+                  ::std::cerr << __FILE__ << " " << __LINE__ << "\n";
+                  abort();
+                }
                 // don't move at all, life made easy.
               }
               else {
@@ -287,8 +283,9 @@ namespace mcppalloc
             }
             else {
             NOT_FOUND:
+              _verify();
               sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
-              m_available_blocks.emplace(::std::move(pair));
+              m_available_blocks.insert(pair);
               _verify();
             }
           }
