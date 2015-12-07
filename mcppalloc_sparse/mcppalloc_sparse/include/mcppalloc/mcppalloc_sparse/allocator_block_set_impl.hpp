@@ -85,17 +85,6 @@ namespace mcppalloc
         }
         for (auto &&ab : m_available_blocks) {
           auto &block = *ab.second;
-          /*          if (cgc1_unlikely(ab.first != block.last_max_alloc_available())) {
-            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
-            ::std::cerr << "min/max allocation sizes: (" << allocator_min_size() << ", " << allocator_max_size() << ")\n";
-            ::std::cerr << "available:  " << ab.first << ::std::endl;
-            ::std::cerr << &block << " " << block.valid() << " " << block.last_max_alloc_available() << ::std::endl;
-            ::std::cerr << block.secondary_memory_used() << " " << block.memory_size() << " " << block.full() << ::std::endl;
-            ::std::cerr << "recomp max alloc " << block.max_alloc_available() << ::std::endl;
-            ::std::cerr << "free list size " << block.m_free_list.size() << ::std::endl;
-            abort();
-            return;
-            }*/
           if (cgc1_unlikely(block.max_alloc_available() != ab.first)) {
             ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
             ::std::cerr << "min/max allocation sizes: (" << allocator_min_size() << ", " << allocator_max_size() << ")\n";
@@ -231,9 +220,8 @@ namespace mcppalloc
           abort();
         }
         auto block = it->second;
+        // this case needs optimizing.
         it = m_available_blocks.erase(it);
-        // this is here for debug
-        _verify();
         m_available_blocks.emplace(new_max_alloc, block);
         _verify();
         return ret;
@@ -245,40 +233,58 @@ namespace mcppalloc
         auto it = ::std::lower_bound(m_blocks.begin(), m_blocks.end(), v, end_val_compare);
         size_t last_collapsed_size = 0;
         size_t prev_last_max_alloc_available = 0;
-        if (it != m_blocks.end() && it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
+        if (it == m_blocks.end())
+          return false;
+        /*	auto debug_last_max_alloc_available = it->last_max_alloc_available();
+        if(debug_last_max_alloc_available!=it->max_alloc_available())
+          {
+            ::std::cerr << __FILE__ << " " << __LINE__ << "\n";
+            abort();
+            }*/
+        if (it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
           if (&*it != &last_block() && !it->full()) {
-            //	  ab_it = ::std::find_if(m_available_blocks.begin(), m_available_blocks.end(),
-            //	    [&it](auto &ab) { return ab.second == &*it; });
             // find the block.
             sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
             auto ab_it2 = m_available_blocks.lower_bound(pair2);
-            // TODO: THIS IS BROKEN.  WE PATCH AROUND IT, BUT THIS REALLY NEEDS FIXING BEFORE 1.0
-            // NOT clear to me what this ccode does.
             if (ab_it2 != m_available_blocks.end()) {
               if (ab_it2->second != &*it) {
                 goto NOT_FOUND;
               }
-              //              auto new_sz = ::std::max(ab_it2->first, last_collapsed_size);
-              //     auto new_sz = ::std::max(ab_it2->first, it->max_alloc_available());
-              //              sized_block_ref_t pair = ::std::make_pair(new_sz, &*it);
               sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
-              //            auto ub = ::std::upper_bound(m_available_blocks.begin(), m_available_blocks.end(), pair,
-              //            abrvr_compare);
-              auto ub = ::std::upper_bound(ab_it2, m_available_blocks.end(), pair, abrvr_compare);
+              auto ub = m_available_blocks.upper_bound(pair);
+              // DEBUG
+              if (cgc1_unlikely(ub != m_available_blocks.end() && ub->first < pair.first)) {
+                ::std::cerr << abrvr_compare(pair, *ub) << ::std::endl;
+                ::std::cerr << ub->first << " " << ub->second << " " << pair.first << " " << pair.second << "\n";
+                ::std::cerr << __FILE__ << " " << __LINE__ << "\n";
+                abort();
+              }
               if (ub - 1 == ab_it2) {
                 // DEBUG
                 if (cgc1_unlikely((ub - 1)->second != &*it)) {
                   ::std::cerr << __FILE__ << " " << __LINE__ << "\n";
                   abort();
                 }
+                *(ub - 1) = pair;
                 // don't move at all, life made easy.
               }
-              else {
+              else if (ab_it2 < ub) {
                 // ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
                 // rotate is optimal over erase/insert.
+
                 ::std::rotate(ab_it2, ab_it2 + 1, ub);
+                // DEBUG
+                (ub - 1)->first = pair.first;
+                _verify();
               }
-              *(ub - 1) = pair;
+              else {
+                // ub < ab_it2
+                ::std::rotate(ub, ab_it2, ab_it2 + 1);
+                (ub)->first = pair.first;
+                ::std::cout << "Possible consistency error " << __FILE__ << " " << __LINE__ << "\n";
+                _verify();
+              }
+              //		  *(ub - 1) = pair;
               _verify();
             }
             else {
