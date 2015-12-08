@@ -97,7 +97,7 @@ namespace mcppalloc
         // TODO: THIS IS AWFUL as we have to look through everything to see if anything is free.
         // align request.
         sz = align(sz, cs_alignment);
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // if empty, create at end.
         if (_u_empty()) {
           return _u_allocate_raw_at_end(sz);
@@ -109,9 +109,9 @@ namespace mcppalloc
         auto ub = _u_object_end();
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
           if (it == _u_object_end())
-            abort();
+            ::std::terminate();
           if (it > _u_object_end())
-            abort();
+            ::std::terminate();
           // if in use, go to next.
           if (it->not_available())
             continue;
@@ -133,7 +133,7 @@ namespace mcppalloc
           else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
             ub = it;
           if (!it->next_valid() && it->next() != _u_object_current_end()) {
-            abort();
+            ::std::terminate();
           }
         }
         if (lb == _u_object_end()) {
@@ -153,7 +153,7 @@ namespace mcppalloc
       }
       inline void slab_allocator_t::deallocate_raw(void *v)
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
         // set not in use.
         object->set_in_use(false);

@@ -9,37 +9,37 @@
 #include <memory>
 #include <assert.h>
 #include <tuple>
-#ifndef CGC1_NO_INLINES
+#ifndef MCPPALLOC_NO_INLINES
 #define MCPPALLOC_SPARSE_INLINES
-#define CGC1_INLINES
-#define CGC1_OPT_INLINE inline
-#define CGC1_ALWAYS_INLINE __attribute__((always_inline)) inline
-#define CGC1_OPT_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define MCPPALLOC_INLINES
+#define MCPPALLOC_OPT_INLINE inline
+#define MCPPALLOC_ALWAYS_INLINE __attribute__((always_inline)) inline
+#define MCPPALLOC_OPT_ALWAYS_INLINE __attribute__((always_inline)) inline
 #else
-#define CGC1_OPT_INLINE
-#define CGC1_ALWAYS_INLINE
-#define CGC1_OPT_ALWAYS_INLINE inline
+#define MCPPALLOC_OPT_INLINE
+#define MCPPALLOC_ALWAYS_INLINE
+#define MCPPALLOC_OPT_ALWAYS_INLINE inline
 #endif
 #ifndef _WIN32
-#define CGC1_POSIX
-#define cgc1_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
-#define cgc1_builtin_clz1(X) __builtin_clzl(X)
-#ifndef cgc1_builtin_current_stack
-#define cgc1_builtin_current_stack(...) __builtin_frame_address(0)
+#define MCPPALLOC_POSIX
+#define mcppalloc_builtin_prefetch(ADDR) __builtin_prefetch(ADDR)
+#define mcppalloc_builtin_clz1(X) __builtin_clzl(X)
+#ifndef mcppalloc_builtin_current_stack
+#define mcppalloc_builtin_current_stack(...) __builtin_frame_address(0)
 #endif
-#define CGC1_NO_INLINE __attribute__((noinline))
-#define cgc1_likely(x) __builtin_expect(static_cast<bool>(x), 1)
-#define cgc1_unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
+#define MCPPALLOC_NO_INLINE __attribute__((noinline))
+#define mcppalloc_likely(x) __builtin_expect(static_cast<bool>(x), 1)
+#define mcppalloc_unlikely(x) __builtin_expect(static_cast<bool>(x), 0)
 #else
-#define cgc1_builtin_prefetch(ADDR) _m_prefetch(ADDR)
-#define cgc1_builtin_clz1(X) (63 - __lzcnt64(X))
-#ifndef cgc1_builtin_current_stack
-#define cgc1_builtin_current_stack() _AddressOfReturnAddress()
+#define mcppalloc_builtin_prefetch(ADDR) _m_prefetch(ADDR)
+#define mcppalloc_builtin_clz1(X) (63 - __lzcnt64(X))
+#ifndef mcppalloc_builtin_current_stack
+#define mcppalloc_builtin_current_stack() _AddressOfReturnAddress()
 #endif
 // spurious error generation in nov ctp.
 #pragma warning(disable : 4592)
 #pragma warning(disable : 4100)
-#define CGC1_NO_INLINE __declspec(noinline)
+#define MCPPALLOC_NO_INLINE __declspec(noinline)
 #endif
 namespace mcppalloc
 {
@@ -61,18 +61,17 @@ namespace mcppalloc
   }
 
 #if defined(_DEBUG) || not defined(NDEBUG)
-#ifndef CGC1_DEBUG_LEVEL
-#define CGC1_DEBUG_LEVEL 0
-//#define CGC1_DEBUG_VERBOSE_TRACK
+#ifndef MCPPALLOC_DEBUG_LEVEL
+#define MCPPALLOC_DEBUG_LEVEL 0
 #endif
 #endif
-#ifndef CGC1_DEBUG_LEVEL
-#define CGC1_DEBUG_LEVEL 0
+#ifndef MCPPALLOC_DEBUG_LEVEL
+#define MCPPALLOC_DEBUG_LEVEL 0
 #endif
   /**
    * \brief Current debug level.
    **/
-  static const constexpr int c_debug_level = CGC1_DEBUG_LEVEL;
+  static const constexpr int c_debug_level = MCPPALLOC_DEBUG_LEVEL;
   /**
    * \brief Hide a pointer from garbage collection in a unspecified way.
    **/

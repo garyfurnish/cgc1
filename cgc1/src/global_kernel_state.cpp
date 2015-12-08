@@ -57,11 +57,11 @@ namespace cgc1
     auto _real_gks() -> global_kernel_state_t *
     {
       static global_kernel_state_t *gks = nullptr;
-      if (cgc1_likely(g_gks))
+      if (mcppalloc_likely(g_gks))
         gks = g_gks.get();
       else {
-        if (cgc1_unlikely(!gks->m_in_destructor))
-          abort();
+        if (mcppalloc_unlikely(!gks->m_in_destructor))
+          ::std::terminate();
       }
       return gks;
     }
@@ -218,7 +218,7 @@ namespace cgc1
     gc_sparse_object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
       // During garbage collection we may assume that the GC data is static.
-      CGC1_CONCURRENCY_LOCK_ASSUME(gc_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(gc_allocator()._mutex());
       // get handle for block.
       auto handle = gc_allocator()._u_find_block(addr);
       if (!handle)
@@ -232,14 +232,14 @@ namespace cgc1
     }
     gc_sparse_object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       // forward to thread unsafe version.
       return _u_find_valid_object_state(addr);
     }
     void global_kernel_state_t::add_root(void **r)
     {
       wait_for_collection();
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       // make sure not already a root.
       auto it = find(m_roots.begin(), m_roots.end(), r);
       if (it == m_roots.end())
@@ -248,7 +248,7 @@ namespace cgc1
     void global_kernel_state_t::remove_root(void **r)
     {
       wait_for_collection();
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       // find root and erase.
       auto it = find(m_roots.begin(), m_roots.end(), r);
       if (it != m_roots.end())
@@ -293,7 +293,7 @@ namespace cgc1
     void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
     {
       wait_for_collection2();
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       m_mutex.unlock();
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_finalization_finished();
@@ -309,7 +309,7 @@ namespace cgc1
     {
       cgc_internal_vector_t<gc_sparse_object_state_t *> vec;
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         vec = _u_get_local_finalization_vector_sparse();
       }
       _do_local_finalization_sparse(vec);
@@ -326,8 +326,8 @@ namespace cgc1
       cgc_internal_vector_t<uintptr_t> to_be_freed;
       for (auto &&os : vec) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
-        if (cgc1_likely(ud)) {
-          if (cgc1_unlikely(ud->is_default())) {
+        if (mcppalloc_likely(ud)) {
+          if (mcppalloc_unlikely(ud->is_default())) {
           }
           else {
             // if it has a finalizer that can run in this thread, finalize.
@@ -349,7 +349,7 @@ namespace cgc1
       // make sure all threads are done finalizing already.
       // if not no reason to try to gc.
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
         for (auto &gc_thread : m_gc_threads) {
           if (!gc_thread->finalization_finished())
             return;
@@ -360,9 +360,9 @@ namespace cgc1
     }
     void global_kernel_state_t::force_collect(bool do_local_finalization)
     {
-      if (cgc1_unlikely(!get_tlks())) {
+      if (mcppalloc_unlikely(!get_tlks())) {
         ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
-        abort();
+        ::std::terminate();
       }
       if (!enabled())
         return;
@@ -384,7 +384,7 @@ namespace cgc1
       lock(m_mutex, m_bitmap_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(), m_slab_allocator._mutex(),
            m_thread_mutex, m_start_world_condition_mutex);
       // make sure we aren't already collecting
-      while (cgc1_likely(m_num_collections) &&
+      while (mcppalloc_likely(m_num_collections) &&
              m_num_paused_threads.load(::std::memory_order_acquire) != m_num_resumed_threads.load(::std::memory_order_acquire)) {
         // we need to unlock these because gc_thread could be using them.
         // and gc_thread is not paused.
@@ -410,7 +410,7 @@ namespace cgc1
       m_allocators_unavailable_mutex.lock();
       _u_suspend_threads();
       m_thread_mutex.unlock();
-      get_tlks()->set_stack_ptr(cgc1_builtin_current_stack());
+      get_tlks()->set_stack_ptr(mcppalloc_builtin_current_stack());
       m_bitmap_allocator._u_set_force_maintenance();
       m_gc_allocator._u_set_force_free_empty_blocks();
       m_cgc_allocator._u_set_force_free_empty_blocks();
@@ -423,7 +423,7 @@ namespace cgc1
       // do collection
       {
         // Thread data can not be modified during collection.
-        CGC1_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
         _u_setup_gc_threads();
       }
       ::std::chrono::high_resolution_clock::time_point t1, t2, tstart;
@@ -497,7 +497,7 @@ namespace cgc1
     }
     cgc_internal_vector_t<uintptr_t> global_kernel_state_t::_d_freed_in_last_collection() const
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       return m_freed_in_last_collection;
     }
     void global_kernel_state_t::wait_for_collection()
@@ -534,8 +534,8 @@ namespace cgc1
       // do not start creating threads during an ongoing collection.
       wait_for_collection2();
       // assume we have mutex and thread mutex from wait for collection 2 specs.
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       // if no tlks, create one.
       if (tlks == nullptr) {
         tlks = ::mcppalloc::make_unique_allocator<details::thread_local_kernel_state_t, cgc_internal_malloc_allocator_t<void>>()
@@ -545,7 +545,7 @@ namespace cgc1
         _u_initialize();
       }
       else
-        abort();
+        ::std::terminate();
       // set very top of stack.
       tlks->set_top_of_stack(top_of_stack);
       m_threads.push_back(tlks);
@@ -559,15 +559,15 @@ namespace cgc1
       // do not start destroying threads during an ongoing collection.
       wait_for_collection2();
       // assume we have mutex and thread mutex from wait for collection 2 specs.
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
-      CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       // find thread and erase it from global state
       const auto it = find(m_threads.begin(), m_threads.end(), tlks);
-      if (cgc1_unlikely(it == m_threads.end())) {
+      if (mcppalloc_unlikely(it == m_threads.end())) {
         // this is a pretty big logic error, so catch in debug mode.
         ::std::cerr << "can not find thread with id " << tlks->thread_id() << " 614164d3-1ab6-4079-b978-7880aa74b566"
                     << ::std::endl;
-        abort();
+        ::std::terminate();
       }
       // destroy thread allocators for this thread.
       m_gc_allocator.destroy_thread();
@@ -591,12 +591,11 @@ namespace cgc1
       m_gc_allocator.initialize(::mcppalloc::pow2(33), ::mcppalloc::pow2(36));
       const size_t num_gc_threads = ::std::thread::hardware_concurrency();
       // sanity check bad stl implementations.
-      if (cgc1_unlikely(!num_gc_threads)) {
+      if (mcppalloc_unlikely(!num_gc_threads)) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
-        abort();
+        ::std::terminate();
       }
-      // add one gc thread.
-      // TODO: Multiple gc threads.
+      // add gc threads
       for (size_t i = 0; i < num_gc_threads; ++i)
         m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
       m_initialized = true;
@@ -612,10 +611,10 @@ namespace cgc1
         if (state->thread_id() == ::std::this_thread::get_id())
           continue;
         // send signal to stop it.
-        if (cgc1_unlikely(cgc1::pthread_kill(state->thread_handle(), SIGUSR1))) {
+        if (mcppalloc_unlikely(cgc1::pthread_kill(state->thread_handle(), SIGUSR1))) {
           ::std::cerr << "Thread went away during suspension 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
           // there is no way to recover from this error.
-          abort();
+          ::std::terminate();
         }
       }
       // wait for all threads to stop
@@ -628,7 +627,7 @@ namespace cgc1
         ::std::this_thread::yield();
         ::std::chrono::high_resolution_clock::time_point cur_time = ::std::chrono::high_resolution_clock::now();
         auto time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(cur_time - start_time);
-        if (cgc1_unlikely(time_span > ::std::chrono::seconds(1)))
+        if (mcppalloc_unlikely(time_span > ::std::chrono::seconds(1)))
           ::std::cerr << "Waiting on thread to pause\n";
       }
       lock.lock();
@@ -645,7 +644,7 @@ namespace cgc1
       auto tlks = details::get_tlks();
       if (!tlks) {
         // this should be considered a fatal logic error.
-        abort();
+        ::std::terminate();
       }
       // set stack pointer.
       tlks->set_stack_ptr(__builtin_frame_address(0));
@@ -694,20 +693,20 @@ namespace cgc1
           }
           else {
             ::std::cerr << "Suspend thread failed\n";
-            abort();
+            ::std::terminate();
           }
         }
         // if not in signal handler abort.
         if (!state->in_signal_handler()) {
-          ::abort();
+          :: ::std::terminate();
         }
         // get thread context.
         CONTEXT context = {0};
         context.ContextFlags = CONTEXT_FULL;
         auto ret = ::GetThreadContext(state->thread_handle(), &context);
-        if (cgc1_unlikely(!ret)) {
+        if (mcppalloc_unlikely(!ret)) {
           ::std::cerr << "Get thread context failed\n";
-          ::abort();
+          :: ::std::terminate();
         }
         // get stack pointer.
         uint8_t *stack_ptr = nullptr;
@@ -718,7 +717,7 @@ namespace cgc1
 #endif
         // if stack pointer is not recoverable, unrecoverable.
         if (!stack_ptr)
-          abort();
+          ::std::terminate();
         state->set_stack_ptr(stack_ptr);
         // grab registers.
         void **reg_begin = reinterpret_cast<void **>(&context.Rax);
@@ -743,7 +742,7 @@ namespace cgc1
         state->set_in_signal_handler(false);
         // resume threads.
         if (static_cast<int>(::ResumeThread(state->thread_handle())) < 0)
-          abort();
+          ::std::terminate();
       }
       // force commit.
       ::std::atomic_thread_fence(std::memory_order_release);

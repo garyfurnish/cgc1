@@ -33,9 +33,9 @@ namespace mcppalloc
       void bitmap_allocator_t<Allocator_Policy>::shutdown()
       {
         {
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         }
-        CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         m_thread_allocators.clear();
         m_free_globals.clear();
         m_globals.shutdown();
@@ -58,7 +58,7 @@ namespace mcppalloc
       auto bitmap_allocator_t<Allocator_Policy>::_get_memory() noexcept -> bitmap_state_t *
       {
         {
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           if (!m_free_globals.empty()) {
             auto ret = m_free_globals.back();
             m_free_globals.pop_back();
@@ -72,7 +72,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::initialize_thread() -> thread_allocator_type &
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto ttla = get_ttla();
         if (ttla)
           return *ttla;
@@ -92,7 +92,7 @@ namespace mcppalloc
         // this is outside of scope so that the lock is not held when it is destroyed.
         thread_allocator_unique_ptr_type ptr;
         {
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           set_ttla(nullptr);
           auto it = m_thread_allocators.find(::std::this_thread::get_id());
           // check to make sure it was initialized at some point.
@@ -118,13 +118,13 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::num_free_blocks() const noexcept -> size_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_free_globals.size();
       }
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::num_globals(size_t id) const noexcept -> size_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_globals.m_vectors[id].size();
       }
       template <typename Allocator_Policy>
@@ -147,7 +147,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         ptree.put("num_free_globals", ::std::to_string(m_free_globals.size()));
         {
           ::boost::property_tree::ptree globals;
@@ -174,7 +174,7 @@ namespace mcppalloc
       template <typename Predicate>
       void bitmap_allocator_t<Allocator_Policy>::_for_all_state(Predicate &&predicate)
       {
-        CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         for (auto &&thread : m_thread_allocators)
           thread.second->for_all_state(predicate);
         m_globals.for_all(::std::forward<Predicate>(predicate));

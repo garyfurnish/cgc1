@@ -54,12 +54,12 @@ namespace mcppalloc
          * @param minimum_alloc_length Minimum length of object that can be allocated using this allocator.
          * @param maximum_alloc_length Maximum length of object that can be allocated using this allocator.
         **/
-        CGC1_ALWAYS_INLINE
+        MCPPALLOC_ALWAYS_INLINE
         allocator_block_t(void *start, size_t length, size_t minimum_alloc_length, size_t maximum_alloc_length) noexcept;
         allocator_block_t(const allocator_block_t &) = delete;
-        CGC1_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept;
+        MCPPALLOC_ALWAYS_INLINE allocator_block_t(allocator_block_t &&) noexcept;
         allocator_block_t &operator=(const allocator_block_t &) = delete;
-        CGC1_ALWAYS_INLINE allocator_block_t &operator=(allocator_block_t &&) noexcept;
+        MCPPALLOC_ALWAYS_INLINE allocator_block_t &operator=(allocator_block_t &&) noexcept;
         ~allocator_block_t();
         /**
          * \brief Return false if items are allocated.  Otherwise may return true or false.

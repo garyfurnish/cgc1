@@ -236,18 +236,18 @@ namespace mcppalloc
 }
 #endif
 #include "concurrency_apple.hpp"
-#define CGC1_CONCURRENCY_LOCK_GUARD_MERGE_(a, b) a##b
-#define CGC1_CONCURRENCY_LOCK_GUARD_LABEL_(a) CGC1_CONCURRENCY_LOCK_GUARD_MERGE_(cgc1_concurrency_lock_guard_, a)
-#define CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE CGC1_CONCURRENCY_LOCK_GUARD_LABEL_(__LINE__)
-#define CGC1_CONCURRENCY_LOCK_ASSUME_MERGE_(a, b) a##b
-#define CGC1_CONCURRENCY_LOCK_ASSUME_LABEL_(a) CGC1_CONCURRENCY_LOCK_ASSUME_MERGE_(cgc1_concurrency_lock_assume_, a)
-#define CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE CGC1_CONCURRENCY_LOCK_ASSUME_LABEL_(__LINE__)
-#define CGC1_CONCURRENCY_LOCK_GUARD(x) ::mcppalloc::lock_guard_t<decltype(x)> CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(x);
-#define CGC1_CONCURRENCY_LOCK_ASSUME(...) ::mcppalloc::lock_assume_t CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(__VA_ARGS__);
-#define CGC1_CONCURRENCY_LOCK_GUARD_TAKE(x)                                                                                      \
-  ::std::unique_lock<decltype(x)> CGC1_CONCURRENCY_LOCK_GUARD_VARIABLE(x, ::std::adopt_lock);                                    \
+#define MCPPALLOC_CONCURRENCY_LOCK_GUARD_MERGE_(a, b) a##b
+#define MCPPALLOC_CONCURRENCY_LOCK_GUARD_LABEL_(a) MCPPALLOC_CONCURRENCY_LOCK_GUARD_MERGE_(cgc1_concurrency_lock_guard_, a)
+#define MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE MCPPALLOC_CONCURRENCY_LOCK_GUARD_LABEL_(__LINE__)
+#define MCPPALLOC_CONCURRENCY_LOCK_ASSUME_MERGE_(a, b) a##b
+#define MCPPALLOC_CONCURRENCY_LOCK_ASSUME_LABEL_(a) MCPPALLOC_CONCURRENCY_LOCK_ASSUME_MERGE_(cgc1_concurrency_lock_assume_, a)
+#define MCPPALLOC_CONCURRENCY_LOCK_ASSUME_VARIABLE MCPPALLOC_CONCURRENCY_LOCK_ASSUME_LABEL_(__LINE__)
+#define MCPPALLOC_CONCURRENCY_LOCK_GUARD(x) ::mcppalloc::lock_guard_t<decltype(x)> MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(x);
+#define MCPPALLOC_CONCURRENCY_LOCK_ASSUME(...) ::mcppalloc::lock_assume_t MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(__VA_ARGS__);
+#define MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(x)                                                                                 \
+  ::std::unique_lock<decltype(x)> MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(x, ::std::adopt_lock);                               \
   ::mcppalloc::assume_unlock(x);                                                                                                 \
-  ::mcppalloc::lock_assume_t CGC1_CONCURRENCY_LOCK_ASSUME_VARIABLE(x);
+  ::mcppalloc::lock_assume_t MCPPALLOC_CONCURRENCY_LOCK_ASSUME_VARIABLE(x);
 namespace mcppalloc
 {
   /**
@@ -346,7 +346,7 @@ namespace mcppalloc
       if (m_lock1 && m_lock2)
         ::std::lock(*m_lock1, *m_lock2);
       else
-        abort();
+        ::std::terminate();
     }
     /**
      * \brief Unlock locks.
@@ -360,7 +360,7 @@ namespace mcppalloc
         m_lock2->unlock();
       }
       else {
-        abort();
+        ::std::terminate();
       }
     }
     /**

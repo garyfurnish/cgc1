@@ -7,12 +7,12 @@ namespace cgc1
   inline slab_t::slab_t(size_t size, void *addr)
   {
     if (!allocate(size, addr))
-      abort();
+      ::std::terminate();
   }
   inline slab_t::slab_t(size_t size)
   {
     if (!allocate(size))
-      abort();
+      ::std::terminate();
   }
   inline slab_t::~slab_t()
   {

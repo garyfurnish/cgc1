@@ -4,12 +4,12 @@
 #define CGC1_FAKE_BOEHM
 #define USE_CGC1
 #ifndef _WIN32
-#ifndef cgc1_builtin_current_stack
-#define cgc1_builtin_current_stack() __builtin_frame_address(0)
+#ifndef mcppalloc_builtin_current_stack
+#define mcppalloc_builtin_current_stack() __builtin_frame_address(0)
 #endif
 #else
-#ifndef cgc1_builtin_current_stack
-#define cgc1_builtin_current_stack() _AddressOfReturnAddress()
+#ifndef mcppalloc_builtin_current_stack
+#define mcppalloc_builtin_current_stack() _AddressOfReturnAddress()
 #endif
 #endif
 #ifdef __cplusplus
@@ -81,7 +81,7 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#define GC_INIT() GC_init(cgc1_builtin_current_stack())
+#define GC_INIT() GC_init(mcppalloc_builtin_current_stack())
 #define GC_MALLOC(sz) GC_malloc(sz)
 #define GC_MALLOC_ATOMIC(sz) GC_malloc_atomic(sz)
 #define GC_MALLOC_UNCOLLECTABLE(sz) GC_malloc_uncollectable(sz)

@@ -5,7 +5,7 @@ namespace cgc1
   template <typename Allocator>
   void internal_condition_variable_t<Allocator>::notify_all()
   {
-    CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
     // set all flags to true.
     for (auto &&queue_struct : m_queued) {
       queue_struct.m_flag.unlock();
@@ -15,10 +15,10 @@ namespace cgc1
   template <typename Lock, typename Predicate>
   void internal_condition_variable_t<Allocator>::wait(Lock &&lock, Predicate &&pred, bool _precheck_pred)
   {
-    CGC1_CONCURRENCY_LOCK_ASSUME(lock);
+    MCPPALLOC_CONCURRENCY_LOCK_ASSUME(lock);
     typename queue_type::iterator it;
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       // this could theoretically throw from oom but we can't do anything about it.
       // throwing here would have no negative consequences, so don't do anything.
       // add a new waiter to queue.
@@ -36,7 +36,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         // if it throws an exception we need to cleanup the queue.
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
@@ -45,7 +45,7 @@ namespace cgc1
       if (pred_result) {
         {
           // if the predicate is true, we should remove the waiter from the queue.
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           it->m_flag.unlock();
           m_queued.erase(it);
         }
@@ -68,7 +68,7 @@ namespace cgc1
         pred_result = pred();
       } catch (...) {
         // if it throws an exception we need to cleanup the queue.
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         it->m_flag.unlock();
         m_queued.erase(it);
         // rethrow.
@@ -77,7 +77,7 @@ namespace cgc1
       if (pred()) {
         {
           // if the predicate is true, we should remove the waiter from the queue.
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           it->m_flag.unlock();
           m_queued.erase(it);
         }

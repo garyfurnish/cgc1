@@ -20,7 +20,7 @@ namespace mcppalloc
         if (!sz)
           return 0;
         size_t ret = 64 - static_cast<size_t>(__builtin_clzll(sz));
-        if (cgc1_unlikely(ret > max_bins))
+        if (mcppalloc_unlikely(ret > max_bins))
           return ::std::numeric_limits<size_t>::max();
         return ret;
       }
@@ -33,7 +33,7 @@ namespace mcppalloc
           auto prev = it + 1;
           if (vec.rend() != prev) {
             auto &prev_packed = **prev;
-            cgc1_builtin_prefetch(&prev_packed);
+            mcppalloc_builtin_prefetch(&prev_packed);
           }
           auto &packed = **it;
           auto ret = packed.allocate();

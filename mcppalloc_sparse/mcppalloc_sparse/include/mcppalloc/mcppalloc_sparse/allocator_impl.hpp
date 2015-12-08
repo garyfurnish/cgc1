@@ -27,9 +27,9 @@ namespace mcppalloc
       void allocator_t<Allocator_Policy>::shutdown()
       {
         {
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         }
-        CGC1_CONCURRENCY_LOCK_ASSUME(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         _ud_verify();
         // first shutdown all thread allocators.
         m_thread_allocators.clear();
@@ -55,7 +55,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       bool allocator_t<Allocator_Policy>::initialize(size_t initial_gc_heap_size, size_t max_heap_size)
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // sanity check heap size.
         if (m_initial_gc_heap_size)
           return false;
@@ -72,7 +72,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto allocator_t<Allocator_Policy>::get_memory(size_t sz, bool try_expand) -> system_memory_range_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _u_get_memory(sz, try_expand);
       }
 
@@ -110,7 +110,7 @@ namespace mcppalloc
         auto sz_available = m_slab.end() - m_current_end;
         // heap out of memory.
         if (sz_available < 0) // shouldn't happen
-          abort();
+          ::std::terminate();
         if (static_cast<size_t>(sz_available) >= sz) {
           // recalculate used end.
           uint8_t *new_end = m_current_end + sz;
@@ -234,18 +234,18 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block)
       {
-#if CGC1_DEBUG_LEVEL > 0
+#if MCPPALLOC_DEBUG_LEVEL > 0
         _ud_verify();
         for (auto &&it : m_blocks) {
           // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
           if (it.m_block == &block)
-            abort();
+            ::std::terminate();
           // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
           if (it.m_begin == block.begin()) {
-            ::std::cerr << __FILE__ << " " << __LINE__ << " Attempt to double register block.\n";
-            ::std::cerr << __FILE__ << " " << __LINE__ << " " << &block << " " << reinterpret_cast<void *>(block.begin())
+            ::std::cerr << " Attempt to double register block. 77dbea01-7e0f-49da-81f1-9ad7f4616eea\n";
+            ::std::cerr << "77dbea01-7e0f-49da-81f1-9ad7f4616eea " << &block << " " << reinterpret_cast<void *>(block.begin())
                         << ::std::endl;
-            abort();
+            ::std::terminate();
           }
         }
 #endif
@@ -262,7 +262,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::unregister_allocator_block(allocator_block_type &block)
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // forward unregistration.
         _u_unregister_allocator_block(block);
       }
@@ -282,15 +282,15 @@ namespace mcppalloc
         }
         else {
           // This should never happen, so memory corruption issue if it has, so kill the program.
-          ::std::cerr << __FILE__ << " " << __LINE__ << "Unable to find allocator block to unregister\n" << ::std::endl;
-          abort();
+          ::std::cerr << "Unable to find allocator block to unregister e5471709-3eae-43bf-bdd9-86ba9064f103\n" << ::std::endl;
+          ::std::terminate();
         }
         _ud_verify();
       }
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_ud_verify()
       {
-#if CGC1_DEBUG_LEVEL > 1
+#if MCPPALLOC_DEBUG_LEVEL > 1
         // this is really expensive, but verify that blocks are sorted.
         assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
 #endif
@@ -298,7 +298,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_d_verify()
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // forward verify request.
         _ud_verify();
       }
@@ -368,7 +368,7 @@ namespace mcppalloc
         // while block handle is not default constructable, we can move away from it.
         // thus we can use rotate to create an empty location to modify.
         // this is the optimal solution for moving in this fashion.
-        if (cgc1_likely(ub > lb)) {
+        if (mcppalloc_likely(ub > lb)) {
           ::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
           for (size_t i = contiguous; i > 0; --i) {
             auto ub_offset = static_cast<ptrdiff_t>(i);
@@ -378,7 +378,7 @@ namespace mcppalloc
         }
         else {
           ::std::cerr << "During move, UB <=lb";
-          abort();
+          ::std::terminate();
         }
         _ud_verify();
       }
@@ -405,17 +405,17 @@ namespace mcppalloc
           }
           else {
             // Uniqueness of block failed.
-            ::std::cerr << "CGC1: Unable to find block to move\n";
+            ::std::cerr << "MCPPALLOC: Unable to find block to move. 1b455b54-e6b2-4f5e-9f1c-957012dfddc5\n";
             ::std::cerr << old_block << " " << new_block << ::std::endl;
             // This should never happen, so memory corruption issue if it has, so kill the program.
-            abort();
+            ::std::terminate();
           }
         }
         else {
           // couldn't find old block
-          ::std::cerr << "CGC1: Unable to find block to move, lb is end\n";
+          ::std::cerr << "MCPPALLOC: Unable to find block to move, lb is end. e2c0011f-52fa-4f86-886e-b9b932cc0cb3\n";
           // This should never happen, so memory corruption issue if it has, so kill the program.
-          abort();
+          ::std::terminate();
         }
       }
       template <typename Allocator_Policy>
@@ -446,7 +446,7 @@ namespace mcppalloc
       void allocator_t<Allocator_Policy>::to_global_allocator_block(allocator_block_type &&block)
       {
         assert(block.valid());
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // if there is not already memory for global blocks, reserve a bunch.
         // this is done because moving them is non-trivial.
         if (!m_global_blocks.capacity())
@@ -462,7 +462,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::release_memory(const memory_pair_t &pair)
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _u_release_memory(pair);
       }
 
@@ -485,7 +485,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto allocator_t<Allocator_Policy>::in_free_list(const memory_pair_t &pair) const noexcept -> bool
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // first check to see if it is past end of used slab.
         if (_u_current_end() <= pair.first && pair.second <= _u_end())
           return true;
@@ -499,13 +499,13 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto allocator_t<Allocator_Policy>::free_list_length() const noexcept -> size_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_free_list.size();
       }
       template <typename Allocator_Policy>
       inline uint8_t *allocator_t<Allocator_Policy>::begin() const
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_slab.begin();
       }
       template <typename Allocator_Policy>
@@ -526,25 +526,25 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       inline uint8_t *allocator_t<Allocator_Policy>::end() const
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_slab.end();
       }
       template <typename Allocator_Policy>
       inline uint8_t *allocator_t<Allocator_Policy>::current_end() const
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_current_end;
       }
       template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::size() const noexcept -> size_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _u_size();
       }
       template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::current_size() const noexcept -> size_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _u_current_size();
       }
       template <typename Allocator_Policy>
@@ -561,7 +561,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       inline void allocator_t<Allocator_Policy>::collapse()
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _ud_verify();
         ::std::sort(m_free_list.begin(), m_free_list.end());
         for (auto it = m_free_list.rbegin(), end = m_free_list.rend(); it != end; ++it) {
@@ -585,7 +585,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::_d_free_list() const -> memory_pair_vector_t
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _ud_free_list();
       }
       template <typename Allocator_Policy>
@@ -596,7 +596,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::initialize_thread() -> this_thread_allocator_t &
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _ud_verify();
         // first check to see if there is already a thread allocator for this thread.
         auto it = m_thread_allocators.find(::std::this_thread::get_id());
@@ -617,7 +617,7 @@ namespace mcppalloc
         // this is outside of scope so that the lock is not held when it is destroyed.
         thread_allocator_unique_ptr_t ptr;
         {
-          CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+          MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           _ud_verify();
           // find ta entry.
           auto it = m_thread_allocators.find(::std::this_thread::get_id());
@@ -670,7 +670,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       size_t allocator_t<Allocator_Policy>::num_global_blocks()
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _u_num_global_blocks();
       }
       template <typename Allocator_Policy>
@@ -681,7 +681,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::collect()
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _u_collect();
       }
 
@@ -732,7 +732,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         ptree.put("name", typeid(*this).name());
         {
           ::boost::property_tree::ptree slab;

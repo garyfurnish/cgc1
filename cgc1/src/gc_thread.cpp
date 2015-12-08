@@ -43,7 +43,7 @@ namespace cgc1
       wake_up();
       // wait for thread to terminate.
       m_thread.join();
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       ::mcppalloc::clear_capacity(m_addresses_to_mark);
       ::mcppalloc::clear_capacity(m_stack_roots);
       ::mcppalloc::clear_capacity(m_watched_threads);
@@ -51,7 +51,7 @@ namespace cgc1
     void gc_thread_t::reset()
     {
       // grab lock and initialize everything.
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_clear_done = false;
       m_mark_done = false;
       m_sweep_done = false;
@@ -68,31 +68,31 @@ namespace cgc1
     }
     void gc_thread_t::wake_up()
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_wake_up.notify_all();
     }
     void gc_thread_t::add_thread(::std::thread::id id)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       ::mcppalloc::insert_unique_sorted(m_watched_threads, id, ::std::less<::std::thread::id>());
     }
     void gc_thread_t::set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
                                            gc_allocator_t::this_allocator_block_handle_t *end)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_block_begin = begin;
       m_block_end = end;
     }
     void gc_thread_t::set_root_iterators(void ***begin, void ***end)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_root_begin = begin;
       m_root_end = end;
     }
     void gc_thread_t::_run()
     {
       while (m_run) {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         while (!m_do_clear) {
           m_wake_up.wait(m_mutex);
           if (!m_run)
@@ -175,7 +175,7 @@ namespace cgc1
         return false;
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // add potential roots (ex: registers).
       m_addresses_to_mark.insert(tlks->_potential_roots().begin(), tlks->_potential_roots().end());
       // clear potential roots for next time.
@@ -220,7 +220,7 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
       // This is calling during garbage collection, therefore no mutex is needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // Find heap begin and end.
       void *heap_begin = g_gks->gc_allocator()._u_begin();
       void *heap_end = g_gks->gc_allocator()._u_current_end();
@@ -241,7 +241,7 @@ namespace cgc1
       if (!fast_heap) {
         if (!g_gks->is_valid_object_state(os)) {
           // This is calling during garbage collection, therefore no mutex is needed.
-          CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
+          MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
           os = g_gks->_u_find_valid_object_state(addr);
           if (!os)
             return;

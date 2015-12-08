@@ -1,7 +1,7 @@
 #pragma once
 #include "declarations.hpp"
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#ifdef CGC1_POSIX
+#ifdef MCPPALLOC_POSIX
 namespace mcppalloc
 {
   /**

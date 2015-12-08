@@ -126,7 +126,7 @@ void allocator_tests()
       AssertThat(abs.m_blocks.size(), Equals(1_sz));
       {
         // the one block that is left should have the same address in registration as in the block set.
-        CGC1_CONCURRENCY_LOCK_GUARD(allocator->_mutex());
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(allocator->_mutex());
         assert(allocator->_u_blocks().size() == 1);
         AssertThat(allocator->_u_blocks(), HasLength(1));
         bool block_correct = &abs.m_blocks.front() == allocator->_u_blocks()[0].m_block;

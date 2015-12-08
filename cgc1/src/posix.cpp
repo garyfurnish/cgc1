@@ -1,5 +1,5 @@
 #include <cgc1/posix.hpp>
-#ifdef CGC1_POSIX
+#ifdef MCPPALLOC_POSIX
 #include <pthread.h>
 #include <signal.h>
 #include <thread>

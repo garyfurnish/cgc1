@@ -49,7 +49,7 @@ void thread_main()
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
-      abort();
+      ::std::terminate();
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
@@ -60,7 +60,7 @@ void thread_main()
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = GC_malloc(alloc_sz);
     if (!ret)
-      abort();
+      ::std::terminate();
     ptrs.emplace_back(ret);
   }
   ++done;
@@ -85,7 +85,7 @@ void thread_main()
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
-      abort();
+      ::std::terminate();
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
@@ -96,7 +96,7 @@ void thread_main()
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = ts.allocate(alloc_sz).m_ptr;
     if (!ret)
-      abort();
+      ::std::terminate();
     ptrs.emplace_back(ret);
   }
   ++done;

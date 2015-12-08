@@ -62,11 +62,11 @@ namespace mcppalloc
                   assume_unlock(m_allocator._mutex());
                 },
                 [this]() {
-                  CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                  MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
                   m_allocator._mutex().unlock();
                 },
                 [this](auto begin, auto end, auto offset) {
-                  CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                  MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
                   m_allocator._u_move_registered_blocks(begin, end, offset);
                 },
                 min_to_leave);
@@ -82,7 +82,7 @@ namespace mcppalloc
           return 0;
         sz = sz >> 4;
         // This is guarenteed to be positive.
-        size_t id = static_cast<size_t>(64 - cgc1_builtin_clz1(sz));
+        size_t id = static_cast<size_t>(64 - mcppalloc_builtin_clz1(sz));
         // cap num bins.
         id = ::std::min(id, c_bins - 1);
         return id;
@@ -102,7 +102,7 @@ namespace mcppalloc
           size_t allocator_multiple = ::std::max(static_cast<size_t>(1), min_size / static_cast<unsigned>(2 << (i + 3)));
           if (allocator_multiple > ::std::numeric_limits<uint32_t>().max()) {
             ::std::cerr << "Allocator multiple too large\n";
-            abort();
+            ::std::terminate();
           }
           abs_data.set_allocator_multiple(static_cast<uint32_t>(allocator_multiple));
           // use a nice default number of blocks before recycling.
@@ -185,7 +185,7 @@ namespace mcppalloc
         // do this if we exceed the destroy threshold or externally forced.
         bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
 
-        if (cgc1_unlikely(should_force_free)) {
+        if (mcppalloc_unlikely(should_force_free)) {
           _do_free_empty_blocks();
         }
       }
@@ -225,7 +225,7 @@ namespace mcppalloc
         _check_do_free_empty_blocks();
         // find allocation set for allocation size.
         size_t id = find_block_set_id(sz);
-        if (cgc1_unlikely(sz < c_alignment))
+        if (mcppalloc_unlikely(sz < c_alignment))
           sz = c_alignment;
         // try allocation.
         block_type ret = m_allocators[id].allocate(sz);
@@ -237,7 +237,7 @@ namespace mcppalloc
         size_t attempts = 1;
         bool success;
         bool try_expand = true;
-        while (cgc1_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+        while (mcppalloc_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
           auto action = m_allocator.thread_policy().on_allocation_failure({attempts});
           if (!action.m_repeat) {
             break;
@@ -247,11 +247,11 @@ namespace mcppalloc
         }
         if (!success) {
           ::std::cerr << "Out of memory, aborting" << ::std::endl;
-          abort();
+          ::std::terminate();
         }
         ret = m_allocators[id].allocate(sz);
-        if (cgc1_unlikely(!ret.m_ptr)) // should be impossible.
-          abort();
+        if (mcppalloc_unlikely(!ret.m_ptr)) // should be impossible.
+          ::std::terminate();
         m_allocator.thread_policy().on_allocation(ret.m_ptr, ret.m_size);
         return ret;
       }
@@ -267,7 +267,7 @@ namespace mcppalloc
           memory_request = sz * 3;
         // Get the allocator for the size requested.
         auto &abs = m_allocators[id];
-        CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
         // see if safe to add a block
         if (!abs.add_block_is_safe()) {
           // if not safe to move a block, expand that allocator block set.
@@ -283,13 +283,13 @@ namespace mcppalloc
             m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
                                                             m_allocators[id].allocator_max_size(), sz, block, try_expand);
 
-        if (cgc1_unlikely(!success)) {
+        if (mcppalloc_unlikely(!success)) {
           return false;
         }
         // gcreate and grab the empty block.
         auto &inserted_block_ref = abs.add_block(::std::move(block), [this]() {}, [this]() {},
                                                  [this](auto begin, auto end, auto offset) {
-                                                   CGC1_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
+                                                   MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_allocator._mutex());
                                                    m_allocator._u_move_registered_blocks(begin, end, offset);
                                                  });
         m_allocator._u_register_allocator_block(*this, inserted_block_ref);

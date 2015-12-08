@@ -1,6 +1,6 @@
 #pragma once
 #include "posix_slab.hpp"
-#ifdef CGC1_POSIX
+#ifdef MCPPALLOC_POSIX
 #include <sys/mman.h>
 #include <assert.h>
 #include <unistd.h>
@@ -21,12 +21,12 @@ namespace mcppalloc
   inline slab_t::slab_t(size_t size, void *addr)
   {
     if (!allocate(size, addr))
-      abort();
+      ::std::terminate();
   }
   inline slab_t::slab_t(size_t size)
   {
     if (!allocate(size))
-      abort();
+      ::std::terminate();
   }
   inline slab_t::~slab_t()
   {

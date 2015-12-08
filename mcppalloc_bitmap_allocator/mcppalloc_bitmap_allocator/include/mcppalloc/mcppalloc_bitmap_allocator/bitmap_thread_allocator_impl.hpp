@@ -41,12 +41,12 @@ namespace mcppalloc
         set_max_free(0);
         do_maintenance();
         for (auto &&vec : m_locals.m_vectors) {
-          if (cgc1_unlikely(!vec.empty())) {
+          if (mcppalloc_unlikely(!vec.empty())) {
             ::std::cerr << ::std::this_thread::get_id() << " error: deallocating bitmap_thread_allocator_t with objects left\n";
-            abort();
+            ::std::terminate();
           }
         }
-        if (cgc1_unlikely(!m_free_list.empty())) {
+        if (mcppalloc_unlikely(!m_free_list.empty())) {
           ::std::cerr << ::std::this_thread::get_id()
                       << " error deallocating bitmap_thread_allocator_t with free list nonempty\n";
         }
@@ -83,7 +83,7 @@ namespace mcppalloc
           size_t num_potential_moves = 0;
           // move extra in use to global.
           for (auto &&state : vec) {
-            if (state->free_popcount() > state->size() / 2 || cgc1_unlikely(m_in_destructor))
+            if (state->free_popcount() > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
               // approximately half free.
               num_potential_moves++;
           }
@@ -96,7 +96,7 @@ namespace mcppalloc
               auto it = vec.begin();
               while (it != end) {
                 auto &state = **it;
-                if (state.free_popcount() > state.size() / 2 || cgc1_unlikely(m_in_destructor)) {
+                if (state.free_popcount() > state.size() / 2 || mcppalloc_unlikely(m_in_destructor)) {
                   num_found++;
                   if (num_found > threshold) {
                     --end;
@@ -109,7 +109,7 @@ namespace mcppalloc
             }
             assert(static_cast<size_t>(vec.end() - end) == num_to_be_moved);
             {
-              CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+              MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
               for (auto it = end; it != vec.end(); ++it) {
                 m_allocator._u_to_global(id, *it);
               }
@@ -119,7 +119,7 @@ namespace mcppalloc
           // move extra free to global.
 
           if (m_free_list.size() > m_max_free) {
-            CGC1_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
+            MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
             while (m_free_list.size() != m_max_free) {
               m_allocator._u_to_free(m_free_list.back());
               m_free_list.pop_back();
@@ -202,7 +202,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_thread_allocator_t<Allocator_Policy>::_check_maintenance()
       {
-        if (cgc1_unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
+        if (mcppalloc_unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
           do_maintenance();
       }
       template <typename Allocator_Policy>

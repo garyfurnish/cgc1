@@ -17,15 +17,15 @@ namespace mcppalloc
         bitmap_state_t *state = reinterpret_cast<bitmap_state_t *>(vi);
         return state;
       }
-      CGC1_OPT_ALWAYS_INLINE auto bitmap_state_t::declared_entry_size() const noexcept -> size_t
+      MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::declared_entry_size() const noexcept -> size_t
       {
         return m_info.m_data_entry_sz;
       }
-      CGC1_OPT_ALWAYS_INLINE auto bitmap_state_t::real_entry_size() const noexcept -> size_t
+      MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::real_entry_size() const noexcept -> size_t
       {
         return cs_object_alignment > declared_entry_size() ? cs_object_alignment : declared_entry_size();
       }
-      CGC1_OPT_ALWAYS_INLINE auto bitmap_state_t::header_size() const noexcept -> size_t
+      MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::header_size() const noexcept -> size_t
       {
         return m_info.m_header_size;
       }
@@ -177,12 +177,12 @@ namespace mcppalloc
         // this awful code is because for a conservative gc
         // we could set free before memory_address is live.
         // this can go wrong because we could mark while it is still free.
-        if (cgc1_unlikely(is_free(i))) {
-          if (cgc1_likely(retries < 15)) {
+        if (mcppalloc_unlikely(is_free(i))) {
+          if (mcppalloc_likely(retries < 15)) {
             goto RESTART;
           }
           else
-            abort();
+            ::std::terminate();
         }
         assert(memory_address);
         return memory_address;
@@ -193,7 +193,7 @@ namespace mcppalloc
         if (v < begin() || v > end())
           return false;
         size_t byte_diff = static_cast<size_t>(v - begin());
-        if (cgc1_unlikely(byte_diff % real_entry_size()))
+        if (mcppalloc_unlikely(byte_diff % real_entry_size()))
           return false;
         auto i = byte_diff / real_entry_size();
         set_free(i, true);

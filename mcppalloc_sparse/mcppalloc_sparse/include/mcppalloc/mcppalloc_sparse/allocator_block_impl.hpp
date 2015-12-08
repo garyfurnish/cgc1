@@ -13,22 +13,20 @@ namespace mcppalloc
     {
 
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(void *start,
-                                                                                size_t length,
-                                                                                size_t minimum_alloc_length,
-                                                                                size_t maximum_alloc_length) noexcept
+      MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(void *start,
+                                                                                     size_t length,
+                                                                                     size_t minimum_alloc_length,
+                                                                                     size_t maximum_alloc_length) noexcept
           : m_next_alloc_ptr(reinterpret_cast<object_state_type *>(start)),
             m_end(reinterpret_cast<uint8_t *>(start) + length),
             m_minimum_alloc_length(object_state_type::needed_size(sizeof(object_state_type), minimum_alloc_length)),
             m_start(reinterpret_cast<uint8_t *>(start))
       {
-#if CGC1_DEBUG_LEVEL > 0
         // sanity check alignment of start.
-        if (unlikely(reinterpret_cast<size_t>(m_start) % minimum_header_alignment() != 0))
-          abort();
-        if (unlikely(reinterpret_cast<size_t>(m_end) % minimum_header_alignment() != 0))
-          abort();
-#endif
+        if (mcppalloc_unlikely(reinterpret_cast<size_t>(m_start) % minimum_header_alignment() != 0))
+          ::std::terminate();
+        if (mcppalloc_unlikely(reinterpret_cast<size_t>(m_end) % minimum_header_alignment() != 0))
+          ::std::terminate();
         if (maximum_alloc_length == c_infinite_length) {
           m_maximum_alloc_length = maximum_alloc_length;
         }
@@ -45,7 +43,7 @@ namespace mcppalloc
         m_default_user_data->set_is_default(true);
       }
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(allocator_block_t &&block) noexcept
+      MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(allocator_block_t &&block) noexcept
           : m_free_list(::std::move(block.m_free_list)),
             m_next_alloc_ptr(::std::move(block.m_next_alloc_ptr)),
             m_end(::std::move(block.m_end)),
@@ -57,7 +55,7 @@ namespace mcppalloc
       {
       }
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE allocator_block_t<Allocator_Policy> &allocator_block_t<Allocator_Policy>::
+      MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy> &allocator_block_t<Allocator_Policy>::
       operator=(allocator_block_t<Allocator_Policy> &&block) noexcept
       {
         if (m_default_user_data.get() == &s_default_user_data)
@@ -107,12 +105,12 @@ namespace mcppalloc
         return m_next_alloc_ptr == nullptr && m_free_list.empty();
       }
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator_Policy>::begin() const noexcept
+      MCPPALLOC_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator_Policy>::begin() const noexcept
       {
         return m_start;
       }
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator_Policy>::end() const noexcept
+      MCPPALLOC_ALWAYS_INLINE uint8_t *allocator_block_t<Allocator_Policy>::end() const noexcept
       {
         return m_end;
       }
@@ -130,7 +128,8 @@ namespace mcppalloc
           return m_next_alloc_ptr;
       }
       template <typename Allocator_Policy>
-      CGC1_ALWAYS_INLINE auto allocator_block_t<Allocator_Policy>::_object_state_begin() const noexcept -> object_state_type *
+      MCPPALLOC_ALWAYS_INLINE auto allocator_block_t<Allocator_Policy>::_object_state_begin() const noexcept
+          -> object_state_type *
       {
         return reinterpret_cast<object_state_type *>(begin());
       }
@@ -144,7 +143,7 @@ namespace mcppalloc
         }
         return nullptr;
       }
-#if CGC1_DEBUG_LEVEL > 1
+#if MCPPALLOC_DEBUG_LEVEL > 1
       template <typename Allocator_Policy>
       void allocator_block_t<Allocator_Policy>::_verify(const object_state_type *state)
       {
@@ -172,9 +171,9 @@ namespace mcppalloc
         assert(minimum_allocation_length() <= maximum_allocation_length());
         _verify(nullptr);
         // these help, especially when prefetch crosses cache or page boundry.
-        cgc1_builtin_prefetch(this);
-        cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
-        cgc1_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
+        mcppalloc_builtin_prefetch(this);
+        mcppalloc_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
+        mcppalloc_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
         const size_t original_size = size;
         size = object_state_type::needed_size(sizeof(object_state_type), size);
         assert(size >= minimum_allocation_length());
@@ -349,7 +348,7 @@ namespace mcppalloc
         bool did_merge = false;
         bool needs_insert = false;
         while (state->next_valid()) {
-          cgc1_builtin_prefetch(state->next()->next());
+          mcppalloc_builtin_prefetch(state->next()->next());
           if (!did_merge && !state->in_use()) {
             needs_insert = true;
           }

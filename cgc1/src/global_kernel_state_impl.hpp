@@ -24,7 +24,7 @@ namespace cgc1
     }
     inline auto global_kernel_state_t::tlks(::std::thread::id id) -> thread_local_kernel_state_t *
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
       auto it = ::std::find_if(m_threads.begin(), m_threads.end(),
                                [id](thread_local_kernel_state_t *tlks) { return tlks->thread_id() == id; });
       if (it == m_threads.end())
@@ -34,13 +34,13 @@ namespace cgc1
     template <typename Container>
     void global_kernel_state_t::_add_freed_in_last_collection(Container &container)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_freed_in_last_collection.insert(m_freed_in_last_collection.end(), container.begin(), container.end());
     }
     template <typename Container>
     void global_kernel_state_t::_add_need_special_finalizing_collection(Container &container)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_need_special_finalizing_collection_sparse.insert(m_need_special_finalizing_collection_sparse.end(), container.begin(),
                                                          container.end());
     }
@@ -49,7 +49,7 @@ namespace cgc1
     {
       // We may assume this because the internal allocator may only grow.
       // At worse this may be falsely negative, but then it is undef behavior race condition.
-      CGC1_CONCURRENCY_LOCK_ASSUME(_internal_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(_internal_allocator()._mutex());
       return ::mcppalloc::sparse::details::is_valid_object_state(os, _internal_allocator()._u_begin(),
                                                                  _internal_allocator()._u_current_end());
     }

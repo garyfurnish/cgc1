@@ -14,7 +14,7 @@ using namespace ::mcppalloc::literals;
  * \brief Setup for root test.
  * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
  **/
-static CGC1_NO_INLINE void packed_root_test__setup(void *&memory, size_t &old_memory)
+static MCPPALLOC_NO_INLINE void packed_root_test__setup(void *&memory, size_t &old_memory)
 {
   auto &poa = gks->_bitmap_allocator();
   auto &ta = poa.initialize_thread();
@@ -77,14 +77,14 @@ static void packed_linked_list_test()
     {
       void **bar = foo;
       for (int i = 0; i < 0; ++i) {
-        CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
         locations.push_back(::mcppalloc::hide_pointer(bar));
         ::mcppalloc::secure_zero(bar, 100);
         *bar = ta.allocate(100).m_ptr;
         bar = reinterpret_cast<void **>(*bar);
       }
       {
-        CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
         // locations.push_back(::mcppalloc::hide_pointer(bar));
         locations.push_back(::mcppalloc::hide_pointer(foo));
       }
@@ -99,17 +99,17 @@ static void packed_linked_list_test()
   ::std::this_thread::yield();
   ::std::this_thread::sleep_for(::std::chrono::seconds(1));
   for (int i = 0; i < 100; ++i) {
-    //    CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+    //    MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
-    CGC1_CONCURRENCY_LOCK_GUARD(debug_mutex);
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
     for (auto &&loc : locations) {
       if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
         ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
-        abort();
+        ::std::terminate();
       }
       if (cgc1::debug::_cgc_hidden_packed_free(loc))
-        abort();
+        ::std::terminate();
       //      AssertThat(cgc1::debug::_cgc_hidden_packed_marked(loc), IsTrue());
       //      AssertThat(cgc1::debug::_cgc_hidden_packed_free(loc), IsFalse());
     }

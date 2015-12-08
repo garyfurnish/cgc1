@@ -75,6 +75,6 @@ namespace cgc1
     extern void set_complex(gc_sparse_object_state_t *os, bool status);
   }
 }
-#ifdef CGC1_INLINES
+#ifdef MCPPALLOC_INLINES
 #include "gc_allocator_impl.hpp"
 #endif

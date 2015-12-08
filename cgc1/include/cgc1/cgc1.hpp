@@ -181,5 +181,5 @@ namespace cgc1
     auto _cgc_hidden_packed_free(uintptr_t loc) -> bool;
   }
 }
-#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(cgc1_builtin_current_stack())
+#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())
 #include "gc_allocator.hpp"
