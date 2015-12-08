@@ -159,6 +159,22 @@ namespace mcppalloc
     {
     }
   } SCOPED_CAPABILITY;
+  template <typename T1, typename T2>
+  class lock_guard2_t
+  {
+  public:
+    lock_guard2_t(T1 &t1, T2 &t2) ACQUIRE(t1) ACQUIRE(t2) : m_T1(t1), m_T2(t2)
+    {
+      lock(t1, t2);
+    }
+    ~lock_guard2_t() RELEASE()
+    {
+      m_T1.unlock();
+      m_T2.unlock();
+    }
+    T1 &m_T1;
+    T2 &m_T2;
+  } SCOPED_CAPABILITY;
 }
 #ifndef __APPLE__
 namespace mcppalloc
@@ -192,6 +208,7 @@ namespace mcppalloc
      **/
     Lock1 &m_lock;
   } SCOPED_CAPABILITY;
+
   /**
    * \brief Lockable that is an operating system mutex.
    **/
@@ -243,6 +260,9 @@ namespace mcppalloc
 #define MCPPALLOC_CONCURRENCY_LOCK_ASSUME_LABEL_(a) MCPPALLOC_CONCURRENCY_LOCK_ASSUME_MERGE_(cgc1_concurrency_lock_assume_, a)
 #define MCPPALLOC_CONCURRENCY_LOCK_ASSUME_VARIABLE MCPPALLOC_CONCURRENCY_LOCK_ASSUME_LABEL_(__LINE__)
 #define MCPPALLOC_CONCURRENCY_LOCK_GUARD(x) ::mcppalloc::lock_guard_t<decltype(x)> MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(x);
+#define MCPPALLOC_CONCURRENCY_LOCK2_GUARD(x, y)                                                                                  \
+  ::mcppalloc::lock_guard2_t<decltype(x), decltype(y)> MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(x, y);
+
 #define MCPPALLOC_CONCURRENCY_LOCK_ASSUME(...) ::mcppalloc::lock_assume_t MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(__VA_ARGS__);
 #define MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(x)                                                                                 \
   ::std::unique_lock<decltype(x)> MCPPALLOC_CONCURRENCY_LOCK_GUARD_VARIABLE(x, ::std::adopt_lock);                               \

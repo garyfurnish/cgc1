@@ -192,7 +192,7 @@ namespace cgc1
        * This does not need a mutex held if this is called during garbage collection because all of the relevant state is frozen.
        * @return nullptr if not found.
       **/
-      gc_sparse_object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex);
+      gc_sparse_object_state_t *_u_find_valid_object_state(void *addr) const REQUIRES(m_mutex, gc_allocator()._mutex());
       /**
        * \brief Find a valid object state for the given addr.
        *
