@@ -159,6 +159,22 @@ namespace mcppalloc
     {
     }
   } SCOPED_CAPABILITY;
+  template <typename T1, typename T2>
+  class lock_guard2_t
+  {
+  public:
+    lock_guard2_t(T1 &t1, T2 &t2) ACQUIRE(t1) ACQUIRE(t2) : m_T1(t1), m_T2(t2)
+    {
+      lock(t1, t2);
+    }
+    ~lock_guard2_t() RELEASE()
+    {
+      m_T1.unlock();
+      m_T2.unlock();
+    }
+    T1 &m_T1;
+    T2 &m_T2;
+  } SCOPED_CAPABILITY;
 }
 #ifndef __APPLE__
 namespace mcppalloc
@@ -191,22 +207,6 @@ namespace mcppalloc
      * \brief Underlying lock.
      **/
     Lock1 &m_lock;
-  } SCOPED_CAPABILITY;
-  template <typename T1, typename T2>
-  class lock_guard2_t
-  {
-  public:
-    lock_guard2_t(T1 &t1, T2 &t2) ACQUIRE(t1) ACQUIRE(t2) : m_T1(t1), m_T2(t2)
-    {
-      lock(t1, t2);
-    }
-    ~lock_guard2_t() RELEASE()
-    {
-      m_T1.unlock();
-      m_T2.unlock();
-    }
-    T1 &m_T1;
-    T2 &m_T2;
   } SCOPED_CAPABILITY;
 
   /**
