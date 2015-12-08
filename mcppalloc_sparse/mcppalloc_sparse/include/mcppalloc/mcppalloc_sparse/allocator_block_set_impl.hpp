@@ -79,14 +79,19 @@ namespace mcppalloc
       void allocator_block_set_t<Allocator_Policy>::_verify() const
       {
         if (cgc1_unlikely(m_magic_prefix != cs_magic_prefix)) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS MEMORY CORRUPTION\n";
+          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS MEMORY CORRUPTION 965b54ab-0eef-4878-8a0b-d4a4c5e62a0f\n";
           abort();
           return;
         }
         for (auto &&ab : m_available_blocks) {
           auto &block = *ab.second;
+          if (cgc1_unlikely(block.last_max_alloc_available() != ab.first)) {
+            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR e344d88d-87f6-47b3-bd04-2622241cb2bf\n";
+            ::std::cerr << &block << ::std::endl;
+            abort();
+          }
           if (cgc1_unlikely(block.max_alloc_available() != ab.first)) {
-            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
+            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR e93cef0c-716f-4948-b036-76caa873299f\n";
             ::std::cerr << "min/max allocation sizes: (" << allocator_min_size() << ", " << allocator_max_size() << ")\n";
             ::std::cerr << "available:  " << ab.first << ::std::endl;
             ::std::cerr << &block << " " << block.valid() << " " << block.last_max_alloc_available() << ::std::endl;
@@ -104,20 +109,20 @@ namespace mcppalloc
           }
 
           if (cgc1_unlikely(&block == &last_block())) {
-            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
+            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR c5f0d1d7-d7b3-4572-8c0c-dcb0847fcc47\n";
             ::std::cerr << "Last block in available blocks\n";
             abort();
             return;
           }
           if (cgc1_unlikely(block.full())) {
-            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
+            ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR 0d451014-2727-4a5d-a6e5-dce7e287f6d3\n";
             ::std::cerr << "Block full\n";
             abort();
             return;
           }
         }
         if (cgc1_unlikely(!::std::is_sorted(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare))) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
+          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR 09b8c372-cd82-4980-aa97-b65fc441a499\n";
           ::std::cerr << "available blocks not sorted\n";
           ::std::cerr << "bad: \n";
           for (auto it = m_available_blocks.begin(); it != m_available_blocks.end() - 1; ++it) {
@@ -134,7 +139,7 @@ namespace mcppalloc
         // make sure there are no duplicates in available blocks (since sorted, not a problem).
         if (cgc1_unlikely(::std::adjacent_find(m_available_blocks.begin(), m_available_blocks.end()) !=
                           m_available_blocks.end())) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR\n";
+          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS CONSISTENCY ERROR aa35c18e-9bef-4602-a25a-24154153279a\n";
           ::std::cerr << "available blocks contains duplicates\n";
         }
       }
@@ -147,20 +152,21 @@ namespace mcppalloc
           if (!m_blocks.empty()) {
             assert(&last_block());
             ret = last_block().allocate(sz);
+            // DEBUG
+            last_block().max_alloc_available();
             _verify();
             return ret;
           }
         }
-        // lb is >= sz.
-        // THIS IS WRONG COMPARE!!!!!
-
-        auto lower_bound = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(),
-                                              sized_block_ref_t(sz, nullptr), abrvr_size_compare);
+        const auto lower_bound = ::std::lower_bound(m_available_blocks.begin(), m_available_blocks.end(),
+                                                    sized_block_ref_t(sz, nullptr), abrvr_size_compare);
         // no place to put it in available blocks, put it in last block.
         if (lower_bound == m_available_blocks.end()) {
           if (!m_blocks.empty()) {
             assert(&last_block());
             ret = last_block().allocate(sz);
+            // DEBUG
+            last_block().max_alloc_available();
             _verify();
             return ret;
           }
@@ -169,11 +175,12 @@ namespace mcppalloc
         }
         // if here, there is a block in available blocks to use.
         // so try to allocate in there.
-        ret = lower_bound->second->allocate(sz);
+        ret = lower_bound->second->allocate(sz, true);
         if (cgc1_unlikely(!ret.m_ptr)) {
           // this shouldn't happen
           // so memory corruption, abort.
-          ::std::cerr << __FILE__ << " " << __LINE__ << " ABS failed to allocate, logic error/memory corruption."
+          ::std::cerr << __FILE__ << " " << __LINE__
+                      << " ABS failed to allocate, logic error/memory corruption. 6b758a2e-981f-440d-8107-78269157bc44"
                       << "\n";
           ::std::cerr << "was trying to allocate bytes: " << sz << "\n";
           ::std::cerr << "min/max allocation sizes: (" << allocator_min_size() << ", " << allocator_max_size() << ")\n";
@@ -188,41 +195,86 @@ namespace mcppalloc
           return ret;
         }
         // ok, so we have allocated the memory.
-        auto it = lower_bound;
-        auto new_max_alloc = it->second->max_alloc_available();
-        new_max_alloc = it->second->max_alloc_available();
+        if (cgc1_unlikely(lower_bound == m_available_blocks.end())) {
+          abort();
+        }
+        const auto new_max_alloc = lower_bound->second->max_alloc_available();
         // see if there is allocation left in block.
         if (new_max_alloc == 0) {
-          m_available_blocks.erase(it);
+          // DEBUG
+          lower_bound->second->max_alloc_available();
+          m_available_blocks.erase(lower_bound);
           _verify();
-
           return ret;
         }
+        if (cgc1_unlikely(lower_bound == m_available_blocks.end())) {
+          abort();
+        }
         // TODO: debug
-        if (cgc1_unlikely(new_max_alloc > it->second->memory_size())) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error\n";
+        if (cgc1_unlikely(new_max_alloc > lower_bound->second->memory_size())) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << " Consistency error\n";
+          ::std::cerr << "new max alloc: " << new_max_alloc << "\n";
+          ::std::cerr << "memory size: " << lower_bound->second->memory_size() << "\n";
           abort();
         }
         if (cgc1_unlikely(new_max_alloc < allocator_min_size())) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error\n";
+          ::std::cerr << __FILE__ << " " << __LINE__ << " Consistency error\n";
+          ::std::cerr << "new max alloc: " << new_max_alloc << "\n";
+          ::std::cerr << "min size: " << allocator_min_size() << "\n";
           abort();
         }
         // find new insertion point.
         // want UB because we need > size.
-        if (it == m_available_blocks.end())
-          abort();
-        sized_block_ref_t new_pair(new_max_alloc, it->second);
-        // this must be +1 because it could stay in the same place.
-        //        auto new_ub = ::std::upper_bound(m_available_blocks.begin(), it + 1, new_pair, abrvr_compare);
-        it->first = new_max_alloc;
-        if (cgc1_unlikely(it->first != it->second->last_max_alloc_available())) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error\n";
+        if (cgc1_unlikely(lower_bound == m_available_blocks.end())) {
           abort();
         }
-        auto block = it->second;
+
+        if (lower_bound == m_available_blocks.end()) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << " Consistency error\n";
+          abort();
+        }
+        // TODO: OPTIMIZATION REMOVED HERE FOR DEBUGGING
+        sized_block_ref_t new_pair(new_max_alloc, lower_bound->second);
+        // this must be +1 because lower_bound could stay in the same place.
+        const auto new_ub = m_available_blocks.upper_bound(new_pair);
+        if (new_ub == lower_bound + 1) {
+          lower_bound->first = new_pair.first;
+          // no change, return[
+          _verify();
+          return ret;
+        }
+        if (cgc1_unlikely(lower_bound->first <= new_max_alloc)) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error cd18de5a-8409-435d-b39e-25dedb4e5578\n";
+          ::std::cerr << lower_bound->first << " " << new_max_alloc << "\n";
+          abort();
+        }
+        lower_bound->first = new_max_alloc;
+        if (cgc1_unlikely(lower_bound->first != lower_bound->second->last_max_alloc_available())) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error 9d88b7e3-8244-4f1f-95eb-160abc90a7d6\n";
+          abort();
+        }
+        if (cgc1_unlikely(new_ub > lower_bound)) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error 00b29386-9878-4eae-9ade-38ee823950b2\n";
+          abort();
+        }
+        if (cgc1_unlikely(lower_bound->second != new_pair.second)) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error 0efbcd76-e614-4a21-b246-627cc2a6f1fa\n";
+          abort();
+        }
         // this case needs optimizing.
-        it = m_available_blocks.erase(it);
-        m_available_blocks.emplace(new_max_alloc, block);
+        ::std::rotate(new_ub, lower_bound, lower_bound + 1);
+        // debug
+        if (cgc1_unlikely(new_ub->second != new_pair.second)) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error 8c70c2d5-78a1-45fd-a559-145e3d2714f3\n";
+          abort();
+        }
+        new_ub->first = new_pair.first;
+        if (cgc1_unlikely(new_ub->first != new_ub->second->last_max_alloc_available())) {
+          ::std::cerr << __FILE__ << " " << __LINE__ << "Consistency error 4c0e8ef3-5712-424d-b64d-1505cbee35a1\n";
+          abort();
+        }
+        //        lower_bound = m_available_blocks.erase(lower_bound);
+        //        m_available_blocks.emplace(new_max_alloc, block);
         _verify();
         return ret;
       }
@@ -281,7 +333,6 @@ namespace mcppalloc
                 // ub < ab_it2
                 ::std::rotate(ub, ab_it2, ab_it2 + 1);
                 (ub)->first = pair.first;
-                ::std::cout << "Possible consistency error " << __FILE__ << " " << __LINE__ << "\n";
                 _verify();
               }
               //		  *(ub - 1) = pair;
@@ -502,7 +553,8 @@ namespace mcppalloc
         }
         // update available blocks after update.
         for (auto &&ab : m_available_blocks) {
-          ab.first = ab.second->last_max_alloc_available();
+          //	  ab.first = ab.second->last_max_alloc_available();
+          ab.first = ab.second->max_alloc_available();
         }
         ::std::sort(m_available_blocks.begin(), m_available_blocks.end(), abrvr_compare);
         _verify();

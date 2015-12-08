@@ -143,7 +143,12 @@ namespace mcppalloc
       inline auto operator()(const object_state_t<Allocator_Policy> *a, const object_state_t<Allocator_Policy> *b) const noexcept
           -> bool
       {
-        return ::std::make_tuple(a->object_size(), a) < ::std::make_tuple(b->object_size(), b);
+        if (a->object_size() < b->object_size())
+          return true;
+        else if (a->object_size() == b->object_size())
+          return a < b;
+        else
+          return false;
       }
     };
   }
