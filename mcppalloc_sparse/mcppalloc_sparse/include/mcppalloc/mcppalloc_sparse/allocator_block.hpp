@@ -14,6 +14,26 @@
 #include <mcppalloc/default_allocator_policy.hpp>
 namespace mcppalloc
 {
+  template <typename Policy, typename OS>
+  auto get_allocated_memory(const ::std::tuple<block_t<Policy>, OS *> &allocation)
+  {
+    return ::std::get<0>(allocation).m_ptr;
+  }
+  template <typename Policy, typename OS>
+  auto get_allocated_size(const ::std::tuple<block_t<Policy>, OS *> &allocation)
+  {
+    return ::std::get<0>(allocation).m_size;
+  }
+  template <typename Policy, typename OS>
+  bool allocation_valid(const ::std::tuple<block_t<Policy>, OS *> &allocation)
+  {
+    return nullptr != get_allocated_memory(allocation);
+  }
+  template <typename Policy, typename OS>
+  auto get_allocation_object_state(const ::std::tuple<block_t<Policy>, OS *> &allocation)
+  {
+    return ::std::get<1>(allocation);
+  }
   namespace sparse
   {
     namespace details
@@ -41,6 +61,7 @@ namespace mcppalloc
         using object_state_type = ::mcppalloc::details::object_state_t<allocator_policy_type>;
         static user_data_type s_default_user_data;
         using block_type = block_t<allocator_policy_type>;
+        using allocation_return_type = ::std::tuple<block_type, object_state_type *>;
         static constexpr size_type minimum_header_alignment() noexcept
         {
           return allocator_policy_type::cs_minimum_alignment;
@@ -106,7 +127,7 @@ namespace mcppalloc
          *
          * @return Valid pointer if possible, nullptr otherwise.
         **/
-        auto allocate(size_t size) -> block_type;
+        auto allocate(size_t size) -> allocation_return_type;
         /**
          * \brief Destroy a v that is on the block.
          *

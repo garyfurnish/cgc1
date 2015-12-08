@@ -166,7 +166,7 @@ namespace mcppalloc
       }
 #endif
       template <typename Allocator_Policy>
-      auto allocator_block_t<Allocator_Policy>::allocate(size_t size) -> block_type
+      auto allocator_block_t<Allocator_Policy>::allocate(size_t size) -> allocation_return_type
       {
         assert(minimum_allocation_length() <= maximum_allocation_length());
         _verify(nullptr);
@@ -190,7 +190,7 @@ namespace mcppalloc
           // also deleting an item from the free list could involve lots of copying if at beginning of list.
           // finally free list is a vector so this should be cache friendly.
           for (auto it = m_free_list.rbegin(); it != m_free_list.rend(); ++it) {
-            object_state_type *state = *it;
+            object_state_type *const state = *it;
             // if it doesn't fit, move on to next one.
             if (state->object_size() < original_size)
               continue;
@@ -199,7 +199,7 @@ namespace mcppalloc
             m_free_list.erase(forward_it);
 
             // figure out theoretical next pointer.
-            object_state_type *next = reinterpret_cast<object_state_type *>(reinterpret_cast<uint8_t *>(state) + size);
+            object_state_type *const next = reinterpret_cast<object_state_type *>(reinterpret_cast<uint8_t *>(state) + size);
             // see if we can split the memory.
             if (reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= reinterpret_cast<uint8_t *>(state->next())) {
               // if we are here, the memory left over is bigger then minimum alloc size, so split.
@@ -219,21 +219,22 @@ namespace mcppalloc
             assert(state->object_size() >= original_size);
             //          }
             _verify(state);
-            return block_type{state->object_start(), state->object_size()};
+            return allocation_return_type(block_type{state->object_start(), state->object_size()}, state);
           }
         }
         object_state_type *next = later_next;
         // check to see if we have memory left over at tail.
-        if (!m_next_alloc_ptr)
-          return block_type{nullptr, 0};
+        if (mcppalloc_unlikely(!m_next_alloc_ptr))
+          return allocation_return_type(block_type{nullptr, 0}, nullptr);
         // check to see we haven't requested an excessively large allocation.
         if (m_next_alloc_ptr->next_valid()) {
-          if (m_next_alloc_ptr->object_size() < original_size)
-            return block_type{nullptr, 0};
+          if (mcppalloc_unlikely(m_next_alloc_ptr->object_size() < original_size))
+            return allocation_return_type(block_type{nullptr, 0}, nullptr);
         }
-        else if (static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size)
-          return block_type{nullptr, 0};
+        else if (mcppalloc_unlikely(static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size))
+          return allocation_return_type(block_type{nullptr, 0}, nullptr);
         m_next_alloc_ptr->m_user_data = 0;
+        const auto ret_os = m_next_alloc_ptr;
         // see if we should split memory left over after this allocation.
         bool do_split = reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= end();
         if (do_split) {
@@ -248,7 +249,7 @@ namespace mcppalloc
           _verify(m_next_alloc_ptr);
           m_next_alloc_ptr = next;
           _verify(next);
-          return block_type{ret, sz};
+          return allocation_return_type(block_type{ret, sz}, ret_os);
         }
         else {
           // memory left over would be smaller then minimum allocation.
@@ -263,7 +264,7 @@ namespace mcppalloc
           _verify(m_next_alloc_ptr);
           m_next_alloc_ptr = nullptr;
           _verify(m_next_alloc_ptr);
-          return block_type{ret, sz};
+          return allocation_return_type(block_type{ret, sz}, ret_os);
         }
       }
       template <typename Allocator_Policy>

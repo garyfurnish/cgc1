@@ -1,6 +1,7 @@
 #include "internal_declarations.hpp"
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
+#include "gc_allocator.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cstring>
 #include <cgc1/cgc1_dll.hpp>
@@ -242,9 +243,10 @@ CGC1_DLL_PUBLIC void *GC_malloc(::std::size_t size_in_bytes)
 }
 CGC1_DLL_PUBLIC void *GC_malloc_atomic(::std::size_t size_in_bytes)
 {
-  auto ret = cgc1::cgc_malloc(size_in_bytes);
-  cgc1::cgc_set_atomic(ret, true);
-  return ret;
+  auto &ta = ::cgc1::details::g_gks->gc_allocator().initialize_thread();
+  auto allocation = ta.allocate_detailed(size_in_bytes);
+  ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
+  return get_allocated_memory(allocation);
 }
 CGC1_DLL_PUBLIC void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
 {

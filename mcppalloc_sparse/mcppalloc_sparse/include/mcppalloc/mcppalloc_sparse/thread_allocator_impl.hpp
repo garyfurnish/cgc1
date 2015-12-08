@@ -222,16 +222,22 @@ namespace mcppalloc
       template <typename Global_Allocator, typename Allocator_Thread_Policy>
       auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocate(size_t sz) -> block_type
       {
+        return ::std::get<0>(allocate_detailed(sz));
+      }
+
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      auto thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::allocate_detailed(size_t sz) -> allocation_return_type
+      {
         _check_do_free_empty_blocks();
         // find allocation set for allocation size.
         size_t id = find_block_set_id(sz);
         if (mcppalloc_unlikely(sz < c_alignment))
           sz = c_alignment;
         // try allocation.
-        block_type ret = m_allocators[id].allocate(sz);
+        allocation_return_type ret = m_allocators[id].allocate(sz);
         // if successful returned.
-        if (ret.m_ptr) {
-          m_allocator.thread_policy().on_allocation(ret.m_ptr, ret.m_size);
+        if (allocation_valid(ret)) {
+          m_allocator.thread_policy().on_allocation(get_allocated_memory(ret), get_allocated_size(ret));
           return ret;
         }
         size_t attempts = 1;
@@ -246,13 +252,16 @@ namespace mcppalloc
           try_expand = action.m_attempt_expand;
         }
         if (!success) {
-          ::std::cerr << "Out of memory, aborting" << ::std::endl;
+          ::std::cerr << "mcppalloc: Out of memory, aborting 09c30c8d-2cfa-4646-a562-24f06560fa5c\n" << ::std::endl;
           ::std::terminate();
         }
         ret = m_allocators[id].allocate(sz);
-        if (mcppalloc_unlikely(!ret.m_ptr)) // should be impossible.
+        if (mcppalloc_unlikely(!allocation_valid(ret))) // should be impossible.
+        {
+          ::std::cerr << "mcppalloc: Allocation failed in an impossible fashion.  6bfbf787-3443-47c5-8726-e49d7836315a\n";
           ::std::terminate();
-        m_allocator.thread_policy().on_allocation(ret.m_ptr, ret.m_size);
+        }
+        m_allocator.thread_policy().on_allocation(get_allocated_memory(ret), get_allocated_size(ret));
         return ret;
       }
       template <typename Global_Allocator, typename Allocator_Thread_Policy>
