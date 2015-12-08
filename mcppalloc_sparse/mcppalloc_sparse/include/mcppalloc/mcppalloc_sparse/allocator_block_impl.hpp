@@ -392,7 +392,7 @@ namespace mcppalloc
         // while there are more elements in list.
         auto last_insert_point = m_free_list.end();
         bool did_merge = false;
-        bool needs_insert = true;
+        bool needs_insert = false;
         while (state->next_valid()) {
           cgc1_builtin_prefetch(state->next()->next());
           if (!did_merge && !state->in_use()) {
@@ -428,6 +428,7 @@ namespace mcppalloc
             if (needs_insert) {
               // put in free list.
               last_insert_point = m_free_list.insert(state).first;
+              needs_insert = false;
             }
             state = state->next();
             did_merge = false;
@@ -442,6 +443,8 @@ namespace mcppalloc
           // WARNING THIS IS ALMOST CERTAINLY BROKEN
           // DEBUG FIX THIS NOW!!! BUG BUG BUG
           if (last_insert_point != m_free_list.end()) {
+            assert(last_insert_point >= m_free_list.begin());
+            assert(last_insert_point < m_free_list.end());
             m_free_list.erase(last_insert_point);
           }
           // adjust pointer

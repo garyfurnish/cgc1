@@ -565,8 +565,9 @@ namespace cgc1
       auto it = find(m_threads.begin(), m_threads.end(), tlks);
       if (it == m_threads.end()) {
         // this is a pretty big logic error, so catch in debug mode.
-        assert(0);
-        return;
+        ::std::cerr << __FILE__ << " " << __LINE__ << " 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
+        ::std::cerr << "can not find thread with id " << tlks->thread_id() << ::std::endl;
+        abort();
       }
       // destroy thread allocators for this thread.
       m_gc_allocator.destroy_thread();
@@ -613,6 +614,7 @@ namespace cgc1
           continue;
         // send signal to stop it.
         if (cgc1::pthread_kill(state->thread_handle(), SIGUSR1)) {
+          ::std::cerr << "Thread went away during suspension 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
           // there is no way to recover from this error.
           abort();
         }
