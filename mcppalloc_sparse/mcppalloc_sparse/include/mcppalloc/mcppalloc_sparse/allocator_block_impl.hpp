@@ -5,7 +5,6 @@
 #include <mcppalloc/block.hpp>
 #include <mcppalloc/user_data_base.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
-#include <iostream>
 namespace mcppalloc
 {
   namespace sparse
@@ -168,7 +167,7 @@ namespace mcppalloc
       }
 #endif
       template <typename Allocator_Policy>
-      auto allocator_block_t<Allocator_Policy>::allocate(size_t size, bool debug) -> block_type
+      auto allocator_block_t<Allocator_Policy>::allocate(size_t size) -> block_type
       {
         assert(minimum_allocation_length() <= maximum_allocation_length());
         _verify(nullptr);
@@ -197,42 +196,8 @@ namespace mcppalloc
             if (state->object_size() < original_size)
               continue;
             auto forward_it = it.base() - 1;
-            if (cgc1_unlikely(forward_it >= m_free_list.end())) {
-              ::std::cerr << "Consistency error 8e4970f8-9691-42c0-b018-2a6920e40f39\n";
-              abort();
-            }
-            if (cgc1_unlikely(forward_it < m_free_list.begin())) {
-              ::std::cerr << "Consistency error 9521a31e-9d29-48c1-b971-4f2f8e75ea44\n";
-              abort();
-            }
-            // DEBUG
-            if (cgc1_unlikely(state != *forward_it)) {
-              ::std::cerr << "Consistency error 659de4b2-0370-4a45-acc0-4423169e33f6\n";
-              abort();
-            }
-            if (cgc1_unlikely((forward_it + 1) != m_free_list.end() &&
-                              (*forward_it)->object_size() > (*(forward_it + 1))->object_size())) {
-              ::std::cerr << "Consistency error 14d852ad-a67f-4b80-9eab-d0e666a7b38f\n";
-              abort();
-            }
-            if (cgc1_unlikely(debug)) {
-              if (!::std::is_sorted(m_free_list.begin(), m_free_list.end(), ::mcppalloc::details::os_size_compare{})) {
-                ::std::cerr << __FILE__ << " " << __LINE__ << " 2a23cbf4-37a0-49a1-983b-bb7797e99f67\n";
-                ::std::cerr << "WARNING FREE LIST NOT SORTED\n";
-                abort();
-              }
-            }
-            const auto prev_max_size = (*m_free_list.rbegin())->object_size();
             // erase found from free list.
             m_free_list.erase(forward_it);
-            if (!m_free_list.empty()) {
-              const auto new_max_size = (*m_free_list.rbegin())->object_size();
-              if (cgc1_unlikely(prev_max_size < new_max_size)) {
-                ::std::cerr << "Consistency error 20d77f37-80da-43d5-9eab-1e701d2218ff\n";
-                ::std::cerr << prev_max_size << " " << new_max_size << "\n";
-                abort();
-              }
-            }
 
             // figure out theoretical next pointer.
             object_state_type *next = reinterpret_cast<object_state_type *>(reinterpret_cast<uint8_t *>(state) + size);
@@ -240,16 +205,6 @@ namespace mcppalloc
             if (reinterpret_cast<uint8_t *>(next) + m_minimum_alloc_length <= reinterpret_cast<uint8_t *>(state->next())) {
               // if we are here, the memory left over is bigger then minimum alloc size, so split.
               next->set_all(state->next(), false, state->next_valid());
-              if (cgc1_unlikely(debug)) {
-                if (!m_free_list.empty()) {
-                  const auto new_max_size = (*m_free_list.rbegin())->object_size();
-                  if (cgc1_unlikely(prev_max_size < new_max_size)) {
-                    ::std::cerr << "Consistency error 762bac31-5126-4ebc-a993-148747345e58\n";
-                    ::std::cerr << prev_max_size << " " << new_max_size << "\n";
-                    abort();
-                  }
-                }
-              }
 
               assert(next->object_size() >=
                      m_minimum_alloc_length - align(sizeof(object_state_type), minimum_header_alignment()));
@@ -365,7 +320,7 @@ namespace mcppalloc
         return true;
       }
       template <typename Allocator_Policy>
-      size_t allocator_block_t<Allocator_Policy>::max_alloc_available(bool)
+      size_t allocator_block_t<Allocator_Policy>::max_alloc_available()
       {
         size_t max_alloc = 0;
         // if we can alloc at tail, first check that size.
@@ -440,23 +395,13 @@ namespace mcppalloc
           }
           // ok at end of list, if its available.
           // try to find it in free list.
-          // WARNING THIS IS ALMOST CERTAINLY BROKEN
-          // DEBUG FIX THIS NOW!!! BUG BUG BUG
           if (last_insert_point != m_free_list.end()) {
-            assert(last_insert_point >= m_free_list.begin());
-            assert(last_insert_point < m_free_list.end());
             m_free_list.erase(last_insert_point);
           }
           // adjust pointer
           m_next_alloc_ptr = state;
           _verify(state);
         }
-        if (!::std::is_sorted(m_free_list.begin(), m_free_list.end(), ::mcppalloc::details::os_size_compare{})) {
-          ::std::cerr << __FILE__ << " " << __LINE__ << " 90fa93f0-b161-419d-b8ea-0f53752cac6f\n";
-          ::std::cerr << "WARNING FREE LIST NOT SORTED\n";
-          abort();
-        }
-
         max_alloc_available();
       }
       template <typename Allocator_Policy>

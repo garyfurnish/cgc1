@@ -106,7 +106,7 @@ namespace mcppalloc
          *
          * @return Valid pointer if possible, nullptr otherwise.
         **/
-        auto allocate(size_t size, bool debug = false) -> block_type;
+        auto allocate(size_t size) -> block_type;
         /**
          * \brief Destroy a v that is on the block.
          *
@@ -132,7 +132,7 @@ namespace mcppalloc
         /**
          * \brief Return the maximum allocation size available.
         **/
-        size_t max_alloc_available(bool debug = false);
+        size_t max_alloc_available();
         /**
          * \brief Verify object state os.
          *

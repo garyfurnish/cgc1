@@ -562,8 +562,8 @@ namespace cgc1
       CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       CGC1_CONCURRENCY_LOCK_GUARD_TAKE(m_thread_mutex);
       // find thread and erase it from global state
-      auto it = find(m_threads.begin(), m_threads.end(), tlks);
-      if (it == m_threads.end()) {
+      const auto it = find(m_threads.begin(), m_threads.end(), tlks);
+      if (cgc1_unlikely(it == m_threads.end())) {
         // this is a pretty big logic error, so catch in debug mode.
         ::std::cerr << "can not find thread with id " << tlks->thread_id() << " 614164d3-1ab6-4079-b978-7880aa74b566"
                     << ::std::endl;
@@ -589,10 +589,9 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(::mcppalloc::pow2(33), ::mcppalloc::pow2(36));
-      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
-      const size_t num_gc_threads = 1;
+      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
       // sanity check bad stl implementations.
-      if (!num_gc_threads) {
+      if (cgc1_unlikely(!num_gc_threads)) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
         abort();
       }
@@ -613,7 +612,7 @@ namespace cgc1
         if (state->thread_id() == ::std::this_thread::get_id())
           continue;
         // send signal to stop it.
-        if (cgc1::pthread_kill(state->thread_handle(), SIGUSR1)) {
+        if (cgc1_unlikely(cgc1::pthread_kill(state->thread_handle(), SIGUSR1))) {
           ::std::cerr << "Thread went away during suspension 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
           // there is no way to recover from this error.
           abort();
@@ -629,7 +628,7 @@ namespace cgc1
         ::std::this_thread::yield();
         ::std::chrono::high_resolution_clock::time_point cur_time = ::std::chrono::high_resolution_clock::now();
         auto time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(cur_time - start_time);
-        if (time_span > ::std::chrono::seconds(1))
+        if (cgc1_unlikely(time_span > ::std::chrono::seconds(1)))
           ::std::cerr << "Waiting on thread to pause\n";
       }
       lock.lock();
@@ -706,7 +705,7 @@ namespace cgc1
         CONTEXT context = {0};
         context.ContextFlags = CONTEXT_FULL;
         auto ret = ::GetThreadContext(state->thread_handle(), &context);
-        if (!ret) {
+        if (cgc1_unlikely(!ret)) {
           ::std::cerr << "Get thread context failed\n";
           ::abort();
         }
