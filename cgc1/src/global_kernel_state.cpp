@@ -217,8 +217,6 @@ namespace cgc1
 
     gc_sparse_object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
-      // During garbage collection we may assume that the GC data is static.
-      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(gc_allocator()._mutex());
       // get handle for block.
       auto handle = gc_allocator()._u_find_block(addr);
       if (!handle)
@@ -232,7 +230,7 @@ namespace cgc1
     }
     gc_sparse_object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
     {
-      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK2_GUARD(m_mutex, gc_allocator()._mutex());
       // forward to thread unsafe version.
       return _u_find_valid_object_state(addr);
     }
