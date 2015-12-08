@@ -565,8 +565,8 @@ namespace cgc1
       auto it = find(m_threads.begin(), m_threads.end(), tlks);
       if (it == m_threads.end()) {
         // this is a pretty big logic error, so catch in debug mode.
-        ::std::cerr << __FILE__ << " " << __LINE__ << " 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
-        ::std::cerr << "can not find thread with id " << tlks->thread_id() << ::std::endl;
+        ::std::cerr << "can not find thread with id " << tlks->thread_id() << " 614164d3-1ab6-4079-b978-7880aa74b566"
+                    << ::std::endl;
         abort();
       }
       // destroy thread allocators for this thread.
