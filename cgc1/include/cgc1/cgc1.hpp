@@ -122,8 +122,13 @@ namespace cgc1
   extern CGC1_DLL_PUBLIC void cgc_register_thread(void *top_of_stack);
   /**
    * \brief Register a finalizer.
+   * @param addr Start of memory to register finalizer for.
+   * @param finalizer Finalizer for memory.
+   * @param allow_arbitrary_finalizer_thread Allow finalizer to run in an arbitrary background gc thread instead of a user created
+   *thread.
   **/
-  extern CGC1_DLL_PUBLIC void cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer);
+  extern CGC1_DLL_PUBLIC void
+  cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread = false);
   /**
    * \brief Set if a given address is uncollectable.
   **/
@@ -146,12 +151,17 @@ namespace cgc1
   extern CGC1_DLL_PUBLIC void cgc_collect();
   /**
    * \brief Force a collection.
-  **/
-  extern CGC1_DLL_PUBLIC void cgc_force_collect();
+   * @param do_local_finalization Should local finalization be performed.
+   **/
+  extern CGC1_DLL_PUBLIC void cgc_force_collect(bool do_local_finalization = true);
   /**
    * \brief Wait for collection to finish.
   **/
   extern CGC1_DLL_PUBLIC void cgc_wait_collect();
+  /**
+   * \brief Wait for finalization to finsih.
+   **/
+  extern CGC1_DLL_PUBLIC void cgc_wait_finalization(bool do_local_finalization = true);
   namespace debug
   {
     /**
@@ -171,5 +181,5 @@ namespace cgc1
     auto _cgc_hidden_packed_free(uintptr_t loc) -> bool;
   }
 }
-#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(cgc1_builtin_current_stack())
+#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())
 #include "gc_allocator.hpp"

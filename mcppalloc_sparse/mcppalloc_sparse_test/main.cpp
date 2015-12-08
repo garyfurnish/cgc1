@@ -1,14 +1,11 @@
-#include <mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc_utils/container_functions.hpp>
-#include <mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
+#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #ifdef _WIN32
 #pragma optimize("", off)
 #endif
 
 using namespace bandit;
-extern void gc_bandit_tests();
-extern void bitmap_tests();
-extern void slab_allocator_bandit_tests();
 extern void allocator_block_tests();
 extern void allocator_block_set_tests();
 extern void allocator_tests();
@@ -25,7 +22,6 @@ go_bandit([]() {
       page.destroy();
     });
   });
-  //  slab_allocator_bandit_tests();
   describe("Allocator", []() {
     allocator_block_tests();
     allocator_block_set_tests();
@@ -89,17 +85,13 @@ go_bandit([]() {
       AssertThat(in_array == out_array, IsTrue());
     });
   });
-  //  bitmap_tests();
-  //  gc_bandit_tests();
 });
 
 int main(int argc, char *argv[])
 {
-  //  CGC1_INITIALIZE_THREAD();
   auto ret = bandit::run(argc, argv);
 #ifdef _WIN32
   ::std::cin.get();
 #endif
-  //  mcppalloc::cgc_shutdown();
   return ret;
 }

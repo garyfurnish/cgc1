@@ -16,7 +16,7 @@
 #include <cgc1/posix.hpp>
 #include <thread>
 #include <signal.h>
-#include <mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "../cgc1/src/global_kernel_state.hpp"
 
 #endif
@@ -38,7 +38,7 @@ int main()
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(GC_malloc(alloc_sz));
     if (!ret)
-      abort();
+      ::std::terminate();
     for (size_t li = 0; li < 8; ++li) {
       ret[li] = GC_malloc(alloc_sz);
     }
@@ -56,7 +56,7 @@ int main()
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
     if (!ret)
-      abort();
+      ::std::terminate();
     for (size_t li = 0; li < 8; ++li)
       ret[li] = ts.allocate(alloc_sz).m_ptr;
     ::mcppalloc::secure_zero(&ret, sizeof(ret));
@@ -71,10 +71,10 @@ int main()
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
     if (!ret)
-      abort();
+      ::std::terminate();
     for (size_t li = 0; li < 8; ++li) {
       if (!(ret[li] = ts.allocate(alloc_sz).m_ptr))
-        abort();
+        ::std::terminate();
     }
   }
 #endif

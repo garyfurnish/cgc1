@@ -1,5 +1,5 @@
 #pragma once
-#include <mcppalloc_utils/declarations.hpp>
+#include <mcppalloc/mcppalloc_utils/declarations.hpp>
 namespace cgc1
 {
   template <size_t bytes = 5000>

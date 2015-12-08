@@ -22,12 +22,13 @@ namespace cgc1
       m_finalization_done = true;
       // start thread.
       using thread_type = decltype(m_thread);
-      m_thread = thread_type(thread_type::allocator{}, [this]() -> void * {
-        _run();
-        // make sure to destroy internal allocator if used.
-        _real_gks()->_internal_allocator().destroy_thread();
-        return nullptr;
-      });
+      m_thread = thread_type(thread_type::allocator{},
+                             [this]() -> void * {
+                               _run();
+                               // make sure to destroy internal allocator if used.
+                               _real_gks()->_internal_allocator().destroy_thread();
+                               return nullptr;
+                             });
     }
     gc_thread_t::~gc_thread_t()
     {
@@ -42,7 +43,7 @@ namespace cgc1
       wake_up();
       // wait for thread to terminate.
       m_thread.join();
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       ::mcppalloc::clear_capacity(m_addresses_to_mark);
       ::mcppalloc::clear_capacity(m_stack_roots);
       ::mcppalloc::clear_capacity(m_watched_threads);
@@ -50,7 +51,7 @@ namespace cgc1
     void gc_thread_t::reset()
     {
       // grab lock and initialize everything.
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_clear_done = false;
       m_mark_done = false;
       m_sweep_done = false;
@@ -67,31 +68,31 @@ namespace cgc1
     }
     void gc_thread_t::wake_up()
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_wake_up.notify_all();
     }
     void gc_thread_t::add_thread(::std::thread::id id)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       ::mcppalloc::insert_unique_sorted(m_watched_threads, id, ::std::less<::std::thread::id>());
     }
     void gc_thread_t::set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
                                            gc_allocator_t::this_allocator_block_handle_t *end)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_block_begin = begin;
       m_block_end = end;
     }
     void gc_thread_t::set_root_iterators(void ***begin, void ***end)
     {
-      CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       m_root_begin = begin;
       m_root_end = end;
     }
     void gc_thread_t::_run()
     {
       while (m_run) {
-        CGC1_CONCURRENCY_LOCK_GUARD(m_mutex);
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         while (!m_do_clear) {
           m_wake_up.wait(m_mutex);
           if (!m_run)
@@ -174,7 +175,7 @@ namespace cgc1
         return false;
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // add potential roots (ex: registers).
       m_addresses_to_mark.insert(tlks->_potential_roots().begin(), tlks->_potential_roots().end());
       // clear potential roots for next time.
@@ -219,7 +220,7 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
     {
       // This is calling during garbage collection, therefore no mutex is needed.
-      CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // Find heap begin and end.
       void *heap_begin = g_gks->gc_allocator()._u_begin();
       void *heap_end = g_gks->gc_allocator()._u_current_end();
@@ -231,7 +232,8 @@ namespace cgc1
       if (os < heap_begin || os >= heap_end) {
         if (addr < fast_heap_begin || addr >= fast_heap_end) {
           return;
-        } else
+        }
+        else
           fast_heap = true;
       }
 
@@ -239,7 +241,7 @@ namespace cgc1
       if (!fast_heap) {
         if (!g_gks->is_valid_object_state(os)) {
           // This is calling during garbage collection, therefore no mutex is needed.
-          CGC1_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
+          MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
           os = g_gks->_u_find_valid_object_state(addr);
           if (!os)
             return;
@@ -259,7 +261,8 @@ namespace cgc1
           // if recursion depth too big, put it on addresses to mark.
           m_addresses_to_mark.insert(addr);
           return;
-        } else {
+        }
+        else {
           // set it as marked.
           set_mark(os);
           // recurse to pointers.
@@ -268,8 +271,8 @@ namespace cgc1
             _mark_addrs(*it, depth + 1);
           }
         }
-
-      } else {
+      }
+      else {
         if (depth > 300) {
           // if recursion depth too big, put it on addresses to mark.
           m_addresses_to_mark.insert(addr);
@@ -322,22 +325,25 @@ namespace cgc1
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
                 m_to_be_freed.push_back(os_it);
 #endif
-
-              } else {
+              }
+              else {
                 if (ud->is_uncollectable()) {
                   // if uncollectable don't do anything.
                   // didn't actually free anything, so decrement.
                   --num_freed;
                   continue;
-                } else if (ud->m_finalizer) {
+                }
+                else if (ud->m_finalizer) {
                   // if it has a finalizer, finalize.
                   m_to_be_freed.push_back(os_it);
-                } else {
+                }
+                else {
                   // delete user data if not owned by block.
                   m_to_be_freed.push_back(os_it);
                 }
               }
-            } else {
+            }
+            else {
               // no user data, so delete.
               os_it->set_quasi_freed();
             }
@@ -351,17 +357,28 @@ namespace cgc1
       // debug info.
       // to be freed gets hidden pointers.
       cgc_internal_vector_t<uintptr_t> to_be_freed;
+      cgc_internal_vector_t<typename gc_allocator_t::object_state_type *> special_finalization;
       for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
           if (ud->is_default()) {
-          } else {
-            if (ud->m_finalizer) {
+          }
+          else {
+            // if it has a finalizer that can run in this thread, finalize.
+            if (ud->m_finalizer && ud->allow_arbitrary_finalizer_thread()) {
               ud->m_finalizer(os->object_start());
-              // if it has a finalizer, finalize.
+              unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
             }
-            unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
-            // delete user data if not owned by block.
+            // if it has a thread restricted finalizer, push
+            else if (ud->m_finalizer) {
+              special_finalization.emplace_back(os);
+              // we do not want to zero memory etc so continue.
+              continue;
+            }
+            else {
+              // delete user data if not owned by block.
+              unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
+            }
           }
         }
         assert(os->object_end() < g_gks->gc_allocator().end());
@@ -375,6 +392,7 @@ namespace cgc1
       }
       // notify kernel that the memory was freed.
       g_gks->_add_freed_in_last_collection(to_be_freed);
+      g_gks->_add_need_special_finalizing_collection(special_finalization);
       // destroy the memory in allocator.
       g_gks->gc_allocator().bulk_destroy_memory(m_to_be_freed);
     }

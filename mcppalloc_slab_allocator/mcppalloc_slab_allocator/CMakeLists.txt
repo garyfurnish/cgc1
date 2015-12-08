@@ -1,0 +1,1 @@
+INSTALL(DIRECTORY "include/mcppalloc" DESTINATION "include")

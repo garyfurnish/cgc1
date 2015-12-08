@@ -1,6 +1,6 @@
 #pragma once
 #include "declarations.hpp"
-#ifdef CGC1_POSIX
+#ifdef MCPPALLOC_POSIX
 #include <functional>
 #include <thread>
 namespace cgc1

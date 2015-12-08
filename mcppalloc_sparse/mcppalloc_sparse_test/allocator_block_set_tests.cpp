@@ -1,7 +1,7 @@
-#include <mcppalloc_utils/bandit.hpp>
-#include <mcppalloc_utils/aligned_allocator.hpp>
-#include <mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc_utils/literals.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
+#include <mcppalloc/mcppalloc_utils/literals.hpp>
 
 using namespace ::bandit;
 using namespace ::mcppalloc::literals;
@@ -91,10 +91,10 @@ void allocator_block_set_tests()
       // available blocks should be in sorted order.
       AssertThat(abs.m_blocks, HasLength(3));
       AssertThat(abs.m_available_blocks, HasLength(2));
-      AssertThat(abs.m_available_blocks[0].first, Equals(static_cast<size_t>(496)));
-      AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[1]));
-      AssertThat(abs.m_available_blocks[1].first, Equals(static_cast<size_t>(976)));
-      AssertThat(abs.m_available_blocks[1].second, Equals(&abs.m_blocks[0]));
+      AssertThat(abs.m_available_blocks.begin()->first, Equals(static_cast<size_t>(496)));
+      AssertThat(abs.m_available_blocks.begin()->second, Equals(&abs.m_blocks[1]));
+      AssertThat((abs.m_available_blocks.begin() + 1)->first, Equals(static_cast<size_t>(976)));
+      AssertThat((abs.m_available_blocks.begin() + 1)->second, Equals(&abs.m_blocks[0]));
       // done
     });
     it("allocator_block_set_remove_block", [&]() {
@@ -106,11 +106,11 @@ void allocator_block_set_tests()
       abs.add_block(ab_type(memory2, memory_size, 16, mcppalloc::c_infinite_length));
       abs.add_block(ab_type(memory3, memory_size, 16, mcppalloc::c_infinite_length));
       AssertThat(abs.m_available_blocks, HasLength(2));
-      AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
-      AssertThat(abs.m_available_blocks[1].second, Equals(&*(abs.m_blocks.begin() + 1)));
+      AssertThat(abs.m_available_blocks.begin()->second, Equals(&*(abs.m_blocks.begin())));
+      AssertThat((abs.m_available_blocks.begin() + 1)->second, Equals(&*(abs.m_blocks.begin() + 1)));
       abs.remove_block(abs.m_blocks.begin() + 1, []() {}, []() {}, [](auto, auto, auto) {});
       AssertThat(abs.m_available_blocks, HasLength(1));
-      AssertThat(abs.m_available_blocks[0].second, Equals(&*(abs.m_blocks.begin())));
+      AssertThat(abs.m_available_blocks.begin()->second, Equals(&*(abs.m_blocks.begin())));
     });
 
     it("allocator_block_set_destroy_rotate", [&]() {
@@ -123,28 +123,23 @@ void allocator_block_set_tests()
       abs.add_block(ab_type(memory2, memory_size, 16, mcppalloc::c_infinite_length));
       abs.add_block(ab_type(memory3, memory_size, 16, mcppalloc::c_infinite_length));
       abs.add_block(ab_type(memory3, memory_size, 16, mcppalloc::c_infinite_length));
-
       void *alloc1 = abs.allocate(900).m_ptr;
       void *alloc2 = abs.allocate(800).m_ptr;
       void *alloc3 = abs.allocate(700).m_ptr;
-
       AssertThat(abs.m_available_blocks, HasLength(3_sz));
-      AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[0]));
-      AssertThat(abs.m_available_blocks[1].second, Equals(&abs.m_blocks[1]));
-      AssertThat(abs.m_available_blocks[2].second, Equals(&abs.m_blocks[2]));
-
+      AssertThat(abs.m_available_blocks.begin()->second, Equals(&abs.m_blocks[0]));
+      AssertThat((abs.m_available_blocks.begin() + 1)->second, Equals(&abs.m_blocks[1]));
+      AssertThat((abs.m_available_blocks.begin() + 2)->second, Equals(&abs.m_blocks[2]));
       abs.destroy(alloc2);
       AssertThat(abs.m_available_blocks, HasLength(3_sz));
-      AssertThat(abs.m_available_blocks[0].second, Equals(&abs.m_blocks[0]));
-      AssertThat(abs.m_available_blocks[1].second, Equals(&abs.m_blocks[2]));
+      AssertThat(abs.m_available_blocks.begin()->second, Equals(&abs.m_blocks[0]));
+      AssertThat((abs.m_available_blocks.begin() + 1)->second, Equals(&abs.m_blocks[2]));
       // catch writing pair to wrong place (ACTUAL BUG).
-      AssertThat(abs.m_available_blocks[2].first, Equals(976_sz));
-      AssertThat(abs.m_available_blocks[2].second, Equals(&abs.m_blocks[1]));
-
+      AssertThat((abs.m_available_blocks.begin() + 2)->first, Equals(976_sz));
+      AssertThat((abs.m_available_blocks.begin() + 2)->second, Equals(&abs.m_blocks[1]));
       abs.destroy(alloc1);
       abs.destroy(alloc2);
       abs.destroy(alloc3);
-
     });
 
     free(memory1);

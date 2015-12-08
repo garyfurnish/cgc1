@@ -1,12 +1,10 @@
 #include <cgc1/declarations.hpp>
-#include <mcppalloc_utils/security.hpp>
+#include <mcppalloc/mcppalloc_utils/security.hpp>
 #include <atomic>
 namespace cgc1
 {
-  // TODO: Moving this into a cpp from always inline may cause problems.
-  // Verify that it does not.
   template <size_t bytes>
-  void clean_stack(size_t, size_t, size_t, size_t, size_t)
+  MCPPALLOC_NO_INLINE void clean_stack(size_t, size_t, size_t, size_t, size_t)
   {
     // this nukes all registers and forces spills.
     __asm__ __volatile__(
@@ -50,6 +48,7 @@ namespace cgc1
     int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
     ::mcppalloc::secure_zero(array, bytes);
     assert(*array == 0);
+    ::std::atomic_thread_fence(::std::memory_order_acq_rel);
   }
   template void clean_stack<5000>(size_t, size_t, size_t, size_t, size_t);
 }

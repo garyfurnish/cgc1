@@ -97,7 +97,7 @@ namespace cgc1
     {
       // can't recover if we didn't set stack ptrs.
       if (!static_cast<uint8_t *>(m_stack_ptr) || !static_cast<uint8_t *>(m_top_of_stack))
-        abort();
+        ::std::terminate();
       uint8_t **unaligned = reinterpret_cast<uint8_t **>(m_stack_ptr.load());
       uint8_t **stack_ptr = ::mcppalloc::align_pow2(unaligned, 3);
       assert(unaligned == stack_ptr);
@@ -106,7 +106,8 @@ namespace cgc1
         void *os = gc_sparse_object_state_t::from_object_start(*v);
         if (os >= ibegin && os < iend) {
           container.emplace_back(v);
-        } else if (*v >= fast_slab_begin && *v < fast_slab_end) {
+        }
+        else if (*v >= fast_slab_begin && *v < fast_slab_end) {
           container.emplace_back(v);
         }
       }

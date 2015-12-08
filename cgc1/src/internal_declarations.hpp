@@ -1,6 +1,6 @@
 #pragma once
 #include <cgc1/declarations.hpp>
-#include <mcppalloc_utils/make_unique.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
 namespace cgc1
 {
   template <typename T, typename Allocator>

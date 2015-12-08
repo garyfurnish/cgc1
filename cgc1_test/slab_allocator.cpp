@@ -1,7 +1,7 @@
-#include <mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc_utils/unsafe_cast.hpp>
-#include <mcppalloc_utils/bandit.hpp>
-#include <mcppalloc_utils/container.hpp>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_utils/container.hpp>
 #include "../cgc1/src/internal_allocator.hpp"
 using namespace bandit;
 using ::mcppalloc::unsafe_cast;
