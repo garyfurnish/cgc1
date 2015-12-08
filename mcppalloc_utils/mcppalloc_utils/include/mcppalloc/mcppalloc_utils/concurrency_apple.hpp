@@ -21,7 +21,7 @@ namespace mcppalloc
     pthread_mutex_t() noexcept
     {
       if (pthread_mutex_init(&m_mutex, 0))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     pthread_mutex_t(const pthread_mutex_t &) = delete;
     pthread_mutex_t(pthread_mutex_t &&) = default;
@@ -33,7 +33,7 @@ namespace mcppalloc
     ~pthread_mutex_t()
     {
       if (::pthread_mutex_destroy(&m_mutex))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     /**
      * \brief Locks lock.
@@ -43,7 +43,7 @@ namespace mcppalloc
     void lock() noexcept
     {
       if (::pthread_mutex_lock(&m_mutex))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     /**
      * \brief Unlocks lock.
@@ -53,7 +53,7 @@ namespace mcppalloc
     void unlock() noexcept
     {
       if (::pthread_mutex_unlock(&m_mutex))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     /**
      * \brief Try to acquire locks.
@@ -100,7 +100,7 @@ namespace mcppalloc
     pthread_condition_variable_any_t() noexcept
     {
       if (::pthread_cond_init(&m_cond, 0))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     pthread_condition_variable_any_t(const pthread_condition_variable_any_t &) = delete;
     pthread_condition_variable_any_t(pthread_condition_variable_any_t &&) = default;
@@ -112,7 +112,7 @@ namespace mcppalloc
     ~pthread_condition_variable_any_t()
     {
       if (::pthread_cond_destroy(&m_cond))
-        :: ::std::terminate();
+        ::std::terminate();
     }
     /**
      * \brief Wait until signaled and pred is true.
@@ -139,7 +139,7 @@ namespace mcppalloc
       m_mutex.lock();
       lock.unlock();
       if (::pthread_cond_wait(&m_cond, m_mutex.native_handle()))
-        :: ::std::terminate();
+        ::std::terminate();
       m_mutex.unlock();
       lock.lock();
     }
@@ -152,7 +152,7 @@ namespace mcppalloc
     {
       lock_guard_t<decltype(m_mutex)> lg(m_mutex);
       if (::pthread_cond_broadcast(&m_cond))
-        :: ::std::terminate();
+        ::std::terminate();
     }
 
   private:

@@ -698,7 +698,7 @@ namespace cgc1
         }
         // if not in signal handler abort.
         if (!state->in_signal_handler()) {
-          :: ::std::terminate();
+          ::std::terminate();
         }
         // get thread context.
         CONTEXT context = {0};
@@ -706,7 +706,7 @@ namespace cgc1
         auto ret = ::GetThreadContext(state->thread_handle(), &context);
         if (mcppalloc_unlikely(!ret)) {
           ::std::cerr << "Get thread context failed\n";
-          :: ::std::terminate();
+          ::std::terminate();
         }
         // get stack pointer.
         uint8_t *stack_ptr = nullptr;
