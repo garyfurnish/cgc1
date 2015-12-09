@@ -24,6 +24,7 @@ namespace mcppalloc
                       "Allocator policy must be allocator_policy");
         using allocator = typename Allocator_Policy::internal_allocator_type;
         using allocator_block_type = allocator_block_t<allocator_policy_type>;
+        using allocation_return_type = typename allocator_block_type::allocation_return_type;
         using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;
         using sized_block_ref_t = typename ::std::pair<size_t, allocator_block_type *>;
         using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
@@ -101,7 +102,7 @@ namespace mcppalloc
          * @param sz Size to allocate.
          * @return A pointer to allocated memory, nullptr on failure.
         **/
-        auto allocate(size_t sz) -> block_type;
+        auto allocate(size_t sz) -> allocation_return_type;
         /**
          * \brief Destroy memory.
          * @return True if this block set allocated the memory and thus destroyed it, false otherwise.

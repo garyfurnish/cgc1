@@ -51,6 +51,7 @@ namespace mcppalloc
         using this_allocator_block_set_t = allocator_block_set_t<Allocator_Policy>;
         using this_block_type = typename this_allocator_block_set_t::allocator_block_type;
         using block_type = block_t<allocator_policy_type>;
+        using allocation_return_type = typename this_allocator_block_set_t::allocation_return_type;
         /**
          * \brief Type for destroy threshold.
          *
@@ -106,6 +107,10 @@ namespace mcppalloc
         * @return nullptr on error.
         **/
         auto allocate(size_t size) -> block_type;
+        /**
+         * \brief Allocate memory of size.
+         **/
+        auto allocate_detailed(size_t size) -> allocation_return_type;
         /**
          * \brief Attempt to allocate once.
          *

@@ -146,9 +146,9 @@ namespace mcppalloc
 #endif
       }
       template <typename Allocator_Policy>
-      auto allocator_block_set_t<Allocator_Policy>::allocate(size_t sz) -> block_type
+      auto allocator_block_set_t<Allocator_Policy>::allocate(size_t sz) -> allocation_return_type
       {
-        block_type ret{nullptr, 0};
+        allocation_return_type ret(block_type{nullptr, 0}, nullptr);
         _verify();
         if (m_available_blocks.empty()) {
           if (!m_blocks.empty()) {
@@ -174,7 +174,7 @@ namespace mcppalloc
         // if here, there is a block in available blocks to use.
         // so try to allocate in there.
         ret = lower_bound->second->allocate(sz);
-        if (mcppalloc_unlikely(!ret.m_ptr)) {
+        if (mcppalloc_unlikely(!allocation_valid(ret))) {
           // this shouldn't happen
           // so memory corruption, abort.
           ::std::cerr << " ABS failed to allocate, logic error/memory corruption. 6b758a2e-981f-440d-8107-78269157bc44"

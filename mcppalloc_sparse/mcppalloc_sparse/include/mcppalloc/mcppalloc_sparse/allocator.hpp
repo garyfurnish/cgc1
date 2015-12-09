@@ -7,6 +7,7 @@
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <mcppalloc/mcppalloc_utils/memory_range.hpp>
 #include <map>
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
 #include "allocator_block_handle.hpp"
 namespace mcppalloc
 {
@@ -518,7 +519,7 @@ namespace mcppalloc
          * \brief Type that is a map for thread allocators that uses the control allocator to handle memory.
          **/
         using ta_map_allocator_t = typename allocator::template rebind<
-            typename ::std::pair<const typename ::std::thread::id, thread_allocator_unique_ptr_t>>::other;
+            typename ::std::pair<typename ::std::thread::id, thread_allocator_unique_ptr_t>>::other;
         /**
          * \brief Blocks currently in use.
          *
@@ -536,8 +537,9 @@ namespace mcppalloc
         /**
          * \brief Map from thread ids to thread allocators.
         **/
-        ::std::map<::std::thread::id, thread_allocator_unique_ptr_t, ::std::less<::std::thread::id>, ta_map_allocator_t>
-            m_thread_allocators GUARDED_BY(m_mutex);
+        ::boost::container::
+            flat_map<::std::thread::id, thread_allocator_unique_ptr_t, ::std::less<::std::thread::id>, ta_map_allocator_t>
+                m_thread_allocators GUARDED_BY(m_mutex);
 
         static_assert(::std::is_base_of<allocator_policy_tag_t, allocator_policy_type>::value, "");
         static_assert(::std::is_base_of<::mcppalloc::details::allocator_thread_policy_tag_t,

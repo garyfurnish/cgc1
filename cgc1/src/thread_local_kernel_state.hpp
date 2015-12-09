@@ -6,6 +6,7 @@
 #include <vector>
 #include <assert.h>
 #include "internal_allocator.hpp"
+#include "gc_allocator.hpp"
 namespace cgc1
 {
   namespace details
@@ -93,8 +94,11 @@ namespace cgc1
        * \brief Return list of potential roots.
        **/
       const cgc_internal_vector_t<void *> &_potential_roots() const;
+      auto thread_allocator() const noexcept -> typename gc_allocator_t::this_thread_allocator_t *;
+      void set_thread_allocator(typename gc_allocator_t::this_thread_allocator_t *allocator);
 
     private:
+      typename gc_allocator_t::this_thread_allocator_t *m_thread_allocator = nullptr;
       /**
       * \brief Native thread handle for this thread.
       **/

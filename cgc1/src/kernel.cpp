@@ -1,6 +1,7 @@
 #include "internal_declarations.hpp"
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
+#include "gc_allocator.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cstring>
 #include <cgc1/cgc1_dll.hpp>
@@ -50,15 +51,19 @@ namespace cgc1
       return tlks->in_signal_handler();
     return false;
   }
-
+  static auto &cgc_thread_allocator()
+  {
+    auto &tlks = *details::get_tlks();
+    return *tlks.thread_allocator();
+  }
   void *cgc_malloc(size_t sz)
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     return ta.allocate(sz).m_ptr;
   }
   auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     return ta.allocate(sz);
   }
   uintptr_t cgc_hidden_malloc(size_t sz)
@@ -76,7 +81,7 @@ namespace cgc1
   }
   void cgc_free(void *v)
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     ta.destroy(v);
   }
   bool cgc_is_cgc(void *v)
@@ -157,6 +162,8 @@ namespace cgc1
       details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
     }
     details::g_gks->initialize_current_thread(top_of_stack);
+    auto tlks = details::get_tlks();
+    tlks->set_thread_allocator(&::cgc1::details::g_gks->gc_allocator().initialize_thread());
   }
   void cgc_collect()
   {
@@ -242,9 +249,10 @@ CGC1_DLL_PUBLIC void *GC_malloc(::std::size_t size_in_bytes)
 }
 CGC1_DLL_PUBLIC void *GC_malloc_atomic(::std::size_t size_in_bytes)
 {
-  auto ret = cgc1::cgc_malloc(size_in_bytes);
-  cgc1::cgc_set_atomic(ret, true);
-  return ret;
+  auto &ta = ::cgc1::cgc_thread_allocator();
+  auto allocation = ta.allocate_detailed(size_in_bytes);
+  ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
+  return get_allocated_memory(allocation);
 }
 CGC1_DLL_PUBLIC void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
 {
@@ -267,7 +275,7 @@ CGC1_DLL_PUBLIC void GC_gcollect()
 CGC1_DLL_PUBLIC void GC_register_finalizer(void *addr, void (*finalizer)(void *, void *), void *user_data, void *b, void *c)
 {
   if (b || c) {
-    ::std::cerr << "arguments to register finalizer must be null\n";
+    ::std::cerr << "arguments to register finalizer must be null 06b40398-36e4-47fc-bc07-78817f612e2c\n";
     ::std::terminate();
   }
   auto real_finalizer = [finalizer, user_data](void *ptr) { finalizer(ptr, user_data); };
