@@ -7,7 +7,7 @@
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <mcppalloc/mcppalloc_utils/memory_range.hpp>
 #include <map>
-#include <boost/container/flat_map.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
 #include "allocator_block_handle.hpp"
 namespace mcppalloc
 {

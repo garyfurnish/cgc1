@@ -275,7 +275,7 @@ CGC1_DLL_PUBLIC void GC_gcollect()
 CGC1_DLL_PUBLIC void GC_register_finalizer(void *addr, void (*finalizer)(void *, void *), void *user_data, void *b, void *c)
 {
   if (b || c) {
-    ::std::cerr << "arguments to register finalizer must be null\n";
+    ::std::cerr << "arguments to register finalizer must be null 06b40398-36e4-47fc-bc07-78817f612e2c\n";
     ::std::terminate();
   }
   auto real_finalizer = [finalizer, user_data](void *ptr) { finalizer(ptr, user_data); };
