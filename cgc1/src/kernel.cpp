@@ -51,15 +51,19 @@ namespace cgc1
       return tlks->in_signal_handler();
     return false;
   }
-
+  static auto& cgc_thread_allocator()
+  {
+    auto& tlks = *details::get_tlks();
+    return *tlks.thread_allocator();
+  }
   void *cgc_malloc(size_t sz)
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     return ta.allocate(sz).m_ptr;
   }
   auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     return ta.allocate(sz);
   }
   uintptr_t cgc_hidden_malloc(size_t sz)
@@ -77,7 +81,7 @@ namespace cgc1
   }
   void cgc_free(void *v)
   {
-    auto &ta = details::g_gks->gc_allocator().initialize_thread();
+    auto &ta = cgc_thread_allocator();
     ta.destroy(v);
   }
   bool cgc_is_cgc(void *v)
@@ -158,6 +162,8 @@ namespace cgc1
       details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
     }
     details::g_gks->initialize_current_thread(top_of_stack);
+    auto tlks = details::get_tlks();
+    tlks->set_thread_allocator(&::cgc1::details::g_gks->gc_allocator().initialize_thread());
   }
   void cgc_collect()
   {
@@ -243,7 +249,7 @@ CGC1_DLL_PUBLIC void *GC_malloc(::std::size_t size_in_bytes)
 }
 CGC1_DLL_PUBLIC void *GC_malloc_atomic(::std::size_t size_in_bytes)
 {
-  auto &ta = ::cgc1::details::g_gks->gc_allocator().initialize_thread();
+  auto &ta = ::cgc1::cgc_thread_allocator();
   auto allocation = ta.allocate_detailed(size_in_bytes);
   ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
   return get_allocated_memory(allocation);

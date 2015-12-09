@@ -91,6 +91,15 @@ namespace cgc1
     {
       return m_potential_roots;
     }
+    inline auto thread_local_kernel_state_t::thread_allocator() const noexcept -> typename gc_allocator_t::this_thread_allocator_t*
+    {
+      return m_thread_allocator;
+    }
+    inline void thread_local_kernel_state_t::set_thread_allocator(typename gc_allocator_t::this_thread_allocator_t* allocator)
+    {
+      m_thread_allocator=allocator;
+    }
+      
     template <typename CONTAINER>
     void thread_local_kernel_state_t::scan_stack(
         CONTAINER &container, uint8_t *ibegin, uint8_t *iend, uint8_t *fast_slab_begin, uint8_t *fast_slab_end)
