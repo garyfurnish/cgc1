@@ -537,8 +537,9 @@ namespace mcppalloc
         /**
          * \brief Map from thread ids to thread allocators.
         **/
-        ::boost::container::flat_map<::std::thread::id, thread_allocator_unique_ptr_t, ::std::less<::std::thread::id>, ta_map_allocator_t>
-            m_thread_allocators GUARDED_BY(m_mutex);
+        ::boost::container::
+            flat_map<::std::thread::id, thread_allocator_unique_ptr_t, ::std::less<::std::thread::id>, ta_map_allocator_t>
+                m_thread_allocators GUARDED_BY(m_mutex);
 
         static_assert(::std::is_base_of<allocator_policy_tag_t, allocator_policy_type>::value, "");
         static_assert(::std::is_base_of<::mcppalloc::details::allocator_thread_policy_tag_t,

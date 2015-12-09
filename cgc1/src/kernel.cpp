@@ -51,9 +51,9 @@ namespace cgc1
       return tlks->in_signal_handler();
     return false;
   }
-  static auto& cgc_thread_allocator()
+  static auto &cgc_thread_allocator()
   {
-    auto& tlks = *details::get_tlks();
+    auto &tlks = *details::get_tlks();
     return *tlks.thread_allocator();
   }
   void *cgc_malloc(size_t sz)
