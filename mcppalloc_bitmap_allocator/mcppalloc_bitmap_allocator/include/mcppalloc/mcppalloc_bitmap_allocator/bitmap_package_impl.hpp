@@ -11,17 +11,25 @@ namespace mcppalloc
   {
     namespace details
     {
+      constexpr const size_t min_2 = 5;
+      constexpr const size_t max_bins = 4;
+
+      inline size_t fits_in_bins(size_t sz)
+      {
+        sz -= 1;
+        sz = sz >> min_2;
+        sz = sz >> max_bins;
+        return sz == 0;
+      }
       inline size_t get_bitmap_size_id(size_t sz)
       {
-        const size_t min_2 = 5;
-        const size_t max_bins = 4;
         sz -= 1;
         sz = sz >> min_2;
         if (!sz)
           return 0;
         size_t ret = 64 - static_cast<size_t>(__builtin_clzll(sz));
-        if (mcppalloc_unlikely(ret > max_bins))
-          return ::std::numeric_limits<size_t>::max();
+        if (ret > max_bins)
+          ret = ::std::numeric_limits<size_t>::max();
         return ret;
       }
       template <typename Allocator_Policy>
@@ -60,7 +68,7 @@ namespace mcppalloc
         }
       }
       template <typename Allocator_Policy>
-      bitmap_state_info_t bitmap_package_t<Allocator_Policy>::_get_info(size_t id)
+      bitmap_state_info_t bitmap_package_t<Allocator_Policy>::_get_info(size_t id, type_id_t type_id)
       {
         using namespace mcppalloc::literals;
         bitmap_state_t state;
@@ -68,7 +76,8 @@ namespace mcppalloc
                                            (1_sz << (5 + id)),
                                            0,
                                            0,
-                                           {0, 0, bitmap_state_t::cs_magic_number_0, bitmap_state_t::cs_magic_number_1}};
+                                           type_id,
+                                           {0, bitmap_state_t::cs_magic_number_0, bitmap_state_t::cs_magic_number_1}};
         state._compute_size();
         return state.m_info;
       }

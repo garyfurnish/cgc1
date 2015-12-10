@@ -123,6 +123,10 @@ namespace mcppalloc
         auto sub_pos = i - (pos * bits_array_type::size_in_bits());
         return mark_bits()[pos].get_bit(sub_pos);
       }
+      inline auto bitmap_state_t::type_id() const noexcept -> type_id_t
+      {
+        return m_info.m_type_id;
+      }
       inline auto bitmap_state_t::size() const noexcept -> size_t
       {
         return m_info.m_size;
@@ -241,7 +245,7 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::has_valid_magic_numbers() const noexcept -> bool
       {
-        return m_info.m_padding[2] == cs_magic_number_0 && m_info.m_padding[3] == cs_magic_number_1;
+        return m_info.m_padding[1] == cs_magic_number_0 && m_info.m_padding[2] == cs_magic_number_1;
       }
       inline auto bitmap_state_t::addr_in_header(void *v) const noexcept -> bool
       {

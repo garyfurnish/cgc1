@@ -285,6 +285,10 @@ namespace cgc1
         if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
           return;
         state->set_marked(state->get_index(addr));
+        if (state->type_id() == 1) {
+          // atomic, so done.
+          return;
+        }
         // recurse to pointers.
         for (void **it = reinterpret_cast<void **>(addr);
              it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->declared_entry_size()); ++it) {

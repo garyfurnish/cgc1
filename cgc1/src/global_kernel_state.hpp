@@ -121,6 +121,12 @@ namespace cgc1
        * @return nullptr on error.
        **/
       thread_local_kernel_state_t *tlks(::std::thread::id id) REQUIRES(!m_thread_mutex);
+
+      auto allocate(size_t sz) -> details::gc_allocator_t::block_type;
+      auto allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type;
+      auto allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type;
+      void deallocate(void *v);
+
       /**
        * \brief Add a root the global kernel state.
       **/

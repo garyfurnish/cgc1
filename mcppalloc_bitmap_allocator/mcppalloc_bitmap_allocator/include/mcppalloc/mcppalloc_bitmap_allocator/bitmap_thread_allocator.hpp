@@ -3,6 +3,7 @@
 #include "bitmap_state.hpp"
 #include "bitmap_package.hpp"
 #include <mcppalloc/block.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -16,29 +17,31 @@ namespace mcppalloc
         using allocator_policy_type = Allocator_Policy;
         using package_type = bitmap_package_t<allocator_policy_type>;
         using block_type = block_t<allocator_policy_type>;
+        using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
         bitmap_thread_allocator_t(bitmap_allocator_t<allocator_policy_type> &allocator);
         bitmap_thread_allocator_t(const bitmap_thread_allocator_t &) = delete;
         bitmap_thread_allocator_t(bitmap_thread_allocator_t &&) noexcept;
         bitmap_thread_allocator_t &operator=(const bitmap_thread_allocator_t &) = delete;
         bitmap_thread_allocator_t &operator=(bitmap_thread_allocator_t &&) = default;
         ~bitmap_thread_allocator_t();
-        using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
 
-        auto allocate(size_t sz) noexcept -> block_type;
+        auto allocate(size_t sz, type_id_t package_type = 0) noexcept -> block_type;
+        auto allocate(size_t sz, package_type &package) noexcept -> block_type;
         auto deallocate(void *v) noexcept -> bool;
-        auto destroy(void *v) noexcept -> bool
-        {
-          return deallocate(v);
-        }
+        auto deallocate(void *v, package_type &package) noexcept -> bool;
 
         void set_max_in_use(size_t max_in_use);
         void set_max_free(size_t max_free);
         auto max_in_use() const noexcept -> size_t;
         auto max_free() const noexcept -> size_t;
+
+        void do_maintenance(package_type &package);
         void do_maintenance();
 
         template <typename Predicate>
-        void for_all_state(Predicate &&predicate);
+        void for_all_state(Predicate &predicate, package_type &package);
+        template <typename Predicate>
+        void for_all_state(Predicate &predicate);
         /**
          * \brief Tell thread to perform maintenance at next opportunity.
          **/
@@ -51,8 +54,14 @@ namespace mcppalloc
         void to_ptree(::boost::property_tree::ptree &ptree, int level);
 
       private:
+        auto get_package_by_type(type_id_t type_id) -> package_type &;
+
         void _check_maintenance();
-        package_type m_locals;
+        ::boost::container::flat_map<type_id_t,
+                                     package_type,
+                                     ::std::less<type_id_t>,
+                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
+                                         ::std::pair<type_id_t, package_type>>> m_locals;
         ::std::atomic<bool> m_force_maintenance;
         rebind_vector_t<void *, internal_allocator_type> m_free_list;
         bitmap_allocator_t<allocator_policy_type> &m_allocator;

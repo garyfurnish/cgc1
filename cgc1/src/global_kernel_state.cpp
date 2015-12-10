@@ -234,6 +234,47 @@ namespace cgc1
       // forward to thread unsafe version.
       return _u_find_valid_object_state(addr);
     }
+    auto global_kernel_state_t::allocate(size_t sz) -> details::gc_allocator_t::block_type
+    {
+      auto &tlks = *details::get_tlks();
+      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+        auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
+        return bitmap_allocator.allocate(sz, 0);
+      }
+      else {
+        auto &sparse_allocator = *tlks.thread_allocator();
+        return sparse_allocator.allocate(sz);
+      }
+    }
+    auto global_kernel_state_t::allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type
+    {
+      auto &tlks = *details::get_tlks();
+      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+        auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
+        return bitmap_allocator.allocate(sz, 1);
+      }
+      else {
+        auto &sparse_allocator = *tlks.thread_allocator();
+        auto allocation = sparse_allocator.allocate_detailed(sz);
+        ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
+        return ::std::get<0>(allocation);
+      }
+    }
+    auto global_kernel_state_t::allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type
+    {
+      auto &tlks = *details::get_tlks();
+      auto &sparse_allocator = *tlks.thread_allocator();
+      return sparse_allocator.allocate(sz);
+    }
+    void global_kernel_state_t::deallocate(void *v)
+    {
+      auto &tlks = *details::get_tlks();
+      auto &sparse_allocator = *tlks.thread_allocator();
+      auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
+      if (!bitmap_allocator.deallocate(v))
+        sparse_allocator.deallocate(v);
+    }
+
     void global_kernel_state_t::add_root(void **r)
     {
       wait_for_collection();

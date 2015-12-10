@@ -90,7 +90,7 @@ void thread_main()
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
     if (i % 2)
-      ts.destroy(ptrs[i]);
+      ts.deallocate(ptrs[i]);
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
