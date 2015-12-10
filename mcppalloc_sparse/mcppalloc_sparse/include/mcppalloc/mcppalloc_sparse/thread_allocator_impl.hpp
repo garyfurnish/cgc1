@@ -179,6 +179,11 @@ namespace mcppalloc
         return ret;
       }
       template <typename Global_Allocator, typename Allocator_Thread_Policy>
+      bool thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::deallocate(void *v)
+      {
+        return destroy(v);
+      }
+      template <typename Global_Allocator, typename Allocator_Thread_Policy>
       void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::_check_do_free_empty_blocks()
       {
         // do book keeping for returning memory to global.

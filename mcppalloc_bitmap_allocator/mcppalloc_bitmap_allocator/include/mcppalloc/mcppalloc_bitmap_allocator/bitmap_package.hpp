@@ -78,7 +78,7 @@ namespace mcppalloc
         /**
          * \brief Allocate an object with given size.
          **/
-        static bitmap_state_info_t _get_info(size_t id);
+        static bitmap_state_info_t _get_info(size_t id, type_id_t type_id = 0);
         /**
          * \brief Underlying states.
          **/

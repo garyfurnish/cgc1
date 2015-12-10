@@ -125,6 +125,13 @@ namespace mcppalloc
         **/
         bool destroy(void *v);
         /**
+        * \brief Deallocate a pointer allocated by this allocator.
+        *
+        * The common reason for failure is if this allocator did not make the pointer.
+        * @return True on success, false on failure.
+        **/
+        bool deallocate(void *v);
+        /**
          * \brief  Return the array of multiples for debugging purposes.
         **/
         auto allocator_multiples() const -> const ::std::array<thread_allocator_abs_data_t, c_bins> &;

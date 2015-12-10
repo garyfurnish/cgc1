@@ -8,13 +8,16 @@ namespace mcppalloc
     namespace details
     {
 
+      using type_id_t = size_t;
+
       static constexpr const size_t c_bitmap_alignment = 32;
       struct alignas(c_bitmap_alignment) bitmap_state_info_t {
         size_t m_num_blocks;
         size_t m_data_entry_sz;
         size_t m_size;
         size_t m_header_size;
-        size_t m_padding[4];
+        type_id_t m_type_id;
+        size_t m_padding[3];
       };
       static_assert(sizeof(bitmap_state_info_t) == 2 * c_bitmap_alignment, "");
 
@@ -50,6 +53,8 @@ namespace mcppalloc
 
         auto is_free(size_t i) const noexcept -> bool;
         auto is_marked(size_t i) const noexcept -> bool;
+
+        auto type_id() const noexcept -> type_id_t;
 
         auto size() const noexcept -> size_t;
         void _compute_size() noexcept;
