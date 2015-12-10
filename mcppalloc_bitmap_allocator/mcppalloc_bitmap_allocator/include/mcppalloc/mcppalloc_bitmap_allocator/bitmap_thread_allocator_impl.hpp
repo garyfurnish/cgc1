@@ -119,7 +119,7 @@ namespace mcppalloc
             {
               MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
               for (auto it = end; it != vec.end(); ++it) {
-                m_allocator._u_to_global(id, *it);
+                m_allocator._u_to_global(id, (*it)->type_id(), *it);
               }
             }
             vec.resize(vec.size() - num_to_be_moved);

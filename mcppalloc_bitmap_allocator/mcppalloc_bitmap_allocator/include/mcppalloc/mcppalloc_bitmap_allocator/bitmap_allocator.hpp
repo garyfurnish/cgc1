@@ -34,7 +34,7 @@ namespace mcppalloc
         REQUIRES(!m_mutex) void shutdown();
 
         REQUIRES(!m_mutex) auto _get_memory() noexcept -> bitmap_state_t *;
-        void _u_to_global(size_t id, bitmap_state_t *state) noexcept REQUIRES(m_mutex);
+        void _u_to_global(size_t id, type_id_t type, bitmap_state_t *state) noexcept REQUIRES(m_mutex);
         void _u_to_free(void *v) noexcept REQUIRES(m_mutex);
         /**
          * \brief Initialize or return thread allocator for this thread.
@@ -45,7 +45,7 @@ namespace mcppalloc
          **/
         REQUIRES(!m_mutex) void destroy_thread();
         REQUIRES(!m_mutex) auto num_free_blocks() const noexcept -> size_t;
-        REQUIRES(!m_mutex) auto num_globals(size_t id) const noexcept -> size_t;
+        REQUIRES(!m_mutex) auto num_globals(size_t id, type_id_t type) const noexcept -> size_t;
 
         RETURN_CAPABILITY(m_mutex) auto _mutex() const noexcept -> mutex_type &;
 
@@ -111,7 +111,11 @@ namespace mcppalloc
         /**
          * \brief In use states held by global.
          **/
-        package_type m_globals GUARDED_BY(m_mutex);
+        ::boost::container::flat_map<type_id_t,
+                                     package_type,
+                                     ::std::less<type_id_t>,
+                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
+                                         ::std::pair<type_id_t, package_type>>> m_globals GUARDED_BY(m_mutex);
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Free sections of slab.
@@ -120,8 +124,11 @@ namespace mcppalloc
         /**
          * \brief Thread allocators.
          **/
-        rebind_map_t<::std::thread::id, thread_allocator_unique_ptr_type, ::std::less<>, internal_allocator_type>
-            m_thread_allocators;
+        ::boost::container::flat_map<::std::thread::id,
+                                     thread_allocator_unique_ptr_type,
+                                     ::std::less<::std::thread::id>,
+                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
+                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>> m_thread_allocators;
       };
     }
     template <typename Allocator_Policy>

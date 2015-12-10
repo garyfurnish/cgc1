@@ -245,7 +245,7 @@ static void multiple_slab_test1()
   poa.destroy_thread();
   AssertThat(poa.num_free_blocks(), Equals(1_sz));
   for (size_t i = 0; i < allocator_type::package_type::cs_num_vectors; ++i)
-    AssertThat(poa.num_globals(i), Equals(0_sz));
+    AssertThat(poa.num_globals(i, 0), Equals(0_sz));
   // ok, now take and check that destroying with a valid block puts it in globals not freed.
   auto &ta2 = poa.initialize_thread();
   {
@@ -254,7 +254,7 @@ static void multiple_slab_test1()
   }
   poa.destroy_thread();
   AssertThat(poa.num_free_blocks(), Equals(0_sz));
-  AssertThat(poa.num_globals(mcppalloc::bitmap_allocator::details::get_bitmap_size_id(128)), Equals(1_sz));
+  AssertThat(poa.num_globals(mcppalloc::bitmap_allocator::details::get_bitmap_size_id(128), 0), Equals(1_sz));
   AssertThat(mcppalloc::bitmap_allocator::details::get_bitmap_size_id(31), Equals(0_sz));
   AssertThat(mcppalloc::bitmap_allocator::details::get_bitmap_size_id(32), Equals(0_sz));
   AssertThat(mcppalloc::bitmap_allocator::details::get_bitmap_size_id(33), Equals(1_sz));

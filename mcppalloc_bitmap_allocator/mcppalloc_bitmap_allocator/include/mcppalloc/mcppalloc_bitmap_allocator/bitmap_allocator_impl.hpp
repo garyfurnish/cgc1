@@ -38,10 +38,12 @@ namespace mcppalloc
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         m_thread_allocators.clear();
         m_free_globals.clear();
-        m_globals.shutdown();
+        for (auto &&package_it : m_globals)
+          package_it.second.shutdown();
         {
           auto a1 = ::std::move(m_thread_allocators);
           auto a2 = ::std::move(m_free_globals);
+          auto a3 = ::std::move(m_globals);
         }
       }
       template <typename Allocator_Policy>
@@ -106,9 +108,9 @@ namespace mcppalloc
         }
       }
       template <typename Allocator_Policy>
-      void bitmap_allocator_t<Allocator_Policy>::_u_to_global(size_t id, bitmap_state_t *state) noexcept
+      void bitmap_allocator_t<Allocator_Policy>::_u_to_global(size_t id, type_id_t type, bitmap_state_t *state) noexcept
       {
-        m_globals.insert(id, state);
+        m_globals[type].insert(id, state);
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_free(void *v) noexcept
@@ -122,10 +124,13 @@ namespace mcppalloc
         return m_free_globals.size();
       }
       template <typename Allocator_Policy>
-      auto bitmap_allocator_t<Allocator_Policy>::num_globals(size_t id) const noexcept -> size_t
+      auto bitmap_allocator_t<Allocator_Policy>::num_globals(size_t id, type_id_t type) const noexcept -> size_t
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
-        return m_globals.m_vectors[id].size();
+        auto it = m_globals.find(type);
+        if (mcppalloc_unlikely(it == m_globals.end()))
+          return 0;
+        return it->second.m_vectors[id].size();
       }
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::allocator_policy() noexcept -> allocator_thread_policy_type &
@@ -150,9 +155,13 @@ namespace mcppalloc
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         ptree.put("num_free_globals", ::std::to_string(m_free_globals.size()));
         {
-          ::boost::property_tree::ptree globals;
-          m_globals.to_ptree(globals, level);
-          ptree.add_child("globals", globals);
+          ::boost::property_tree::ptree types;
+          for (auto &&package_it : m_globals) {
+            ::boost::property_tree::ptree globals;
+            package_it.second.to_ptree(globals, level);
+            types.add_child("globals", globals);
+          }
+          ptree.add_child("types", types);
         }
         {
           ::boost::property_tree::ptree thread_allocators;
@@ -177,7 +186,8 @@ namespace mcppalloc
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         for (auto &&thread : m_thread_allocators)
           thread.second->for_all_state(predicate);
-        m_globals.for_all(::std::forward<Predicate>(predicate));
+        for (auto &&package_it : m_globals)
+          package_it.second.for_all(::std::forward<Predicate>(predicate));
       }
     }
   }
