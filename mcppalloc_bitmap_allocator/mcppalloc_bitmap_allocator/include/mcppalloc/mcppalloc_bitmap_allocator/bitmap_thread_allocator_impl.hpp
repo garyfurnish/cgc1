@@ -86,12 +86,24 @@ namespace mcppalloc
 
         package.do_maintenance(m_free_list);
 
+        for (auto &&vec : package.m_vectors) {
+          for (auto &&it = vec.begin(); it != vec.end();) {
+            auto &&state = *it;
+            if (state->all_free()) {
+              m_free_list.push_back(state);
+              it = vec.erase(it);
+            }
+            else
+              ++it;
+          }
+        }
         size_t id = 0;
         for (auto &&vec : package.m_vectors) {
           size_t num_potential_moves = 0;
           // move extra in use to global.
           for (auto &&state : vec) {
-            if (state->free_popcount() > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
+            const auto pop_count = state->free_popcount();
+            if (pop_count > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
               // approximately half free.
               num_potential_moves++;
           }
@@ -203,7 +215,7 @@ namespace mcppalloc
           bool success = package.remove(id, state);
           // if it fails it could be anywhere.
           if (!success)
-            return false;
+            return true;
           m_free_list.push_back(state);
         }
         return true;
@@ -211,12 +223,12 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::deallocate(void *v) noexcept -> bool
       {
+        if (v < m_allocator.begin() || v >= m_allocator.end())
+          return false;
         auto state = get_state(v);
         auto type_id = state->type_id();
-        auto it = m_locals.find(type_id);
-        if (mcppalloc_unlikely(it == m_locals.end()))
-          return false;
-        return deallocate(v, it->second);
+        auto &package = m_locals[type_id];
+        return deallocate(v, package);
       }
       template <typename Allocator_Policy>
       void bitmap_thread_allocator_t<Allocator_Policy>::set_force_maintenance()

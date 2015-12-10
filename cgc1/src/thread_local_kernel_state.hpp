@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "internal_allocator.hpp"
 #include "gc_allocator.hpp"
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 namespace cgc1
 {
   namespace details
@@ -17,6 +18,8 @@ namespace cgc1
     class thread_local_kernel_state_t
     {
     public:
+      using bitmap_thread_allocator_type =
+          typename ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>::thread_allocator_type;
       /**
        * \brief Constructor.
        **/
@@ -94,11 +97,32 @@ namespace cgc1
        * \brief Return list of potential roots.
        **/
       const cgc_internal_vector_t<void *> &_potential_roots() const;
+      /**
+       * \brief Return sparse thread allocator.
+       **/
       auto thread_allocator() const noexcept -> typename gc_allocator_t::this_thread_allocator_t *;
+      /**
+       * \brief Set sparse thread allocator.
+       **/
       void set_thread_allocator(typename gc_allocator_t::this_thread_allocator_t *allocator);
+      /**
+       * \brief Return bitmap thread allocator.
+       **/
+      auto bitmap_thread_allocator() const noexcept -> bitmap_thread_allocator_type *;
+      /**
+       * \brief Set bitmap thread allocator.
+       **/
+      void set_bitmap_thread_allocator(bitmap_thread_allocator_type *allocator);
 
     private:
+      /**
+       * \brief Cached sparse thread allocator.
+       **/
       typename gc_allocator_t::this_thread_allocator_t *m_thread_allocator = nullptr;
+      /**
+       * \brief Cached bitmap thread allocator.
+       **/
+      bitmap_thread_allocator_type *m_bitmap_thread_allocator = nullptr;
       /**
       * \brief Native thread handle for this thread.
       **/

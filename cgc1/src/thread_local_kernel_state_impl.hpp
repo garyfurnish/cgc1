@@ -100,6 +100,14 @@ namespace cgc1
     {
       m_thread_allocator = allocator;
     }
+    inline auto thread_local_kernel_state_t::bitmap_thread_allocator() const noexcept -> bitmap_thread_allocator_type *
+    {
+      return m_bitmap_thread_allocator;
+    }
+    inline void thread_local_kernel_state_t::set_bitmap_thread_allocator(bitmap_thread_allocator_type *allocator)
+    {
+      m_bitmap_thread_allocator = allocator;
+    }
 
     template <typename CONTAINER>
     void thread_local_kernel_state_t::scan_stack(

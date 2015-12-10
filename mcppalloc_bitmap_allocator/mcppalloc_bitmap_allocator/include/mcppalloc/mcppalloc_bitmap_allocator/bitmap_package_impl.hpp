@@ -11,10 +11,18 @@ namespace mcppalloc
   {
     namespace details
     {
+      constexpr const size_t min_2 = 5;
+      constexpr const size_t max_bins = 4;
+
+      inline size_t fits_in_bins(size_t sz)
+      {
+        sz -= 1;
+        sz = sz >> min_2;
+        sz = sz >> max_bins;
+        return sz == 0;
+      }
       inline size_t get_bitmap_size_id(size_t sz)
       {
-        const size_t min_2 = 5;
-        const size_t max_bins = 4;
         sz -= 1;
         sz = sz >> min_2;
         if (!sz)

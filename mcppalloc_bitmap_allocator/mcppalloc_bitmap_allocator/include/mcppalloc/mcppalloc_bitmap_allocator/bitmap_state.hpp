@@ -9,7 +9,6 @@ namespace mcppalloc
     {
 
       using type_id_t = size_t;
-
       static constexpr const size_t c_bitmap_alignment = 32;
       struct alignas(c_bitmap_alignment) bitmap_state_info_t {
         size_t m_num_blocks;
