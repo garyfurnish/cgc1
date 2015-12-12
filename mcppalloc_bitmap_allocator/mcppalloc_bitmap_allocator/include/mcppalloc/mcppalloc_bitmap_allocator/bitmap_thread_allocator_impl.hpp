@@ -149,13 +149,13 @@ namespace mcppalloc
         }
       }
       template <typename Allocator_Policy>
-      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, type_id_t type_id) noexcept -> block_type
+      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, type_id_t type_id) -> block_type
       {
         auto &package = m_locals[type_id];
         return allocate(sz, package);
       }
       template <typename Allocator_Policy>
-      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, package_type &package) noexcept -> block_type
+      auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, package_type &package) -> block_type
       {
 
         size_t attempts = 1;
@@ -212,6 +212,10 @@ namespace mcppalloc
         state->deallocate(v);
         if (state->all_free()) {
           auto id = get_bitmap_size_id(state->declared_entry_size());
+          if (mcppalloc_unlikely(id == ::std::numeric_limits<size_t>::max())) {
+            ::std::cerr << "mcppalloc bitmap_thread_allocator consistency error aa16e07a-5f8c-4a97-b809-c944ff4c45b9\n";
+            abort();
+          }
           bool success = package.remove(id, state);
           // if it fails it could be anywhere.
           if (!success)

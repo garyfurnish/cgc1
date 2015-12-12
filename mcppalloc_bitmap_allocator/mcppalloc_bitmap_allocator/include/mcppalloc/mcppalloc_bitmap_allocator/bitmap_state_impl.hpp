@@ -138,9 +138,10 @@ namespace mcppalloc
         m_info.m_header_size = align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
-        auto data_entry_sz = declared_entry_size();
-        auto data_sz = blocks * data_entry_sz * bits_array_type::size_in_bits() - hdr_sz - 32;
+        auto data_sz = c_bitmap_block_size - hdr_sz;
+        // this needs to be min of stuff
         auto num_data = data_sz / (real_entry_size());
+        num_data = ::std::min(num_data, m_info.m_num_blocks * bits_array_type::size_in_bits());
         m_info.m_size = num_data;
       }
       inline auto bitmap_state_t::size_bytes() const noexcept -> size_t
