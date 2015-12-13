@@ -1,5 +1,7 @@
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+const size_t mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
 #ifdef __APPLE__
 template <>
 pthread_key_t mcppalloc::thread_local_pointer_t<mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<
@@ -38,7 +40,7 @@ static void bitmap_state_test0()
   fast_slab.align_next(c_bitmap_block_size);
   constexpr const size_t packed_size = c_bitmap_block_size - 2048;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
-  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(allocator_type::slab_allocator_type::cs_header_sz));
   constexpr const size_t expected_entries = 512;
   using ps_type = ::mcppalloc::bitmap_allocator::details::bitmap_state_t;
   static_assert(sizeof(ps_type) <= packed_size, "");
@@ -46,8 +48,8 @@ static void bitmap_state_test0()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{1ul, 64ul, expected_entries, 0, 0, {0, 0, 0}};
-  ps->m_info = state;
+  constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{1ul, 64ul, expected_entries, 0, 0};
+  ps->m_internal.m_info = state;
   ps->_compute_size();
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(static_cast<size_t>(ps->end() - ret), IsLessThanOrEqualTo(packed_size));
@@ -157,7 +159,7 @@ static void multiple_slab_test0()
   auto &fast_slab = bitmap_allocator._slab();
   constexpr const size_t packed_size = 4096 * 16;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
-  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(allocator_type::slab_allocator_type::cs_header_sz));
   constexpr const size_t entry_size = 128ul;
   constexpr const size_t expected_entries = packed_size / entry_size - 2;
   using ps_type = ::mcppalloc::bitmap_allocator::details::bitmap_state_t;
@@ -167,8 +169,8 @@ static void multiple_slab_test0()
   (void)ps;
 
   constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{
-      1ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 128, 0, {0, 0, 0}};
-  ps->m_info = state;
+      1ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 128, 0};
+  ps->m_internal.m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(),
              Equals(expected_entries * entry_size + sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 128));
@@ -185,7 +187,7 @@ static void multiple_slab_test0b()
   constexpr const size_t packed_size = 4096 * 32;
   uint8_t *ret = reinterpret_cast<uint8_t *>(fast_slab.allocate_raw(packed_size));
   AssertThat(!!ret, IsTrue());
-  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(32_sz));
+  AssertThat(reinterpret_cast<uintptr_t>(ret) % 4096, Equals(allocator_type::slab_allocator_type::cs_header_sz));
   constexpr const size_t entry_size = 128ul;
   constexpr const size_t expected_entries = packed_size / entry_size - 3;
   using ps_type = ::mcppalloc::bitmap_allocator::details::bitmap_state_t;
@@ -195,8 +197,8 @@ static void multiple_slab_test0b()
   (void)ps;
 
   constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{
-      2ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 256, 0, {0, 0, 0}};
-  ps->m_info = state;
+      2ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 256, 0};
+  ps->m_internal.m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(),
              Equals(expected_entries * entry_size + sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 256));
@@ -209,12 +211,9 @@ static void multiple_slab_test1()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(2000000, 2000000);
-
   allocator_type::package_type package1;
   allocator_type::package_type package2;
-
   package1.insert(::std::move(package2));
-
   auto info0 = allocator_type::package_type::_get_info(0);
   AssertThat(info0.m_num_blocks, Equals(allocator_type::package_type::cs_total_size / 512 / 32));
   AssertThat(info0.m_data_entry_sz, Equals(32_sz));
@@ -223,7 +222,6 @@ static void multiple_slab_test1()
   AssertThat(info1.m_data_entry_sz, Equals(64_sz));
 
   auto &poa = bitmap_allocator;
-
   auto &ta = poa.initialize_thread();
   {
     void *v = ta.allocate(128).m_ptr;
@@ -275,10 +273,16 @@ void exhaustive_test()
   do {
     v = nullptr;
     try {
-      v = ta.allocate(allocation_size).m_ptr;
+      auto allocation = ta.allocate(allocation_size);
+      v = allocation.m_ptr;
+      void *v_end = reinterpret_cast<uint8_t *>(v) + allocation.m_size;
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(v);
       if (mcppalloc_unlikely(state == v)) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 5c9af962-57e6-4bf1-a843-12a239343c27\n";
+        ::std::terminate();
+      }
+      if (mcppalloc_unlikely(v_end > state->end())) {
+        ::std::cerr << "Consistency error in bitmap exhaustive_test 7caa9401-26f1-4cdc-9849-837b2767fa1e\n";
         ::std::terminate();
       }
       if (!ptrs.empty()) {

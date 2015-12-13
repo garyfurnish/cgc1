@@ -5,6 +5,7 @@
 #include <mcppalloc/object_state.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
+#include <mcppalloc/mcppalloc_utils/alignment.hpp>
 namespace mcppalloc
 {
   namespace slab_allocator
@@ -25,11 +26,10 @@ namespace mcppalloc
       class slab_allocator_t
       {
       public:
-        static constexpr size_t cs_alignment = 32;
-
+        static constexpr const size_t cs_alignment = 32;
+        static constexpr const size_t cs_header_sz = align(sizeof(slab_allocator_object_t), cs_alignment);
         static constexpr size_t alignment() noexcept;
-        static_assert(sizeof(slab_allocator_object_t) <= cs_alignment, "slab_allocator_object_t too large");
-
+        static_assert(cs_header_sz == 64, "");
         /**
          * \brief Constructor.
          *

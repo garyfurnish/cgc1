@@ -119,6 +119,8 @@ namespace mcppalloc
        * \brief Set user flags.
        **/
       void set_user_flags(size_type flags) noexcept;
+      void verify_magic() noexcept;
+      size_type m_pre_magic;
       /**
        * \brief Using pointer hiding, store next pointer, next_valid, in_use.
        *
@@ -134,7 +136,10 @@ namespace mcppalloc
        * Description is in little endian.  Bottom 3 bits are user flags.
        **/
       uintptr_type m_user_data;
+      size_type m_post_magic;
       size_type m_pad;
+      static constexpr const size_type cs_pre_magic = 0x2ab78593;
+      static constexpr const size_type cs_post_magic = 0x45a8cda0;
     };
     static_assert(::std::is_pod<object_state_t<default_allocator_policy_t<::std::allocator<void>>>>::value,
                   "object_state_t is not POD");

@@ -22,9 +22,22 @@ namespace mcppalloc
                                                                            bool next_valid,
                                                                            bool quasi_freed) noexcept
     {
+      m_pre_magic = cs_pre_magic;
       m_next = reinterpret_cast<size_type>(next) | static_cast<size_type>(in_use) | (static_cast<size_type>(next_valid) << 1) |
                (static_cast<size_type>(quasi_freed) << 2);
+      m_post_magic = cs_post_magic;
     }
+    template <typename Allocator_Policy>
+    MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::verify_magic() noexcept
+    {
+      if (mcppalloc_unlikely(m_pre_magic != cs_pre_magic)) {
+        ::std::terminate();
+      }
+      else if (mcppalloc_unlikely(m_post_magic != cs_post_magic)) {
+        ::std::terminate();
+      }
+    }
+
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::set_in_use(bool v) noexcept
     {

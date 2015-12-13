@@ -44,6 +44,7 @@ namespace mcppalloc
             mcppalloc_builtin_prefetch(&prev_packed);
           }
           auto &packed = **it;
+          packed.verify_magic();
           auto ret = packed.allocate();
           if (ret) {
             return ::std::make_pair(ret, packed.real_entry_size());
@@ -72,14 +73,9 @@ namespace mcppalloc
       {
         using namespace mcppalloc::literals;
         bitmap_state_t state;
-        state.m_info = bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512,
-                                           (1_sz << (5 + id)),
-                                           0,
-                                           0,
-                                           type_id,
-                                           {0, bitmap_state_t::cs_magic_number_0, bitmap_state_t::cs_magic_number_1}};
+        state.m_internal.m_info = bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0, type_id};
         state._compute_size();
-        return state.m_info;
+        return state.m_internal.m_info;
       }
       template <typename Allocator_Policy>
       void bitmap_package_t<Allocator_Policy>::insert(bitmap_package_t &&state)

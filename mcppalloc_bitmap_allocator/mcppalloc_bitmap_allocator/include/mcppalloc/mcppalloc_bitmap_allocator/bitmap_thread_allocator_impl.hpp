@@ -27,7 +27,7 @@ namespace mcppalloc
       {
         for (size_t i = 0; i < m_popcount_max.size(); ++i) {
           bitmap_state_t state;
-          state.m_info = package_type::_get_info(i);
+          state.m_internal.m_info = package_type::_get_info(i);
           m_popcount_max[i] = state.size() / 2;
         }
       }
@@ -170,18 +170,21 @@ namespace mcppalloc
         if (!v) {
           if (!m_free_list.empty()) {
             bitmap_state_t *state = unsafe_cast<bitmap_state_t>(m_free_list.back());
+            state->verify_magic();
             assert(state);
-            state->m_info = package_type::_get_info(id);
+            state->m_internal.m_info = package_type::_get_info(id);
             state->initialize();
             m_free_list.pop_back();
             v = state->allocate();
 
             package.insert(id, state);
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            state->verify_magic();
             return block_type{v, state->real_entry_size()};
           }
           else {
             bitmap_state_t *state = m_allocator._get_memory();
+            state->verify_magic();
             if (!state) {
               ::mcppalloc::details::allocation_failure_t failure{attempts};
               auto action = m_allocator.allocator_policy().on_allocation_failure(failure);
@@ -191,7 +194,7 @@ namespace mcppalloc
               else
                 throw ::std::bad_alloc();
             }
-            state->m_info = package_type::_get_info(id);
+            state->m_internal.m_info = package_type::_get_info(id);
             state->initialize();
             assert(state->first_free() == 0);
 
@@ -199,6 +202,7 @@ namespace mcppalloc
             assert(v);
             package.insert(id, state);
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            state->verify_magic();
             return block_type{v, state->real_entry_size()};
           }
         }
@@ -209,12 +213,18 @@ namespace mcppalloc
       auto bitmap_thread_allocator_t<Allocator_Policy>::deallocate(void *v, package_type &package) noexcept -> bool
       {
         bitmap_state_t *state = get_state(v);
+        state->verify_magic();
+        if (mcppalloc_unlikely(!state->has_valid_magic_numbers())) {
+          ::std::cerr
+              << "mcppalloc bitmap_thread_allocator state has invalid magic numbers ad761a4e-656e-45a8-abe9-541414679c1f\n";
+          ::std::terminate();
+        }
         state->deallocate(v);
         if (state->all_free()) {
           auto id = get_bitmap_size_id(state->declared_entry_size());
           if (mcppalloc_unlikely(id == ::std::numeric_limits<size_t>::max())) {
             ::std::cerr << "mcppalloc bitmap_thread_allocator consistency error aa16e07a-5f8c-4a97-b809-c944ff4c45b9\n";
-            abort();
+            ::std::terminate();
           }
           bool success = package.remove(id, state);
           // if it fails it could be anywhere.
