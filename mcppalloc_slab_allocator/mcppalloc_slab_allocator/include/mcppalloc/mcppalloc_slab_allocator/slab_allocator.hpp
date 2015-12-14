@@ -39,6 +39,8 @@ namespace mcppalloc
         slab_allocator_t(size_t size, size_t size_hint);
         slab_allocator_t(const slab_allocator_t &) = delete;
         slab_allocator_t(slab_allocator_t &&) = delete;
+        ~slab_allocator_t();
+        void _verify() REQUIRES(!m_mutex);
         /**
          * \brief Align the next allocation to the given size.
          * This is only guarenteed to work if done before any deallocation.

@@ -70,7 +70,7 @@ namespace mcppalloc
         }
         ret = unsafe_cast<bitmap_state_t>(m_slab.allocate_raw(c_bitmap_block_size - slab_allocator_type::cs_header_sz));
         if (mcppalloc_unlikely(!ret)) {
-          throw ::std::bad_alloc();
+          return nullptr;
         }
         ret->initialize_consts();
         return ret;

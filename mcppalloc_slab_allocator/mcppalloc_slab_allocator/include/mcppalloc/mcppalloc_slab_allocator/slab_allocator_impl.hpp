@@ -13,6 +13,17 @@ namespace mcppalloc
         m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
         m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
       }
+      inline slab_allocator_t::~slab_allocator_t()
+      {
+        _verify();
+      }
+      inline void slab_allocator_t::_verify()
+      {
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+        for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
+          it->verify_magic();
+        }
+      }
       inline void slab_allocator_t::align_next(size_t sz)
       {
         uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
@@ -110,6 +121,7 @@ namespace mcppalloc
         // up is basically for doing worst fit by dividing biggest object.
         auto ub = _u_object_end();
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
+          it->verify_magic();
           if (mcppalloc_unlikely(&*it == _u_object_end())) {
             ::std::cerr << "mcppalloc slab allocator consistency error 8b0fdce5-4991-4ba8-af46-e18cbdaf9dbd" << ::std::endl;
             ::std::terminate();
@@ -144,7 +156,7 @@ namespace mcppalloc
           else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
             ub = it;
           if (mcppalloc_unlikely(!it->next_valid() && it->next() != _u_object_current_end())) {
-            ::std::cerr << "mcppalloc: consistency error\n";
+            ::std::cerr << "mcppalloc slab allocator: consistency error ef2626f0-2073-4932-b3f6-466d4da1bfe1\n";
             ::std::cerr << it->next() << " " << _u_object_current_end() << ::std::endl;
             ::std::terminate();
           }

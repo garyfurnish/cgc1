@@ -157,7 +157,6 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, package_type &package) -> block_type
       {
-
         size_t attempts = 1;
         bool expand = false;
         (void)expand;
@@ -184,7 +183,6 @@ namespace mcppalloc
           }
           else {
             bitmap_state_t *state = m_allocator._get_memory();
-            state->verify_magic();
             if (!state) {
               ::mcppalloc::details::allocation_failure_t failure{attempts};
               auto action = m_allocator.allocator_policy().on_allocation_failure(failure);
@@ -194,6 +192,7 @@ namespace mcppalloc
               else
                 throw ::std::bad_alloc();
             }
+            state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
             state->initialize();
             assert(state->first_free() == 0);
@@ -206,6 +205,7 @@ namespace mcppalloc
             return block_type{v, state->real_entry_size()};
           }
         }
+        assert(ret_size >= sz);
         m_allocator.allocator_policy().on_allocation(v, ret_size);
         return block_type{v, ret_size};
       }

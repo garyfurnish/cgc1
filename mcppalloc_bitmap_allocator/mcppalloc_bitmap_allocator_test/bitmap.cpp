@@ -1,6 +1,7 @@
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/security.hpp>
 const size_t mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
 #ifdef __APPLE__
 template <>
@@ -263,7 +264,7 @@ void exhaustive_test()
 {
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
-  allocator_type bitmap_allocator(2000000, 2000000);
+  allocator_type bitmap_allocator(20000000, 20000000);
   auto &poa = bitmap_allocator;
 
   auto &ta = poa.initialize_thread();
@@ -276,6 +277,7 @@ void exhaustive_test()
       auto allocation = ta.allocate(allocation_size);
       v = allocation.m_ptr;
       void *v_end = reinterpret_cast<uint8_t *>(v) + allocation.m_size;
+      mcppalloc::secure_zero(v, allocation.m_size);
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(v);
       if (mcppalloc_unlikely(state == v)) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 5c9af962-57e6-4bf1-a843-12a239343c27\n";
