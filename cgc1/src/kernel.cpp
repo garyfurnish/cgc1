@@ -79,23 +79,37 @@ namespace cgc1
   {
     return cgc_size(v) > 0;
   }
+  bool is_bitmap_allocator(void *addr)
+  {
+    if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end())
+      return true;
+    return false;
+  }
+  bool is_sparse_allocator(void *addr)
+  {
+    return !is_bitmap_allocator(addr);
+  }
   void *cgc_start(void *addr)
   {
     if (!addr)
       return nullptr;
-    if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end()) {
+    if (is_bitmap_allocator(addr)) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers())
         return state->begin() + state->get_index(addr) * state->real_entry_size();
       return nullptr;
     }
-    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
-    if (!details::g_gks->is_valid_object_state(os)) {
-      os = details::g_gks->find_valid_object_state(addr);
-      if (!os)
-        return nullptr;
+    else if (is_sparse_allocator(addr)) {
+      details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
+      if (!details::g_gks->is_valid_object_state(os)) {
+        os = details::g_gks->find_valid_object_state(addr);
+        if (!os)
+          return nullptr;
+      }
+      return os->object_start();
     }
-    return os->object_start();
+    else
+      return nullptr;
   }
   size_t cgc_size(void *addr)
   {
@@ -187,9 +201,11 @@ namespace cgc1
   {
     if (!addr)
       return;
+    if (!is_sparse_allocator(addr))
+      throw ::std::runtime_error("f75070cc-d3b7-4233-834c-c46a9339998b");
     void *start = cgc_start(addr);
     if (!start)
-      return;
+      throw ::std::runtime_error("44084b93-08b2-4511-9432-0ea986c6f1e5");
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
     if (ud->is_default()) {

@@ -33,7 +33,7 @@ namespace mcppalloc
 
         REQUIRES(!m_mutex) void shutdown();
 
-        REQUIRES(!m_mutex) auto _get_memory() noexcept -> bitmap_state_t *;
+        REQUIRES(!m_mutex) auto _get_memory() -> bitmap_state_t *;
         void _u_to_global(size_t id, type_id_t type, bitmap_state_t *state) noexcept REQUIRES(m_mutex);
         void _u_to_free(void *v) noexcept REQUIRES(m_mutex);
         /**

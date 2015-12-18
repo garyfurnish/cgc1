@@ -13,10 +13,21 @@ namespace mcppalloc
         m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
         m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
       }
+      inline slab_allocator_t::~slab_allocator_t()
+      {
+        _verify();
+      }
+      inline void slab_allocator_t::_verify()
+      {
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+        for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
+          it->verify_magic();
+        }
+      }
       inline void slab_allocator_t::align_next(size_t sz)
       {
         uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
-        auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_alignment;
+        auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_header_sz;
         allocate_raw(offset);
       }
       inline uint8_t *slab_allocator_t::begin() const
@@ -46,7 +57,8 @@ namespace mcppalloc
 
       inline void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
       {
-        if (sz + cs_alignment * 2 > object->object_size(cs_alignment)) {
+        object->verify_magic();
+        if (sz + cs_header_sz * 2 > object->object_size(cs_alignment)) {
           // if not enough space to split, just take it all.
           object->set_in_use(true);
           return object->object_start(cs_alignment);
@@ -90,7 +102,8 @@ namespace mcppalloc
           object->set_next_valid(true);
           m_end->set_all(&*_u_object_end(), false, false);
         }
-        return object->object_start(cs_alignment);
+        auto ret = object->object_start(cs_alignment);
+        return ret;
       }
       inline void *slab_allocator_t::allocate_raw(size_t sz)
       {
@@ -108,10 +121,20 @@ namespace mcppalloc
         // up is basically for doing worst fit by dividing biggest object.
         auto ub = _u_object_end();
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
-          if (it == _u_object_end())
+          it->verify_magic();
+          if (mcppalloc_unlikely(&*it == _u_object_end())) {
+            ::std::cerr << "mcppalloc slab allocator consistency error 8b0fdce5-4991-4ba8-af46-e18cbdaf9dbd" << ::std::endl;
             ::std::terminate();
-          if (it > _u_object_end())
+          }
+          if (mcppalloc_unlikely(&*it > _u_object_end())) {
+            ::std::cerr << "mcppalloc slab allocator consistency error a35664e3-21f9-4ea7-a921-844b8a2dc598" << ::std::endl;
             ::std::terminate();
+          }
+          if (mcppalloc_unlikely(reinterpret_cast<uint8_t *>(&*it) < begin())) {
+            ::std::cerr << &*it << " " << reinterpret_cast<void *>(begin()) << "\n";
+            ::std::cerr << "mcppalloc slab allocator consistency error d4f8215d-98c3-4d1f-9e1b-00f09ae42e5c" << ::std::endl;
+            ::std::terminate();
+          }
           // if in use, go to next.
           if (it->not_available())
             continue;
@@ -132,7 +155,9 @@ namespace mcppalloc
           // if ub is undefined, take anything valid.
           else if (ub == _u_object_end() && it->object_size(cs_alignment) >= sz)
             ub = it;
-          if (!it->next_valid() && it->next() != _u_object_current_end()) {
+          if (mcppalloc_unlikely(!it->next_valid() && it->next() != _u_object_current_end())) {
+            ::std::cerr << "mcppalloc slab allocator: consistency error ef2626f0-2073-4932-b3f6-466d4da1bfe1\n";
+            ::std::cerr << it->next() << " " << _u_object_current_end() << ::std::endl;
             ::std::terminate();
           }
         }
@@ -146,6 +171,7 @@ namespace mcppalloc
           }
         }
         else {
+          lb->verify_magic();
           // precise fit, use it.
           lb->set_in_use(true);
           return lb->object_start(cs_alignment);
@@ -155,6 +181,7 @@ namespace mcppalloc
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
+        object->verify_magic();
         // set not in use.
         object->set_in_use(false);
         // coalesce if possible.

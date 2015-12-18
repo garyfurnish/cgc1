@@ -57,19 +57,23 @@ namespace mcppalloc
         t_thread_allocator = ta;
       }
       template <typename Allocator_Policy>
-      auto bitmap_allocator_t<Allocator_Policy>::_get_memory() noexcept -> bitmap_state_t *
+      auto bitmap_allocator_t<Allocator_Policy>::_get_memory() -> bitmap_state_t *
       {
+        bitmap_state_t *ret;
         {
           MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           if (!m_free_globals.empty()) {
-            auto ret = m_free_globals.back();
+            ret = unsafe_cast<bitmap_state_t>(m_free_globals.back());
             m_free_globals.pop_back();
-            return unsafe_cast<bitmap_state_t>(ret);
+            return ret;
           }
         }
-        auto new_memory =
-            unsafe_cast<bitmap_state_t>(m_slab.allocate_raw(c_bitmap_block_size - slab_allocator_type::cs_alignment));
-        return new_memory;
+        ret = unsafe_cast<bitmap_state_t>(m_slab.allocate_raw(c_bitmap_block_size - slab_allocator_type::cs_header_sz));
+        if (mcppalloc_unlikely(!ret)) {
+          return nullptr;
+        }
+        ret->initialize_consts();
+        return ret;
       }
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::initialize_thread() -> thread_allocator_type &

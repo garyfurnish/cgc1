@@ -10,15 +10,21 @@ namespace mcppalloc
 
       using type_id_t = size_t;
       static constexpr const size_t c_bitmap_alignment = 32;
-      struct alignas(c_bitmap_alignment) bitmap_state_info_t {
+      struct alignas(size_t) bitmap_state_info_t {
         size_t m_num_blocks;
         size_t m_data_entry_sz;
         size_t m_size;
         size_t m_header_size;
         type_id_t m_type_id;
-        size_t m_padding[3];
       };
-      static_assert(sizeof(bitmap_state_info_t) == 2 * c_bitmap_alignment, "");
+
+      struct alignas(c_bitmap_alignment) bitmap_state_internal_t {
+        size_t m_pre_magic_number;
+        bitmap_state_info_t m_info;
+        size_t m_post_magic_number[2];
+      };
+
+      static_assert(sizeof(bitmap_state_internal_t) == 2 * c_bitmap_alignment, "");
 
       /**
        * \brief Universal block size.
@@ -30,6 +36,7 @@ namespace mcppalloc
         static const constexpr size_t cs_header_alignment = 32;
         static const constexpr size_t cs_object_alignment = 32;
         static const constexpr size_t cs_bits_array_multiple = 2;
+        static const constexpr size_t cs_magic_number_pre = 0xd7c3f4bb0bea958c;
         static const constexpr size_t cs_magic_number_0 = 0xa58d0aebb1fae1d9;
         static const constexpr size_t cs_magic_number_1 = 0x164df5314ffcf804;
 
@@ -39,6 +46,7 @@ namespace mcppalloc
         auto real_entry_size() const noexcept -> size_t;
         auto header_size() const noexcept -> size_t;
 
+        void initialize_consts() noexcept;
         void initialize() noexcept;
         void clear_mark_bits() noexcept;
 
@@ -79,15 +87,16 @@ namespace mcppalloc
         auto mark_bits() const noexcept -> const bits_array_type *;
 
         auto has_valid_magic_numbers() const noexcept -> bool;
+        void verify_magic() const;
 
         auto get_index(void *v) const noexcept -> size_t;
         auto addr_in_header(void *v) const noexcept -> bool;
         auto get_object(size_t i) noexcept -> void *;
 
-        bitmap_state_info_t m_info;
+        bitmap_state_internal_t m_internal;
       };
       static_assert(::std::is_pod<bitmap_state_t>::value, "");
-      static_assert(sizeof(bitmap_state_t) == c_bitmap_alignment * 2, "");
+      static_assert(sizeof(bitmap_state_internal_t) == c_bitmap_alignment * 2, "");
 
       extern bitmap_state_t *get_state(void *v);
     }

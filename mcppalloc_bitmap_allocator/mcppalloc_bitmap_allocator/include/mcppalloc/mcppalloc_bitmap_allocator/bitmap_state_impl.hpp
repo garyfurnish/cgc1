@@ -13,13 +13,13 @@ namespace mcppalloc
         size_t mask = ::std::numeric_limits<size_t>::max() << (__builtin_ffsll(c_bitmap_block_size) - 1);
 
         vi &= mask;
-        vi += ::mcppalloc::slab_allocator::details::slab_allocator_t::cs_alignment;
+        vi += ::mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
         bitmap_state_t *state = reinterpret_cast<bitmap_state_t *>(vi);
         return state;
       }
       MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::declared_entry_size() const noexcept -> size_t
       {
-        return m_info.m_data_entry_sz;
+        return m_internal.m_info.m_data_entry_sz;
       }
       MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::real_entry_size() const noexcept -> size_t
       {
@@ -27,10 +27,18 @@ namespace mcppalloc
       }
       MCPPALLOC_OPT_ALWAYS_INLINE auto bitmap_state_t::header_size() const noexcept -> size_t
       {
-        return m_info.m_header_size;
+        return m_internal.m_info.m_header_size;
+      }
+      inline void bitmap_state_t::initialize_consts() noexcept
+      {
+        assert(this);
+        m_internal.m_pre_magic_number = cs_magic_number_pre;
+        m_internal.m_post_magic_number[0] = cs_magic_number_0;
+        m_internal.m_post_magic_number[1] = cs_magic_number_1;
       }
       inline void bitmap_state_t::initialize() noexcept
       {
+        initialize_consts();
         for (size_t i = 0; i < num_blocks(); ++i)
           free_bits()[i].fill(::std::numeric_limits<uint64_t>::max());
       }
@@ -125,23 +133,24 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::type_id() const noexcept -> type_id_t
       {
-        return m_info.m_type_id;
+        return m_internal.m_info.m_type_id;
       }
       inline auto bitmap_state_t::size() const noexcept -> size_t
       {
-        return m_info.m_size;
+        return m_internal.m_info.m_size;
       }
       inline void bitmap_state_t::_compute_size() noexcept
       {
-        auto blocks = m_info.m_num_blocks;
+        auto blocks = m_internal.m_info.m_num_blocks;
         auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * cs_bits_array_multiple;
-        m_info.m_header_size = align(unaligned, cs_header_alignment);
+        m_internal.m_info.m_header_size = align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
-        auto data_entry_sz = declared_entry_size();
-        auto data_sz = blocks * data_entry_sz * bits_array_type::size_in_bits() - hdr_sz - 32;
+        auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz;
+        // this needs to be min of stuff
         auto num_data = data_sz / (real_entry_size());
-        m_info.m_size = num_data;
+        num_data = ::std::min(num_data, m_internal.m_info.m_num_blocks * bits_array_type::size_in_bits());
+        m_internal.m_info.m_size = num_data;
       }
       inline auto bitmap_state_t::size_bytes() const noexcept -> size_t
       {
@@ -189,6 +198,7 @@ namespace mcppalloc
             ::std::terminate();
         }
         assert(memory_address);
+        verify_magic();
         return memory_address;
       }
       inline bool bitmap_state_t::deallocate(void *vv) noexcept
@@ -211,7 +221,7 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
-        return m_info.m_num_blocks;
+        return m_internal.m_info.m_num_blocks;
       }
       inline auto bitmap_state_t::free_bits() noexcept -> bits_array_type *
       {
@@ -245,7 +255,14 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::has_valid_magic_numbers() const noexcept -> bool
       {
-        return m_info.m_padding[1] == cs_magic_number_0 && m_info.m_padding[2] == cs_magic_number_1;
+        return m_internal.m_pre_magic_number == cs_magic_number_pre && m_internal.m_post_magic_number[0] == cs_magic_number_0 &&
+               m_internal.m_post_magic_number[1] == cs_magic_number_1;
+      }
+      inline void bitmap_state_t::verify_magic() const
+      {
+        if (mcppalloc_unlikely(!has_valid_magic_numbers())) {
+          ::std::terminate();
+        }
       }
       inline auto bitmap_state_t::addr_in_header(void *v) const noexcept -> bool
       {

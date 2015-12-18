@@ -124,6 +124,7 @@ namespace cgc1
 
       auto allocate(size_t sz) -> details::gc_allocator_t::block_type;
       auto allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type;
+      auto allocate_raw(size_t sz) -> details::gc_allocator_t::block_type;
       auto allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type;
       void deallocate(void *v);
 

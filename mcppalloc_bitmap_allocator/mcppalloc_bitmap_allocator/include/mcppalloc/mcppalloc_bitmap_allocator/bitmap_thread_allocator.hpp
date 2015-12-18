@@ -25,8 +25,8 @@ namespace mcppalloc
         bitmap_thread_allocator_t &operator=(bitmap_thread_allocator_t &&) = default;
         ~bitmap_thread_allocator_t();
 
-        auto allocate(size_t sz, type_id_t package_type = 0) noexcept -> block_type;
-        auto allocate(size_t sz, package_type &package) noexcept -> block_type;
+        auto allocate(size_t sz, type_id_t package_type = 0) -> block_type;
+        auto allocate(size_t sz, package_type &package) -> block_type;
         auto deallocate(void *v) noexcept -> bool;
         auto deallocate(void *v, package_type &package) noexcept -> bool;
 

@@ -178,8 +178,6 @@ namespace mcppalloc
         size = object_state_type::needed_size(sizeof(object_state_type), size);
         assert(size >= minimum_allocation_length());
         assert(size <= maximum_allocation_length());
-        assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_next));
-        assert(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + 8 == reinterpret_cast<uint8_t *>(&m_next_alloc_ptr->m_user_data));
         // compute this now.
         object_state_type *later_next =
             reinterpret_cast<object_state_type *>(reinterpret_cast<uint8_t *>(m_next_alloc_ptr) + size);
@@ -191,6 +189,7 @@ namespace mcppalloc
           // finally free list is a vector so this should be cache friendly.
           for (auto it = m_free_list.rbegin(); it != m_free_list.rend(); ++it) {
             object_state_type *const state = *it;
+            state->verify_magic();
             // if it doesn't fit, move on to next one.
             if (state->object_size() < original_size)
               continue;
@@ -280,6 +279,7 @@ namespace mcppalloc
       {
         // get object state.
         object_state_type *state = object_state_type::from_object_start(v);
+        state->verify_magic();
         // sanity check that addr belongs to this block.
         if (v < begin() || v >= end())
           return false;
