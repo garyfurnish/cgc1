@@ -237,11 +237,11 @@ namespace cgc1
     auto global_kernel_state_t::allocate(size_t sz) -> details::gc_allocator_t::block_type
     {
       auto &tlks = *details::get_tlks();
-      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+      /*      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 0);
+        return bitmap_allocator.allocate(sz, 2);
       }
-      else {
+      else*/ {
         auto &sparse_allocator = *tlks.thread_allocator();
         return sparse_allocator.allocate(sz);
       }
@@ -260,6 +260,19 @@ namespace cgc1
         return ::std::get<0>(allocation);
       }
     }
+    auto global_kernel_state_t::allocate_raw(size_t sz) -> details::gc_allocator_t::block_type
+    {
+      auto &tlks = *details::get_tlks();
+      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+        auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
+        return bitmap_allocator.allocate(sz, 0);
+      }
+      else {
+        auto &sparse_allocator = *tlks.thread_allocator();
+        return sparse_allocator.allocate(sz);
+      }
+    }
+
     auto global_kernel_state_t::allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type
     {
       auto &tlks = *details::get_tlks();
