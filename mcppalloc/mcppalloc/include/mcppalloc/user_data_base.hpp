@@ -3,10 +3,11 @@ namespace mcppalloc
 {
   namespace details
   {
+    using user_data_alignment_t = size_t;
     /**
      * \brief Base class for user data associated with a entry.
      **/
-    class user_data_base_t
+    class alignas(user_data_alignment_t) user_data_base_t
     {
     public:
       user_data_base_t() = default;

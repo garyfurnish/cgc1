@@ -218,11 +218,11 @@ namespace cgc1
     gc_sparse_object_state_t *global_kernel_state_t::_u_find_valid_object_state(void *addr) const
     {
       // get handle for block.
-      auto handle = gc_allocator()._u_find_block(addr);
+      const auto handle = gc_allocator()._u_find_block(addr);
       if (!handle)
         return nullptr;
       // find state for address.
-      gc_sparse_object_state_t *os = handle->m_block->find_address(addr);
+      gc_sparse_object_state_t *const os = handle->m_block->find_address(addr);
       // make sure is in valid and in use.
       if (!os || !os->in_use())
         return nullptr;
@@ -237,14 +237,18 @@ namespace cgc1
     auto global_kernel_state_t::allocate(size_t sz) -> details::gc_allocator_t::block_type
     {
       auto &tlks = *details::get_tlks();
-      /*      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+      // check to see if size with user data fits in a bin.
+      /*      const auto size_with_user_data =
+          ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(gc_user_data_t);
+
+            if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 2);
+        return bitmap_allocator.allocate(size_with_user_data, 2);
       }
-      else*/ {
-        auto &sparse_allocator = *tlks.thread_allocator();
-        return sparse_allocator.allocate(sz);
-      }
+      else {*/
+      auto &sparse_allocator = *tlks.thread_allocator();
+      return sparse_allocator.allocate(sz);
+      //      }
     }
     auto global_kernel_state_t::allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type
     {
@@ -255,7 +259,7 @@ namespace cgc1
       }
       else {
         auto &sparse_allocator = *tlks.thread_allocator();
-        auto allocation = sparse_allocator.allocate_detailed(sz);
+        const auto allocation = sparse_allocator.allocate_detailed(sz);
         ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
         return ::std::get<0>(allocation);
       }
@@ -293,7 +297,7 @@ namespace cgc1
       wait_for_collection();
       MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
       // make sure not already a root.
-      auto it = find(m_roots.begin(), m_roots.end(), r);
+      const auto it = find(m_roots.begin(), m_roots.end(), r);
       if (it == m_roots.end())
         m_roots.push_back(r);
     }

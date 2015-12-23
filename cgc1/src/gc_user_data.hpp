@@ -7,7 +7,7 @@ namespace cgc1
     /**
    * \brief User data that can be associated with an allocation.
    **/
-    class gc_user_data_t : public ::mcppalloc::details::user_data_base_t
+    class alignas(::mcppalloc::details::user_data_alignment_t) gc_user_data_t : public ::mcppalloc::details::user_data_base_t
     {
     public:
       /**

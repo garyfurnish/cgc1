@@ -86,6 +86,10 @@ namespace mcppalloc
         }
         for (auto &&ab : m_available_blocks) {
           auto &block = *ab.second;
+          if (mcppalloc_unlikely(block.full())) {
+            ::std::cerr << "mcppalloc: allocator_block_set available block full. cf9583b3-28aa-436e-83fc-ddf4f2300922\n";
+            ::std::terminate();
+          }
           if (mcppalloc_unlikely(block.last_max_alloc_available() != ab.first)) {
             ::std::cerr << "ABS CONSISTENCY ERROR e344d88d-87f6-47b3-bd04-2622241cb2bf\n";
             ::std::cerr << &block << ::std::endl;
@@ -299,10 +303,10 @@ namespace mcppalloc
             ::std::terminate();
           }
           for (auto &&pair : m_available_blocks) {
-            assert(!pair.second->full());
             if (pair.second >= &*moved_begin) {
               pair.second += 1;
             }
+            assert(!pair.second->full());
             assert(pair.second->last_max_alloc_available() == pair.first);
           }
           if (m_last_block >= &*moved_begin) {

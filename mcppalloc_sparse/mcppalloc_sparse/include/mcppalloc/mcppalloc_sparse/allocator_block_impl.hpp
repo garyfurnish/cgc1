@@ -218,6 +218,7 @@ namespace mcppalloc
             assert(state->object_size() >= original_size);
             //          }
             _verify(state);
+            assert(state->user_data());
             return allocation_return_type(block_type{state->object_start(), state->object_size()}, state);
           }
         }
@@ -246,6 +247,7 @@ namespace mcppalloc
           auto sz = m_next_alloc_ptr->object_size();
           assert(m_next_alloc_ptr->object_size() >= original_size);
           _verify(m_next_alloc_ptr);
+          assert(m_next_alloc_ptr->user_data());
           m_next_alloc_ptr = next;
           _verify(next);
           return allocation_return_type(block_type{ret, sz}, ret_os);
@@ -261,6 +263,7 @@ namespace mcppalloc
           assert(m_next_alloc_ptr->object_size() >= original_size);
           assert(m_next_alloc_ptr->next() == reinterpret_cast<object_state_type *>(end()));
           _verify(m_next_alloc_ptr);
+          assert(m_next_alloc_ptr->user_data());
           m_next_alloc_ptr = nullptr;
           _verify(m_next_alloc_ptr);
           return allocation_return_type(block_type{ret, sz}, ret_os);
@@ -448,13 +451,15 @@ namespace mcppalloc
                                  const uint8_t *user_data_range_begin,
                                  const uint8_t *user_data_range_end)
       {
-        if (!state->in_use())
+        if (!state->in_use()) {
           return false;
+        }
         auto user_data = state->user_data();
         // check if in valid range.
         if (reinterpret_cast<const uint8_t *>(user_data) < user_data_range_begin ||
-            reinterpret_cast<const uint8_t *>(user_data) >= user_data_range_end)
+            reinterpret_cast<const uint8_t *>(user_data) >= user_data_range_end) {
           return false;
+        }
         // check for magic constant validity.
         return user_data->is_magic_constant_valid();
       }

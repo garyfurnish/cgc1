@@ -191,10 +191,10 @@ static void finalizer_test()
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   AssertThat(static_cast<bool>(finalized), IsTrue());
   // test bad parameters
-  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
+  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; }, false, false);
   AssertThat(cgc1::cgc_start(nullptr) == nullptr, IsTrue());
   AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
-  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
+  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; }, false, false);
 }
 static MCPPALLOC_NO_INLINE void finalizer_test2__setup(::std::atomic<bool> &finalized, size_t &old_memory)
 {
@@ -221,10 +221,10 @@ static void finalizer_test2()
   AssertThat(finalized.load(), IsTrue());
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
-  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; });
+  cgc1::cgc_register_finalizer(nullptr, [&finalized](void *) { finalized = true; }, false, false);
   AssertThat(cgc1::cgc_start(nullptr) == nullptr, IsTrue());
   AssertThat(cgc1::cgc_start(&old_memory) == nullptr, IsTrue());
-  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; });
+  cgc1::cgc_register_finalizer(&old_memory, [&finalized](void *) { finalized = true; }, false, false);
 }
 
 static MCPPALLOC_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
