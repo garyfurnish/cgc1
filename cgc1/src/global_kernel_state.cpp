@@ -238,17 +238,17 @@ namespace cgc1
     {
       auto &tlks = *details::get_tlks();
       // check to see if size with user data fits in a bin.
-      const auto size_with_user_data =
+      /*      const auto size_with_user_data =
           ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(gc_user_data_t);
 
-      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
+            if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
         return bitmap_allocator.allocate(size_with_user_data, 2);
       }
-      else {
-        auto &sparse_allocator = *tlks.thread_allocator();
-        return sparse_allocator.allocate(sz);
-      }
+      else {*/
+      auto &sparse_allocator = *tlks.thread_allocator();
+      return sparse_allocator.allocate(sz);
+      //      }
     }
     auto global_kernel_state_t::allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type
     {
