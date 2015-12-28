@@ -104,6 +104,8 @@ static void bitmap_state_test0()
   {
     ps->initialize(0);
     ps->clear_mark_bits();
+    AssertThat(ps->is_free(0), IsTrue());
+    AssertThat(ps->is_free(1), IsTrue());
     void *ptr = ps->allocate();
     AssertThat(ptr != nullptr, IsTrue());
     AssertThat(ps->is_free(0), IsFalse());

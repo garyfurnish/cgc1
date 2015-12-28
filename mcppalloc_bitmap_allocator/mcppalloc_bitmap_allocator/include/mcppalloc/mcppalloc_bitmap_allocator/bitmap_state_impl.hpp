@@ -198,21 +198,12 @@ namespace mcppalloc
       {
         size_t retries = 0;
       RESTART:
-        set_free(0, false);
-        set_free(1, false);
-        set_free(2, false);
-        set_free(3, false);
-        set_free(4, false);
-        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         auto i = first_free();
-        if (i >= size() - 5)
+        if (i >= size())
           return nullptr;
         // guarentee the memory address exists somewhere that is visible to gc
         volatile auto memory_address = begin() + real_entry_size() * i;
-        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         set_free(i, false);
-        //	set_free(i+1,false);
-        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         // this awful code is because for a conservative gc
         // we could set free before memory_address is live.
         // this can go wrong because we could mark while it is still free.
