@@ -25,6 +25,7 @@ while (n >= sizeof(__m128i)) {
     volatile __m128i *p_m128 = reinterpret_cast<volatile __m128i *>(s);
     while (n >= sizeof(__m128i)) {
       *p_m128++ = zero;
+      n -= sizeof(__m128i);
     }
 #endif
 #endif
