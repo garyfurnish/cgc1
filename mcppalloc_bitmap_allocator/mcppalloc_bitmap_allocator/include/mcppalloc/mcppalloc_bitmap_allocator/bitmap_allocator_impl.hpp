@@ -114,7 +114,11 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_global(size_t id, type_id_t type, bitmap_state_t *state) noexcept
       {
-        m_globals[type].insert(id, state);
+        auto package = m_globals.find(type);
+        if (package == m_globals.end()) {
+          package = m_globals.insert(::std::make_pair(type, package_type(type))).first;
+        }
+        package->second.insert(id, state);
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_free(void *v) noexcept

@@ -13,7 +13,7 @@
 #include <iostream>
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
-
+#include "bitmap_gc_user_data.hpp"
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -236,45 +236,53 @@ namespace cgc1
     }
     auto global_kernel_state_t::allocate(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       // check to see if size with user data fits in a bin.
-      /*      const auto size_with_user_data =
-          ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(gc_user_data_t);
+      const auto size_with_user_data =
+          ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(bitmap_gc_user_data_t);
 
-            if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
+      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(size_with_user_data, 2);
+        ret = bitmap_allocator.allocate(size_with_user_data, 2);
+        auto user_data = bitmap_allocator_user_data(ret.m_ptr);
+        *user_data = bitmap_gc_user_data_t();
       }
-      else {*/
-      auto &sparse_allocator = *tlks.thread_allocator();
-      return sparse_allocator.allocate(sz);
-      //      }
+      else {
+        auto &sparse_allocator = *tlks.thread_allocator();
+        ret = sparse_allocator.allocate(sz);
+      }
+      return ret;
     }
     auto global_kernel_state_t::allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 1);
+        ret = bitmap_allocator.allocate(sz, 1);
       }
       else {
         auto &sparse_allocator = *tlks.thread_allocator();
         const auto allocation = sparse_allocator.allocate_detailed(sz);
         ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
-        return ::std::get<0>(allocation);
+        ret = ::std::get<0>(allocation);
       }
+      return ret;
     }
     auto global_kernel_state_t::allocate_raw(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 0);
+        ret = bitmap_allocator.allocate(sz, 0);
       }
       else {
         auto &sparse_allocator = *tlks.thread_allocator();
-        return sparse_allocator.allocate(sz);
+        ret = sparse_allocator.allocate(sz);
       }
+      return ret;
     }
 
     auto global_kernel_state_t::allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type
@@ -533,7 +541,7 @@ namespace cgc1
       m_start_world_condition_mutex.lock();
       m_collect_finished = true;
       // make sure everything is committed
-      ::std::atomic_thread_fence(::std::memory_order_seq_cst);
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       _u_resume_threads();
       m_start_world_condition_mutex.unlock();
       m_collect = false;
@@ -645,12 +653,13 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(::mcppalloc::pow2(33), ::mcppalloc::pow2(36));
-      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
-      if (mcppalloc_unlikely(!num_gc_threads)) {
+      /*      if (mcppalloc_unlikely(!num_gc_threads)) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
         ::std::terminate();
-      }
+        }*/
       // add gc threads
       for (size_t i = 0; i < num_gc_threads; ++i)
         m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());

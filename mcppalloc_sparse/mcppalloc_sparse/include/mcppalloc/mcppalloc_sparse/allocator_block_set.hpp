@@ -154,11 +154,11 @@ namespace mcppalloc
         /**
          * \brief Return reference to last added block.
         **/
-        auto last_block() noexcept -> allocator_block_type &;
+        auto last_block() noexcept -> allocator_block_type *;
         /**
          * \brief Return reference to last added block.
         **/
-        auto last_block() const noexcept -> const allocator_block_type &;
+        auto last_block() const noexcept -> const allocator_block_type *;
         /**
          * \brief Push all empty block memory ranges onto container t and then remove th
          *

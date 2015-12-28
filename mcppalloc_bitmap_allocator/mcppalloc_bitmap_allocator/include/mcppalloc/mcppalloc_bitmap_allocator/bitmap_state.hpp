@@ -45,9 +45,15 @@ namespace mcppalloc
         auto declared_entry_size() const noexcept -> size_t;
         auto real_entry_size() const noexcept -> size_t;
         auto header_size() const noexcept -> size_t;
-
+        /**
+         * \brief Initialize part of state that all blocks share.
+         **/
         void initialize_consts() noexcept;
-        void initialize() noexcept;
+        /**
+         * \brief Initialize part of state that is argument specific.
+         * @param type_id Type of state.
+         **/
+        void initialize(type_id_t type_id) noexcept;
         void clear_mark_bits() noexcept;
 
         auto any_free() const noexcept -> bool;

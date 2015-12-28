@@ -15,7 +15,11 @@ namespace cgc1
        *
        * @param block Block that this allocation belongs to.
        **/
-      gc_user_data_t() = default;
+      gc_user_data_t() noexcept = default;
+      gc_user_data_t(const gc_user_data_t &) = default;
+      gc_user_data_t(gc_user_data_t &&) = default;
+      gc_user_data_t &operator=(const gc_user_data_t &) = default;
+      gc_user_data_t &operator=(gc_user_data_t &&) = default;
 
       auto is_uncollectable() const noexcept -> bool
       {
@@ -49,13 +53,13 @@ namespace cgc1
        * \brief True if uncollectable, false otherwise.
        *
       **/
-      bool m_uncollectable = false;
+      bool m_uncollectable{false};
       /**
        * \brief Allow arbitrary finalization thread.
        *
        * True if an arbittrary finalization thread can be used, false otherwise.
        **/
-      bool m_allow_arbitrary_finalizer_thread = false;
+      bool m_allow_arbitrary_finalizer_thread{false};
     };
   }
 }

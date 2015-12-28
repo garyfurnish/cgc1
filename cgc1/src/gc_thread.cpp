@@ -282,16 +282,20 @@ namespace cgc1
         // getting state moves pointer lower, so recheck bounds.
         if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
           return;
-        if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
+        if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
+          ::std::terminate();
+        if (state->addr_in_header(addr))
+          return;
+        if (state->is_marked(state->get_index(addr)))
           return;
         state->set_marked(state->get_index(addr));
-        if (state->type_id() == 1) {
+        if (state->type_id() != 2) {
           // atomic, so done.
           return;
         }
         // recurse to pointers.
         for (void **it = reinterpret_cast<void **>(addr);
-             it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->declared_entry_size()); ++it) {
+             it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->real_entry_size()); ++it) {
           _mark_addrs(*it, depth + 1, true);
         }
       }

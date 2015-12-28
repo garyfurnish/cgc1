@@ -151,8 +151,11 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, type_id_t type_id) -> block_type
       {
-        auto &package = m_locals[type_id];
-        return allocate(sz, package);
+        auto package = m_locals.find(type_id);
+        if (package == m_locals.end()) {
+          package = m_locals.insert(::std::make_pair(type_id, package_type(type_id))).first;
+        }
+        return allocate(sz, package->second);
       }
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, package_type &package) -> block_type
@@ -172,7 +175,7 @@ namespace mcppalloc
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize();
+            state->initialize(package.type_id());
             m_free_list.pop_back();
             v = state->allocate();
 
@@ -184,7 +187,7 @@ namespace mcppalloc
           else {
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
-              ::mcppalloc::details::allocation_failure_t failure{attempts};
+              ::mcppalloc::details::allocation_failure_t failure{attempts++};
               auto action = m_allocator.allocator_policy().on_allocation_failure(failure);
               expand = action.m_attempt_expand;
               if (action.m_repeat)
@@ -194,7 +197,7 @@ namespace mcppalloc
             }
             state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize();
+            state->initialize(package.type_id());
             assert(state->first_free() == 0);
 
             v = state->allocate();
@@ -241,8 +244,11 @@ namespace mcppalloc
           return false;
         auto state = get_state(v);
         auto type_id = state->type_id();
-        auto &package = m_locals[type_id];
-        return deallocate(v, package);
+        auto package = m_locals.find(type_id);
+        if (package == m_locals.end()) {
+          return false;
+        }
+        return deallocate(v, package->second);
       }
       template <typename Allocator_Policy>
       void bitmap_thread_allocator_t<Allocator_Policy>::set_force_maintenance()

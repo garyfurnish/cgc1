@@ -491,7 +491,7 @@ static void return_to_global_test1()
     auto &ta = gks->gc_allocator().initialize_thread();
     cgc1::cgc_free(ta.allocate(size_to_alloc).m_ptr);
     // get the stats on the last block so that we can test to see if it is freed to global
-    auto &lb = abs.last_block();
+    auto &lb = *abs.last_block();
     begin = lb.begin();
     end = lb.end();
     cgc1::cgc_unregister_thread();
@@ -542,7 +542,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
       ptrs.push_back(ta.allocate(max_sz).m_ptr);
     }
     // get the stats on the last block so that we can test to see if it is freed to global.
-    auto &lb1 = abs.last_block();
+    auto &lb1 = *abs.last_block();
     begin = lb1.begin();
     end = lb1.end();
     tls.destroy(ptrs.back());
@@ -563,7 +563,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
     // there should be a block left, but check before we try to access it.
     if (abs.size()) {
       // get the stats on the last block so that we can test to see if it is freed to global.
-      auto &lb2 = abs.last_block();
+      auto &lb2 = *abs.last_block();
       assert(lb2.valid());
       assert(lb2.empty());
       begin = lb2.begin();

@@ -57,7 +57,7 @@ static void bitmap_state_test0()
   auto max_end = ret + packed_size;
   AssertThat(max_end, IsGreaterThanOrEqualTo(ps->end()));
   AssertThat(ps->size(), Equals(expected_entries));
-  ps->initialize();
+  ps->initialize(0);
   AssertThat(ps->any_free(), IsTrue());
   AssertThat(ps->none_free(), IsFalse());
   AssertThat(ps->first_free(), Equals(0_sz));
@@ -102,7 +102,7 @@ static void bitmap_state_test0()
     }
   }
   {
-    ps->initialize();
+    ps->initialize(0);
     ps->clear_mark_bits();
     void *ptr = ps->allocate();
     AssertThat(ptr != nullptr, IsTrue());
@@ -112,7 +112,7 @@ static void bitmap_state_test0()
     AssertThat(ps->is_free(0), IsTrue());
     AssertThat(ps->is_free(1), IsTrue());
   }
-  ps->initialize();
+  ps->initialize(0);
   ps->clear_mark_bits();
   ::std::vector<void *> ptrs;
   bool keep_going = true;
@@ -212,8 +212,8 @@ static void multiple_slab_test1()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(2000000, 2000000);
-  allocator_type::package_type package1;
-  allocator_type::package_type package2;
+  allocator_type::package_type package1(0);
+  allocator_type::package_type package2(0);
   package1.insert(::std::move(package2));
   auto info0 = allocator_type::package_type::_get_info(0);
   AssertThat(info0.m_num_blocks, Equals(allocator_type::package_type::cs_total_size / 512 / 32));

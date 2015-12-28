@@ -33,6 +33,15 @@ namespace mcppalloc
         return ret;
       }
       template <typename Allocator_Policy>
+      bitmap_package_t<Allocator_Policy>::bitmap_package_t(type_id_t type_id) : m_type_id(type_id)
+      {
+      }
+      template <typename Allocator_Policy>
+      auto bitmap_package_t<Allocator_Policy>::type_id() const noexcept -> type_id_t
+      {
+        return m_type_id;
+      }
+      template <typename Allocator_Policy>
       auto bitmap_package_t<Allocator_Policy>::allocate(size_t id) noexcept -> ::std::pair<void *, size_t>
       {
         auto &vec = m_vectors[id];

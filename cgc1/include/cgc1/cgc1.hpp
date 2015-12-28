@@ -185,3 +185,4 @@ namespace cgc1
 }
 #define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())
 #include "gc_allocator.hpp"
+#include "cgc_root.hpp"

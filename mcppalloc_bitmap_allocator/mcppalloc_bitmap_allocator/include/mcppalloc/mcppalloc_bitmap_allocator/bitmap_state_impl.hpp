@@ -36,9 +36,10 @@ namespace mcppalloc
         m_internal.m_post_magic_number[0] = cs_magic_number_0;
         m_internal.m_post_magic_number[1] = cs_magic_number_1;
       }
-      inline void bitmap_state_t::initialize() noexcept
+      inline void bitmap_state_t::initialize(type_id_t type_id) noexcept
       {
         initialize_consts();
+        m_internal.m_info.m_type_id = type_id;
         for (size_t i = 0; i < num_blocks(); ++i)
           free_bits()[i].fill(::std::numeric_limits<uint64_t>::max());
       }
@@ -109,24 +110,40 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::set_free(size_t i, bool val) noexcept
       {
+        if (mcppalloc_unlikely(i >= size())) {
+          throw ::std::runtime_error("mcppalloc");
+        }
+
         auto pos = i / bits_array_type::size_in_bits();
         auto sub_pos = i - (pos * bits_array_type::size_in_bits());
         free_bits()[pos].set_bit(sub_pos, val);
       }
       inline void bitmap_state_t::set_marked(size_t i) noexcept
       {
+        if (mcppalloc_unlikely(i >= size())) {
+          throw ::std::runtime_error("mcppalloc");
+        }
+
         auto pos = i / bits_array_type::size_in_bits();
         auto sub_pos = i - (pos * bits_array_type::size_in_bits());
         mark_bits()[pos].set_bit_atomic(sub_pos, true, ::std::memory_order_relaxed);
       }
       inline auto bitmap_state_t::is_free(size_t i) const noexcept -> bool
       {
+        if (mcppalloc_unlikely(i >= size())) {
+          throw ::std::runtime_error("mcppalloc");
+        }
+
         auto pos = i / bits_array_type::size_in_bits();
         auto sub_pos = i - (pos * bits_array_type::size_in_bits());
         return free_bits()[pos].get_bit(sub_pos);
       }
       inline auto bitmap_state_t::is_marked(size_t i) const noexcept -> bool
       {
+        if (mcppalloc_unlikely(i >= size())) {
+          throw ::std::runtime_error("mcppalloc");
+        }
+
         auto pos = i / bits_array_type::size_in_bits();
         auto sub_pos = i - (pos * bits_array_type::size_in_bits());
         return mark_bits()[pos].get_bit(sub_pos);
@@ -146,7 +163,7 @@ namespace mcppalloc
         m_internal.m_info.m_header_size = align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
-        auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz;
+        auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz - 400;
         // this needs to be min of stuff
         auto num_data = data_sz / (real_entry_size());
         num_data = ::std::min(num_data, m_internal.m_info.m_num_blocks * bits_array_type::size_in_bits());
@@ -181,12 +198,21 @@ namespace mcppalloc
       {
         size_t retries = 0;
       RESTART:
+        set_free(0, false);
+        set_free(1, false);
+        set_free(2, false);
+        set_free(3, false);
+        set_free(4, false);
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         auto i = first_free();
-        if (i >= size())
+        if (i >= size() - 5)
           return nullptr;
         // guarentee the memory address exists somewhere that is visible to gc
         volatile auto memory_address = begin() + real_entry_size() * i;
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         set_free(i, false);
+        //	set_free(i+1,false);
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         // this awful code is because for a conservative gc
         // we could set free before memory_address is live.
         // this can go wrong because we could mark while it is still free.
@@ -216,8 +242,9 @@ namespace mcppalloc
 
       inline void bitmap_state_t::free_unmarked() noexcept
       {
-        for (size_t i = 0; i < num_blocks(); ++i)
+        for (size_t i = 0; i < num_blocks(); ++i) {
           free_bits()[i] |= ~mark_bits()[i];
+        }
       }
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
@@ -243,14 +270,22 @@ namespace mcppalloc
       inline auto bitmap_state_t::get_index(void *v) const noexcept -> size_t
       {
         auto diff = reinterpret_cast<const uint8_t *>(v) - begin();
-        if (diff < 0) {
+        if (mcppalloc_unlikely(diff < 0)) {
           assert(0);
           return ::std::numeric_limits<size_t>::max();
         }
-        return static_cast<size_t>(diff) / real_entry_size();
+        const auto index = static_cast<size_t>(diff) / real_entry_size();
+        if (mcppalloc_unlikely(index >= size())) {
+          assert(0);
+          return ::std::numeric_limits<size_t>::max();
+        }
+        return index;
       }
       inline auto bitmap_state_t::get_object(size_t i) noexcept -> void *
       {
+        if (mcppalloc_unlikely(i >= size())) {
+          throw ::std::runtime_error("mcppalloc: bitmap_state get object failed");
+        }
         return reinterpret_cast<void *>(begin() + i * real_entry_size());
       }
       inline auto bitmap_state_t::has_valid_magic_numbers() const noexcept -> bool

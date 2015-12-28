@@ -66,16 +66,16 @@ static void packed_linked_list_test()
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
   // this SHOULD NOT NEED TO BE HERE>
-  void **foo;
-  cgc1::cgc_add_root(reinterpret_cast<void **>(&foo));
-  auto test_thread = [&keep_going, &debug_mutex, &locations, &foo]() {
+  void **tmp;
+  cgc1::cgc_add_root(reinterpret_cast<void **>(&tmp));
+  auto test_thread = [&keep_going, &debug_mutex, &locations, &tmp]() {
     CGC1_INITIALIZE_THREAD();
-    //    void** foo;
+    //    void** tmp;
     auto &poa = gks->_bitmap_allocator();
     auto &ta = poa.initialize_thread();
-    foo = reinterpret_cast<void **>(ta.allocate(100).m_ptr);
+    tmp = reinterpret_cast<void **>(ta.allocate(100).m_ptr);
     {
-      void **bar = foo;
+      void **bar = tmp;
       for (int i = 0; i < 0; ++i) {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
         locations.push_back(::mcppalloc::hide_pointer(bar));
@@ -86,12 +86,12 @@ static void packed_linked_list_test()
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
         // locations.push_back(::mcppalloc::hide_pointer(bar));
-        locations.push_back(::mcppalloc::hide_pointer(foo));
+        locations.push_back(::mcppalloc::hide_pointer(tmp));
       }
     }
     while (keep_going) {
       ::std::stringstream ss;
-      ss << foo << ::std::endl;
+      ss << tmp << ::std::endl;
     }
     cgc1::cgc_unregister_thread();
   };
@@ -99,7 +99,6 @@ static void packed_linked_list_test()
   ::std::this_thread::yield();
   ::std::this_thread::sleep_for(::std::chrono::seconds(1));
   for (int i = 0; i < 100; ++i) {
-    //    MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
@@ -108,17 +107,15 @@ static void packed_linked_list_test()
         ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
         ::std::terminate();
       }
-      if (cgc1::debug::_cgc_hidden_packed_free(loc))
+      if (mcppalloc_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc)))
         ::std::terminate();
-      //      AssertThat(cgc1::debug::_cgc_hidden_packed_marked(loc), IsTrue());
-      //      AssertThat(cgc1::debug::_cgc_hidden_packed_free(loc), IsFalse());
     }
   }
   ::cgc1::clean_stack(0, 0, 0, 0, 0);
   keep_going = false;
   t1.join();
-  cgc1::cgc_remove_root(reinterpret_cast<void **>(&foo));
-  ::mcppalloc::secure_zero(&foo, sizeof(foo));
+  cgc1::cgc_remove_root(reinterpret_cast<void **>(&tmp));
+  ::mcppalloc::secure_zero(&tmp, sizeof(tmp));
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   for (auto &&loc : locations) {
@@ -130,10 +127,100 @@ static void packed_linked_list_test()
   }
   locations.clear();
 }
+static MCPPALLOC_NO_INLINE bool is_unique_seeded_random(void *v, size_t sz)
+{
+  return ::mcppalloc::is_unique_seeded_random(v, sz);
+}
+static void packed_allocator_test()
+{
+  ::std::vector<uintptr_t> locations;
+  ::mcppalloc::mutex_t debug_mutex;
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+  std::atomic<bool> keep_going{true};
+  void *tmp{nullptr};
+  cgc1::cgc_root root(tmp);
+  const size_t allocation_size = sizeof(size_t) * 10;
+  ::std::atomic<bool> is_finalized{false};
+  auto test_thread = [&is_finalized, &keep_going, &debug_mutex, &locations, &tmp, allocation_size]() {
+    CGC1_INITIALIZE_THREAD();
+
+    tmp = cgc1::cgc_malloc(allocation_size);
+    ::mcppalloc::bitmap_allocator::details::get_state(tmp)->verify_magic();
+    if (!mcppalloc::is_zero(tmp, allocation_size)) {
+      assert(0);
+      ::std::abort();
+    }
+    mcppalloc::put_unique_seeded_random(tmp, allocation_size);
+    auto finalizer = [&is_finalized](void *) { is_finalized = true; };
+    cgc1::cgc_register_finalizer(tmp, finalizer);
+    assert(mcppalloc::is_unique_seeded_random(tmp, allocation_size));
+    if (!mcppalloc::is_unique_seeded_random(tmp, allocation_size)) {
+      assert(0);
+      ::std::abort();
+    }
+    void *tmp2 = cgc1::cgc_malloc(100);
+    (void)tmp2;
+    if (!mcppalloc::is_unique_seeded_random(tmp, allocation_size)) {
+      ::std::cerr << __FILE__ << " " << __LINE__ << " " << tmp << " " << tmp2 << "\n";
+      ::std::cerr << __FILE__ << " " << __LINE__ << " " << mcppalloc::is_unique_seeded_random_failure_loc(tmp, allocation_size)
+                  << ::std::endl;
+      assert(0);
+      ::std::abort();
+    }
+    locations.push_back(::mcppalloc::hide_pointer(tmp));
+
+    ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(locations.back()))->verify_magic();
+    void *tmp3 = cgc1::cgc_malloc(500);
+    (void)tmp3;
+    while (keep_going) {
+      ::std::stringstream ss;
+      ss << tmp << ::std::endl;
+    }
+    cgc1::cgc_unregister_thread();
+  };
+  ::std::thread t1(test_thread);
+  ::std::this_thread::yield();
+  ::std::this_thread::sleep_for(::std::chrono::seconds(1));
+  for (int i = 0; i < 100; ++i) {
+    cgc1::cgc_force_collect();
+    gks->wait_for_finalization();
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
+    for (auto &&loc : locations) {
+      if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
+        ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
+        ::std::abort();
+      }
+      if (mcppalloc_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc)))
+        ::std::abort();
+    }
+  }
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  keep_going = false;
+  t1.join();
+  if (!is_unique_seeded_random(tmp, allocation_size))
+    ::std::abort();
+  ::cgc1::clean_stack(0, 0, 0, 0, 0);
+  root.clear();
+  ::mcppalloc::secure_zero_pointer(tmp);
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+  for (auto &&loc : locations) {
+    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+    auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
+    AssertThat(state->has_valid_magic_numbers(), IsTrue());
+    AssertThat(state->is_marked(index), IsFalse());
+    AssertThat(state->is_free(index), IsTrue());
+  }
+  AssertThat(is_finalized.load(), IsTrue());
+  locations.clear();
+}
+
 void gc_bitmap_tests()
 {
   describe("GC", []() {
     it("packed_root_test", []() { packed_root_test(); });
     it("packed_linked_list_test", []() { packed_linked_list_test(); });
+    it("packed_allocator_test", []() { packed_allocator_test(); });
   });
 }

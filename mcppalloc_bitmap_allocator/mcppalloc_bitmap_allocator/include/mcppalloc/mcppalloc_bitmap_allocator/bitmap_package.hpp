@@ -39,6 +39,26 @@ namespace mcppalloc
          * \brief Type of id indexed array.
          **/
         using array_type = ::std::array<vector_type, cs_num_vectors>;
+
+        bitmap_package_t(type_id_t type_id);
+        /**
+         * \brief Copy constructor.
+         *
+         * Would prefer to delete this, but used internally by containers.
+         **/
+        bitmap_package_t(const bitmap_package_t &) = default;
+        bitmap_package_t(bitmap_package_t &&) noexcept = default;
+        /**
+         * \brief Copy operator.
+         *
+         * Would prefer to delete this, but used internally by containers.
+         **/
+        //        bitmap_package_t &operator=(const bitmap_package_t &) = default;
+        bitmap_package_t &operator=(bitmap_package_t &&) = default;
+        /**
+         * \brief Return type id.
+         **/
+        auto type_id() const noexcept -> type_id_t;
         void shutdown();
         /**
          * \brief Move all states in package into this package.
@@ -83,6 +103,12 @@ namespace mcppalloc
          * \brief Underlying states.
          **/
         array_type m_vectors;
+        /**
+         * \brief Type id of package.
+         *
+         * This should be treated as const.
+         **/
+        type_id_t m_type_id;
       };
     }
   }

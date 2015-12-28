@@ -10,9 +10,11 @@ namespace mcppalloc
     class alignas(user_data_alignment_t) user_data_base_t
     {
     public:
-      user_data_base_t() = default;
-      user_data_base_t(const user_data_base_t &) = default;
-      user_data_base_t(user_data_base_t &&) = default;
+      user_data_base_t() noexcept = default;
+      user_data_base_t(const user_data_base_t &) noexcept = default;
+      user_data_base_t(user_data_base_t &&) noexcept = default;
+      user_data_base_t &operator=(const user_data_base_t &) noexcept = default;
+      user_data_base_t &operator=(user_data_base_t &&) noexcept = default;
 
     private:
       /**
