@@ -1,7 +1,7 @@
 #pragma once
-#include <type_traits>
-#include <atomic>
 #include <array>
+#include <atomic>
+#include <type_traits>
 namespace mcppalloc
 {
   namespace bitmap
@@ -67,7 +67,7 @@ namespace mcppalloc
         integer_block_t operator|(const integer_block_t &) const noexcept;
         integer_block_t &operator|=(const integer_block_t &) noexcept;
 
-        integer_block_t operator&(const integer_block_t &) const noexcept;
+        integer_block_t operator&(const integer_block_t &)const noexcept;
         integer_block_t &operator&=(const integer_block_t &) noexcept;
 
         static constexpr size_t size() noexcept;

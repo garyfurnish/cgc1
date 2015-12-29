@@ -1,17 +1,17 @@
 #pragma once
-#include "internal_declarations.hpp"
-#include <atomic>
-#include <condition_variable>
-#include <vector>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include "internal_allocator.hpp"
-#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
-#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include "global_kernel_state_param.hpp"
+#include "internal_allocator.hpp"
+#include "internal_declarations.hpp"
+#include <atomic>
+#include <cgc1/cgc_internal_malloc_allocator.hpp>
+#include <condition_variable>
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <vector>
 
 #include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
@@ -362,7 +362,8 @@ namespace cgc1
        * Not necesarily a one to one map.
       **/
       ::mcppalloc::rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>,
-                                   cgc_internal_malloc_allocator_t<void>> m_gc_threads;
+                                   cgc_internal_malloc_allocator_t<void>>
+          m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.
        *

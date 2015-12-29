@@ -19,8 +19,7 @@ namespace cgc1
         ret = ::VirtualAlloc(addr, size, MEM_COMMIT, PAGE_READWRITE);
       else
         ret = ::VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    }
-    else
+    } else
       ret = ::VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!ret) {
       return false;
@@ -55,8 +54,7 @@ namespace cgc1
     }
     if (information.State & MEM_RESERVE) {
       ret = ::VirtualAlloc(end(), size, MEM_COMMIT, PAGE_READWRITE);
-    }
-    else {
+    } else {
       ret = ::VirtualAlloc(end(), size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
     if (ret != end()) {

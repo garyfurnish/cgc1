@@ -1,17 +1,15 @@
 #pragma once
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <mcppalloc/mcppalloc_utils/warning_wrapper_push.hpp>
-#include <boost/container/flat_set.hpp>
-#include <boost/property_tree/ptree_fwd.hpp>
-#include <mcppalloc/mcppalloc_utils/warning_wrapper_pop.hpp>
 #include "allocator_block.hpp"
+#include <algorithm>
 #include <mcppalloc/block.hpp>
-#include <mcppalloc/object_state.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
 #include <mcppalloc/default_allocator_policy.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree_fwd.hpp>
+#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
+#include <mcppalloc/object_state.hpp>
+#include <string>
+#include <vector>
 namespace mcppalloc
 {
   template <typename Policy, typename OS>
@@ -203,7 +201,8 @@ namespace mcppalloc
          **/
         ::boost::container::flat_set<object_state_type *,
                                      ::mcppalloc::details::os_size_compare,
-                                     typename allocator::template rebind<object_state_type *>::other> m_free_list;
+                                     typename allocator::template rebind<object_state_type *>::other>
+            m_free_list;
         /**
          * \brief Next allocator pointer if whole block has not yet been used.
         **/

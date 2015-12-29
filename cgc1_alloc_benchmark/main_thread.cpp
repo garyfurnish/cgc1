@@ -1,10 +1,10 @@
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <vector>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <condition_variable>
+#include <iostream>
+#include <thread>
+#include <vector>
 #ifdef BOEHM
 #define GC_THREADS
 #include <gc.h>
@@ -14,13 +14,13 @@
 #else
 #include <cgc1/gc.h>
 
+#include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cgc1/posix.hpp>
-#include <thread>
-#include <signal.h>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include "../cgc1/src/global_kernel_state.hpp"
+#include <signal.h>
+#include <thread>
 #endif
 
 // static const size_t num_alloc = 10000000;

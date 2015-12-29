@@ -1,13 +1,13 @@
 #pragma once
+#include "gc_allocator.hpp"
+#include "internal_allocator.hpp"
 #include "internal_declarations.hpp"
-#include <cgc1/declarations.hpp>
+#include <assert.h>
 #include <atomic>
+#include <cgc1/declarations.hpp>
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <thread>
 #include <vector>
-#include <assert.h>
-#include "internal_allocator.hpp"
-#include "gc_allocator.hpp"
-#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 namespace cgc1
 {
   namespace details

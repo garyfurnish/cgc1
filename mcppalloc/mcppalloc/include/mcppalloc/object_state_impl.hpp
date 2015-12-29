@@ -32,8 +32,7 @@ namespace mcppalloc
     {
       if (mcppalloc_unlikely(m_pre_magic != cs_pre_magic)) {
         ::std::terminate();
-      }
-      else if (mcppalloc_unlikely(m_post_magic != cs_post_magic)) {
+      } else if (mcppalloc_unlikely(m_post_magic != cs_post_magic)) {
         ::std::terminate();
       }
     }

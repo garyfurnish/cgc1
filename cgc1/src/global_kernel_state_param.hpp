@@ -1,6 +1,6 @@
 #pragma once
-#include <cgc1/declarations.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <cgc1/declarations.hpp>
 namespace cgc1
 {
   class global_kernel_state_param_t

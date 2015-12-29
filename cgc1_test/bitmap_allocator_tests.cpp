@@ -1,9 +1,9 @@
+#include "../cgc1/include/gc/gc.h"
+#include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
-#include "../cgc1/src/global_kernel_state.hpp"
-#include "../cgc1/include/gc/gc.h"
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 
 using namespace bandit;
 // alias

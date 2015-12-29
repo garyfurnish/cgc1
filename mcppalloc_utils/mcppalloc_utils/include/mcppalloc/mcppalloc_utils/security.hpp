@@ -8,16 +8,12 @@ namespace mcppalloc
    **/
   inline void secure_zero(void *s, size_t n)
   {
-#ifdef _WIN32
-    SecureZeroMemory(s, n);
-#else
-#ifndef __clang__
-/*#ifdef __AVX2__
+/*#ifdef __AVX__
 const __m256 dummy;
 const __m256i zero = _mm256_xor_ps(dummy, dummy);
 volatile __m256i *p_m256 = reinterpret_cast<volatile __m256i *>(s);
 while (n >= sizeof(__m128i)) {
-  *p_m256++ = zero;
+*p_m256++ = zero;
 }
 #endif*/
 #ifdef __SSE2__
@@ -27,8 +23,8 @@ while (n >= sizeof(__m128i)) {
       *p_m128++ = zero;
       n -= sizeof(__m128i);
     }
-#endif
-#endif
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m128);
+#else
     volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
     while (n >= sizeof(size_t) * 8) {
       *p_sz++ = 0;
@@ -41,6 +37,7 @@ while (n >= sizeof(__m128i)) {
       *p_sz++ = 0;
       n -= sizeof(size_t) * 8;
     }
+#endif
     while (n >= sizeof(size_t)) {
       *p_sz++ = 0;
       n -= sizeof(size_t);
@@ -49,7 +46,6 @@ while (n >= sizeof(__m128i)) {
 
     while (n--)
       *p++ = 0;
-#endif
   }
 
   inline bool is_zero(void *v, size_t sz)

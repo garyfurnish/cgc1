@@ -1,11 +1,11 @@
 #pragma once
-#include "bitmap_thread_allocator.hpp"
 #include "bitmap_package.hpp"
-#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/thread_local_pointer.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include "bitmap_thread_allocator.hpp"
 #include <map>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
+#include <mcppalloc/mcppalloc_utils/thread_local_pointer.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -115,7 +115,8 @@ namespace mcppalloc
                                      package_type,
                                      ::std::less<type_id_t>,
                                      typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, package_type>>> m_globals GUARDED_BY(m_mutex);
+                                         ::std::pair<type_id_t, package_type>>>
+            m_globals GUARDED_BY(m_mutex);
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Free sections of slab.
@@ -128,7 +129,8 @@ namespace mcppalloc
                                      thread_allocator_unique_ptr_type,
                                      ::std::less<::std::thread::id>,
                                      typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>> m_thread_allocators;
+                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>>
+            m_thread_allocators;
       };
     }
     template <typename Allocator_Policy>

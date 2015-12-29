@@ -1,4 +1,6 @@
 #pragma once
+#include "declarations.hpp"
+#include "object_state.hpp"
 namespace mcppalloc
 {
   namespace details

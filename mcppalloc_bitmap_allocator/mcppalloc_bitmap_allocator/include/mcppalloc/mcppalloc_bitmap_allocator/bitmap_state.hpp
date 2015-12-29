@@ -16,12 +16,15 @@ namespace mcppalloc
         size_t m_size;
         size_t m_header_size;
         type_id_t m_type_id;
+        uint32_t m_pad;
+        uint8_t m_num_user_bit_fields;
+        uint8_t m_pad2[3];
       };
 
       struct alignas(c_bitmap_alignment) bitmap_state_internal_t {
         size_t m_pre_magic_number;
         bitmap_state_info_t m_info;
-        size_t m_post_magic_number[2];
+        size_t m_post_magic_number;
       };
 
       static_assert(sizeof(bitmap_state_internal_t) == 2 * c_bitmap_alignment, "");
@@ -38,7 +41,6 @@ namespace mcppalloc
         static const constexpr size_t cs_bits_array_multiple = 2;
         static const constexpr size_t cs_magic_number_pre = 0xd7c3f4bb0bea958c;
         static const constexpr size_t cs_magic_number_0 = 0xa58d0aebb1fae1d9;
-        static const constexpr size_t cs_magic_number_1 = 0x164df5314ffcf804;
 
         using bits_array_type = bitmap::details::integer_block_t<8>;
 

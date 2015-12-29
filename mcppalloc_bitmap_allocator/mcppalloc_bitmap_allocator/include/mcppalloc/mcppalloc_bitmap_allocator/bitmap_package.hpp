@@ -1,6 +1,6 @@
 #pragma once
-#include "declarations.hpp"
 #include "bitmap_state.hpp"
+#include "declarations.hpp"
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/mcppalloc_utils/container.hpp>
 namespace mcppalloc

@@ -1,5 +1,6 @@
 #pragma once
 #include "gc_user_data.hpp"
+#include "global_kernel_state.hpp"
 namespace cgc1
 {
   inline bool is_bitmap_allocator(void *addr) noexcept

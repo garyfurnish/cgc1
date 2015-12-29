@@ -1,6 +1,6 @@
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
+#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_utils/literals.hpp>
 #include <mcppalloc/mcppalloc_utils/memory_range.hpp>
 using namespace ::bandit;

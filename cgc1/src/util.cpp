@@ -1,6 +1,6 @@
+#include <atomic>
 #include <cgc1/declarations.hpp>
 #include <mcppalloc/mcppalloc_utils/security.hpp>
-#include <atomic>
 namespace cgc1
 {
   template <size_t bytes>

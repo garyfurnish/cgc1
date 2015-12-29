@@ -1,9 +1,9 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <thread>
-#include <new>
 #include <mcppalloc/allocator_thread_policy.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <new>
+#include <thread>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -92,8 +92,7 @@ namespace mcppalloc
             if (state->all_free()) {
               m_free_list.push_back(state);
               it = vec.erase(it);
-            }
-            else
+            } else
               ++it;
           }
         }
@@ -183,8 +182,7 @@ namespace mcppalloc
             m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
             state->verify_magic();
             return block_type{v, state->real_entry_size()};
-          }
-          else {
+          } else {
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
               ::mcppalloc::details::allocation_failure_t failure{attempts++};

@@ -1,9 +1,7 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/warning_wrapper_push.hpp>
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <mcppalloc/mcppalloc_utils/warning_wrapper_pop.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/iterator/zip_iterator.hpp>
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/range/iterator_range.hpp>
 #include <mcppalloc/mcppalloc_utils/literals.hpp>
 namespace mcppalloc
 {
@@ -82,7 +80,8 @@ namespace mcppalloc
       {
         using namespace mcppalloc::literals;
         bitmap_state_t state;
-        state.m_internal.m_info = bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0, type_id};
+        state.m_internal.m_info =
+            bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0, type_id, 0, 0, {0, 0, 0}};
         state._compute_size();
         return state.m_internal.m_info;
       }

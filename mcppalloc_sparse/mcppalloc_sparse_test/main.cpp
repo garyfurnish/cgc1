@@ -1,6 +1,6 @@
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
 #ifdef _WIN32
 #pragma optimize("", off)
 #endif

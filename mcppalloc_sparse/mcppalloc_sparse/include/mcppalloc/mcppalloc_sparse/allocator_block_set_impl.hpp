@@ -251,24 +251,21 @@ namespace mcppalloc
               if (ub - 1 == ab_it2) {
                 *(ub - 1) = pair;
                 // don't move at all, life made easy.
-              }
-              else if (ab_it2 < ub) {
+              } else if (ab_it2 < ub) {
                 // ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
                 // rotate is optimal over erase/insert.
 
                 ::std::rotate(ab_it2, ab_it2 + 1, ub);
                 (ub - 1)->first = pair.first;
                 _verify();
-              }
-              else {
+              } else {
                 // ub < ab_it2
                 ::std::rotate(ub, ab_it2, ab_it2 + 1);
                 (ub)->first = pair.first;
                 _verify();
               }
               _verify();
-            }
-            else {
+            } else {
             NOT_FOUND:
               _verify();
               const sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
@@ -327,8 +324,7 @@ namespace mcppalloc
           }
           m_last_block = &*moved_begin;
           _verify();
-        }
-        else {
+        } else {
           m_blocks.emplace_back(::std::move(block));
           m_last_block = &m_blocks.back();
         }
@@ -372,11 +368,9 @@ namespace mcppalloc
             auto back_it = m_available_blocks.end() - 1;
             m_last_block = back_it->second;
             m_available_blocks.erase(back_it);
-          }
-          else
+          } else
             m_last_block = nullptr;
-        }
-        else if (last_block() > &*it) {
+        } else if (last_block() > &*it) {
           m_last_block--;
         }
         _verify();
@@ -474,8 +468,7 @@ namespace mcppalloc
           block.collect(m_num_destroyed_since_free);
           if (block.empty()) {
             num_empty++;
-          }
-          else {
+          } else {
           }
         }
         // update available blocks after update.

@@ -1,6 +1,6 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 #include <mcppalloc/mcppalloc_utils/std.hpp>
+#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 namespace cgc1
 {
   namespace details

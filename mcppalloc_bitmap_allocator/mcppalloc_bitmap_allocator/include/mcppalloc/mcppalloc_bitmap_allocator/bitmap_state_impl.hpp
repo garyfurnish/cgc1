@@ -33,8 +33,7 @@ namespace mcppalloc
       {
         assert(this);
         m_internal.m_pre_magic_number = cs_magic_number_pre;
-        m_internal.m_post_magic_number[0] = cs_magic_number_0;
-        m_internal.m_post_magic_number[1] = cs_magic_number_1;
+        m_internal.m_post_magic_number = cs_magic_number_0;
       }
       inline void bitmap_state_t::initialize(type_id_t type_id) noexcept
       {
@@ -210,8 +209,7 @@ namespace mcppalloc
         if (mcppalloc_unlikely(is_free(i))) {
           if (mcppalloc_likely(retries < 15)) {
             goto RESTART;
-          }
-          else
+          } else
             ::std::terminate();
         }
         assert(memory_address);
@@ -281,8 +279,7 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::has_valid_magic_numbers() const noexcept -> bool
       {
-        return m_internal.m_pre_magic_number == cs_magic_number_pre && m_internal.m_post_magic_number[0] == cs_magic_number_0 &&
-               m_internal.m_post_magic_number[1] == cs_magic_number_1;
+        return m_internal.m_pre_magic_number == cs_magic_number_pre && m_internal.m_post_magic_number == cs_magic_number_0;
       }
       inline void bitmap_state_t::verify_magic() const
       {

@@ -1,6 +1,6 @@
 #include "gc_thread.hpp"
-#include "thread_local_kernel_state.hpp"
 #include "global_kernel_state.hpp"
+#include "thread_local_kernel_state.hpp"
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -232,8 +232,7 @@ namespace cgc1
       if (os < heap_begin || os >= heap_end) {
         if (addr < fast_heap_begin || addr >= fast_heap_end) {
           return;
-        }
-        else
+        } else
           fast_heap = true;
       }
 
@@ -261,8 +260,7 @@ namespace cgc1
           // if recursion depth too big, put it on addresses to mark.
           m_addresses_to_mark.insert(addr);
           return;
-        }
-        else {
+        } else {
           // set it as marked.
           set_mark(os);
           // recurse to pointers.
@@ -271,8 +269,7 @@ namespace cgc1
             _mark_addrs(*it, depth + 1);
           }
         }
-      }
-      else {
+      } else {
         if (depth > 300) {
           // if recursion depth too big, put it on addresses to mark.
           m_addresses_to_mark.insert(addr);
@@ -333,25 +330,21 @@ namespace cgc1
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
                 m_to_be_freed.push_back(os_it);
 #endif
-              }
-              else {
+              } else {
                 if (ud->is_uncollectable()) {
                   // if uncollectable don't do anything.
                   // didn't actually free anything, so decrement.
                   --num_freed;
                   continue;
-                }
-                else if (ud->m_finalizer) {
+                } else if (ud->m_finalizer) {
                   // if it has a finalizer, finalize.
                   m_to_be_freed.push_back(os_it);
-                }
-                else {
+                } else {
                   // delete user data if not owned by block.
                   m_to_be_freed.push_back(os_it);
                 }
               }
-            }
-            else {
+            } else {
               // no user data, so delete.
               os_it->set_quasi_freed();
             }
@@ -370,8 +363,7 @@ namespace cgc1
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
           if (ud->is_default()) {
-          }
-          else {
+          } else {
             // if it has a finalizer that can run in this thread, finalize.
             if (ud->m_finalizer && ud->allow_arbitrary_finalizer_thread()) {
               ud->m_finalizer(os->object_start());
@@ -382,8 +374,7 @@ namespace cgc1
               special_finalization.emplace_back(os);
               // we do not want to zero memory etc so continue.
               continue;
-            }
-            else {
+            } else {
               // delete user data if not owned by block.
               unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
             }
