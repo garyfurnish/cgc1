@@ -57,6 +57,9 @@ namespace mcppalloc
          **/
         void initialize(type_id_t type_id) noexcept;
         void clear_mark_bits() noexcept;
+        void clear_user_bits(size_t index) noexcept;
+
+        auto num_bit_arrays() const noexcept -> size_t;
 
         auto any_free() const noexcept -> bool;
         auto none_free() const noexcept -> bool;
@@ -93,6 +96,22 @@ namespace mcppalloc
         auto free_bits() const noexcept -> const bits_array_type *;
         auto mark_bits() noexcept -> bits_array_type *;
         auto mark_bits() const noexcept -> const bits_array_type *;
+        /**
+         * \brief Return the ith array of user bits.
+         **/
+        auto user_bits(size_t i) noexcept -> bits_array_type *;
+        /**
+         * \brief Return the ith array of user bits.
+         **/
+        auto user_bits(size_t i) const noexcept -> const bits_array_type *;
+        /**
+         * \brief Return the ith array of user bits with bound check.
+         **/
+        auto user_bits_checked(size_t i) noexcept -> bits_array_type *;
+        /**
+         * \brief Return the ith array of user bits with bound check.
+         **/
+        auto user_bits_checked(size_t i) const noexcept -> const bits_array_type *;
 
         auto has_valid_magic_numbers() const noexcept -> bool;
         void verify_magic() const;

@@ -35,7 +35,7 @@ namespace mcppalloc
         /**
          * \brief Set the ith bit to the value atomically.
          **/
-        void get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept;
+        auto get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept -> bool;
         /**
          * \brief Return true if any bit is set.
          **/
@@ -69,6 +69,9 @@ namespace mcppalloc
 
         integer_block_t operator&(const integer_block_t &)const noexcept;
         integer_block_t &operator&=(const integer_block_t &) noexcept;
+
+        integer_block_t operator^(const integer_block_t &) const noexcept;
+        integer_block_t &operator^=(const integer_block_t &) noexcept;
 
         static constexpr size_t size() noexcept;
         static constexpr size_t size_in_bytes() noexcept;

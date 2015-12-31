@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 namespace mcppalloc
 {
@@ -44,19 +45,21 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::clear_mark_bits() noexcept
       {
-        for (size_t i = 0; i < num_blocks(); ++i)
-          mark_bits()[i].fill(0);
+        bitmap::dynamic_bitmap_ref_t<false>(mark_bits(), num_blocks()).clear();
       }
-
+      inline void bitmap_state_t::clear_user_bits(size_t index) noexcept
+      {
+        bitmap::dynamic_bitmap_ref_t<false>(user_bits(index), num_blocks()).clear();
+      }
       inline auto bitmap_state_t::all_free() const noexcept -> bool
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto &&it = free_bits()[i];
-          if (!it.all_set())
-            return false;
-        }
-        return true;
+        return bitmap::dynamic_bitmap_ref_t<true>(free_bits(), num_blocks()).all_set();
       }
+      inline auto bitmap_state_t::num_bit_arrays() const noexcept -> size_t
+      {
+        return cs_bits_array_multiple + m_internal.m_info.m_num_user_bit_fields;
+      }
+
       inline auto bitmap_state_t::any_free() const noexcept -> bool
       {
         for (size_t i = 0; i < num_blocks(); ++i) {
@@ -158,7 +161,7 @@ namespace mcppalloc
       inline void bitmap_state_t::_compute_size() noexcept
       {
         auto blocks = m_internal.m_info.m_num_blocks;
-        auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * cs_bits_array_multiple;
+        auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * num_bit_arrays();
         m_internal.m_info.m_header_size = align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
@@ -256,6 +259,27 @@ namespace mcppalloc
       {
         return free_bits() + num_blocks();
       }
+      inline auto bitmap_state_t::user_bits(size_t i) noexcept -> bits_array_type *
+      {
+        return mark_bits() + num_blocks() * (i + 1);
+      }
+      inline auto bitmap_state_t::user_bits(size_t i) const noexcept -> const bits_array_type *
+      {
+        return mark_bits() + num_blocks() * (i + 1);
+      }
+      inline auto bitmap_state_t::user_bits_checked(size_t i) noexcept -> bits_array_type *
+      {
+        if (mcppalloc_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
+          throw ::std::out_of_range("mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242");
+        return user_bits(i);
+      }
+      inline auto bitmap_state_t::user_bits_checked(size_t i) const noexcept -> const bits_array_type *
+      {
+        if (mcppalloc_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
+          throw ::std::out_of_range("mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605");
+        return user_bits(i);
+      }
+
       inline auto bitmap_state_t::get_index(void *v) const noexcept -> size_t
       {
         auto diff = reinterpret_cast<const uint8_t *>(v) - begin();

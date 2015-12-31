@@ -48,7 +48,7 @@ namespace mcppalloc
         return (m_array[pos] & (1ll << sub_pos)) > sub_pos;
       }
       template <size_t Quads>
-      MCPPALLOC_ALWAYS_INLINE void integer_block_t<Quads>::get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept
+      MCPPALLOC_ALWAYS_INLINE bool integer_block_t<Quads>::get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept
       {
         auto pos = i / 64;
         auto sub_pos = i - (pos * 64);
@@ -147,6 +147,23 @@ namespace mcppalloc
       {
         for (size_t i = 0; i < m_array.size(); ++i) {
           m_array[i] &= b.m_array[i];
+        }
+        return *this;
+      }
+      template <size_t Quads>
+      MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::operator^(const integer_block_t &b) const noexcept -> integer_block_t
+      {
+        integer_block_t ret;
+        for (size_t i = 0; i < m_array.size(); ++i) {
+          ret.m_array[i] = m_array[i] ^ b.m_array[i];
+        }
+        return ret;
+      }
+      template <size_t Quads>
+      MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::operator^=(const integer_block_t &b) noexcept -> integer_block_t &
+      {
+        for (size_t i = 0; i < m_array.size(); ++i) {
+          m_array[i] ^= b.m_array[i];
         }
         return *this;
       }
