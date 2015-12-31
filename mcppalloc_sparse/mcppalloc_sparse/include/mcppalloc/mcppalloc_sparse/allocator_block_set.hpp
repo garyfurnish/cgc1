@@ -30,7 +30,7 @@ namespace mcppalloc
         using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
 
         const struct abrvr_compare_type {
-          constexpr auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
+          auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
           {
             if (r.first < it.first)
               return true;
