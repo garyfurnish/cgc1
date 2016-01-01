@@ -5,15 +5,8 @@ namespace mcppalloc
   namespace bitmap
   {
     template <bool is_const>
-    template <bool E>
-    dynamic_bitmap_ref_t<is_const>::dynamic_bitmap_ref_t(typename ::std::enable_if<E, const bits_array_type *>::type array,
-                                                         size_t sz) noexcept : m_array(array),
-                                                                               m_size(sz)
-    {
-    }
-    template <bool is_const>
-    inline dynamic_bitmap_ref_t<is_const>::dynamic_bitmap_ref_t(bits_array_type *array, size_t sz) noexcept : m_array(array),
-                                                                                                              m_size(sz)
+    inline dynamic_bitmap_ref_t<is_const>::dynamic_bitmap_ref_t(bits_array_type array, size_t sz) noexcept : m_array(array),
+                                                                                                             m_size(sz)
     {
     }
     template <bool is_const>
@@ -33,28 +26,26 @@ namespace mcppalloc
     template <bool is_const>
     inline auto dynamic_bitmap_ref_t<is_const>::size_in_bytes() const noexcept -> size_t
     {
-      return m_size * sizeof(bits_array_type);
+      return m_size * sizeof(bits_type);
     }
     template <bool is_const>
     inline auto dynamic_bitmap_ref_t<is_const>::size_in_bits() const noexcept -> size_t
     {
-      return m_size * sizeof(bits_array_type) * 8;
+      return m_size * sizeof(bits_type) * 8;
     }
     template <bool is_const>
-    inline auto dynamic_bitmap_ref_t<is_const>::array() noexcept -> bits_array_type *
+    inline auto dynamic_bitmap_ref_t<is_const>::array() noexcept -> bits_array_type
     {
       return m_array;
     }
     template <bool is_const>
-    inline auto dynamic_bitmap_ref_t<is_const>::array() const noexcept -> const bits_array_type *
+    inline auto dynamic_bitmap_ref_t<is_const>::array() const noexcept -> const bits_array_type
     {
       return m_array;
     }
     template <bool is_const>
     template <bool E>
     typename ::std::enable_if<E, void>::type dynamic_bitmap_ref_t<is_const>::clear() noexcept
-
-    //    inline void dynamic_bitmap_ref_t<is_const>::clear() noexcept
     {
       for (size_t i = 0; i < size(); ++i)
         m_array[i].clear();
@@ -68,29 +59,29 @@ namespace mcppalloc
     template <bool is_const>
     inline void dynamic_bitmap_ref_t<is_const>::set_bit(size_t i, bool value) noexcept
     {
-      auto pos = i / bits_array_type::size_in_bits();
-      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      auto pos = i / bits_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_type::size_in_bits());
       m_array[pos].set_bit(sub_pos, value);
     }
     template <bool is_const>
     inline void dynamic_bitmap_ref_t<is_const>::set_bit_atomic(size_t i, bool value, ::std::memory_order ordering) noexcept
     {
-      auto pos = i / bits_array_type::size_in_bits();
-      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      auto pos = i / bits_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_type::size_in_bits());
       m_array[pos].set_bit_atomic(sub_pos, value, ordering);
     }
     template <bool is_const>
     inline auto dynamic_bitmap_ref_t<is_const>::get_bit(size_t i) const noexcept -> bool
     {
-      auto pos = i / bits_array_type::size_in_bits();
-      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      auto pos = i / bits_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_type::size_in_bits());
       return m_array[pos].get_bit(sub_pos);
     }
     template <bool is_const>
     inline auto dynamic_bitmap_ref_t<is_const>::get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept -> bool
     {
-      auto pos = i / bits_array_type::size_in_bits();
-      auto sub_pos = i - (pos * bits_array_type::size_in_bits());
+      auto pos = i / bits_type::size_in_bits();
+      auto sub_pos = i - (pos * bits_type::size_in_bits());
       return m_array[pos].get_bit_atomic(sub_pos, ordering);
     }
     template <bool is_const>
@@ -129,7 +120,7 @@ namespace mcppalloc
       for (size_t i = 0; i < size(); ++i) {
         auto ret = m_array[i].first_set();
         if (ret != ::std::numeric_limits<size_t>::max())
-          return i * bits_array_type::size_in_bits() + ret;
+          return i * bits_type::size_in_bits() + ret;
       }
       return ::std::numeric_limits<size_t>::max();
     }
@@ -139,7 +130,7 @@ namespace mcppalloc
       for (size_t i = 0; i < size(); ++i) {
         auto ret = m_array[i].first_not_set();
         if (ret != ::std::numeric_limits<size_t>::max())
-          return i * bits_array_type::size_in_bits() + ret;
+          return i * bits_type::size_in_bits() + ret;
       }
       return ::std::numeric_limits<size_t>::max();
     }
@@ -180,6 +171,14 @@ namespace mcppalloc
         m_array[i] ^= rhs.m_array[i];
       }
       return *this;
+    }
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz)
+    {
+      return dynamic_bitmap_ref_t<false>(array, sz);
+    }
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz)
+    {
+      return dynamic_bitmap_ref_t<true>(array, sz);
     }
   }
 }

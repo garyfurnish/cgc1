@@ -45,15 +45,15 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::clear_mark_bits() noexcept
       {
-        bitmap::dynamic_bitmap_ref_t<false>(mark_bits(), num_blocks()).clear();
+        bitmap::make_dynamic_bitmap_ref(mark_bits(), num_blocks()).clear();
       }
       inline void bitmap_state_t::clear_user_bits(size_t index) noexcept
       {
-        bitmap::dynamic_bitmap_ref_t<false>(user_bits(index), num_blocks()).clear();
+        bitmap::make_dynamic_bitmap_ref(user_bits(index), num_blocks()).clear();
       }
       inline auto bitmap_state_t::all_free() const noexcept -> bool
       {
-        return bitmap::dynamic_bitmap_ref_t<true>(free_bits(), num_blocks()).all_set();
+        return bitmap::make_dynamic_bitmap_ref(free_bits(), num_blocks()).all_set();
       }
       inline auto bitmap_state_t::num_bit_arrays() const noexcept -> size_t
       {

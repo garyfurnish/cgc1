@@ -8,10 +8,9 @@ namespace mcppalloc
     class dynamic_bitmap_ref_t
     {
     public:
-      using bits_array_type = bitmap::details::integer_block_t<8>;
-      template <bool E = is_const>
-      dynamic_bitmap_ref_t(typename ::std::enable_if<E, const bits_array_type *>::type array, size_t sz) noexcept;
-      dynamic_bitmap_ref_t(bits_array_type *array, size_t sz) noexcept;
+      using bits_type = bitmap::details::integer_block_t<8>;
+      using bits_array_type = typename ::std::conditional<is_const, const bits_type *, bits_type *>::type;
+      dynamic_bitmap_ref_t(bits_array_type array, size_t sz) noexcept;
       dynamic_bitmap_ref_t(const dynamic_bitmap_ref_t &) noexcept;
       dynamic_bitmap_ref_t(dynamic_bitmap_ref_t &&) noexcept;
       dynamic_bitmap_ref_t &operator=(const dynamic_bitmap_ref_t &) noexcept;
@@ -20,8 +19,8 @@ namespace mcppalloc
       auto size() const noexcept -> size_t;
       auto size_in_bytes() const noexcept -> size_t;
       auto size_in_bits() const noexcept -> size_t;
-      auto array() noexcept -> bits_array_type *;
-      auto array() const noexcept -> const bits_array_type *;
+      auto array() noexcept -> bits_array_type;
+      auto array() const noexcept -> const bits_array_type;
 
       template <bool E = !is_const>
       typename ::std::enable_if<E, void>::type clear() noexcept;
@@ -76,9 +75,11 @@ namespace mcppalloc
       dynamic_bitmap_ref_t &operator^=(const dynamic_bitmap_ref_t &) noexcept;
 
     private:
-      typename ::std::conditional<is_const, const bits_array_type *, bits_array_type *>::type m_array;
+      bits_array_type m_array;
       size_t m_size;
     };
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz);
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz);
   }
 }
 #include "dynamic_bitmap_impl.hpp"
