@@ -1,6 +1,6 @@
 #pragma once
 #include <atomic>
-#include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap.hpp>
+#include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap_ref.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 namespace mcppalloc
 {

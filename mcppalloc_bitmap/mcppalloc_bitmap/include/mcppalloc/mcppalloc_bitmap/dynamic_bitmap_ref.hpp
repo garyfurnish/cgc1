@@ -78,8 +78,11 @@ namespace mcppalloc
       bits_array_type m_array;
       size_t m_size;
     };
-    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz);
-    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz);
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz) noexcept;
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz) noexcept;
+    inline auto make_dynamic_bitmap_ref_from_alloca(dynamic_bitmap_ref_t<false>::bits_array_type array,
+                                                    size_t array_size,
+                                                    size_t alloca_size);
   }
 }
-#include "dynamic_bitmap_impl.hpp"
+#include "dynamic_bitmap_ref_impl.hpp"

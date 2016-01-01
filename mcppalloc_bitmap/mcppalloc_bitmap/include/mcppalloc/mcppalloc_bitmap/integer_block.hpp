@@ -14,6 +14,10 @@ namespace mcppalloc
          * \brief Number of quad words in integer block.
          **/
         static constexpr const size_t cs_quad_words = Quads;
+        /**
+         * \brief Mandatory alignment of integer_block_t.
+         **/
+        static constexpr const size_t cs_alignment = 32;
         using value_type = uint64_t;
 
         static_assert(cs_quad_words % 8 == 0, "Number of quad words must be divisible by 8.");

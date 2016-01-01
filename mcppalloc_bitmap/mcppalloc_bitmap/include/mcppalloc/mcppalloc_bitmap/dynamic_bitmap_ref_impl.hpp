@@ -1,5 +1,7 @@
 #pragma once
 #include "integer_block.hpp"
+#include <mcppalloc/mcppalloc_utils/alignment.hpp>
+#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 namespace mcppalloc
 {
   namespace bitmap
@@ -172,13 +174,24 @@ namespace mcppalloc
       }
       return *this;
     }
-    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz)
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz) noexcept
     {
       return dynamic_bitmap_ref_t<false>(array, sz);
     }
-    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz)
+    inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz) noexcept
     {
       return dynamic_bitmap_ref_t<true>(array, sz);
+    }
+    inline auto
+    make_dynamic_bitmap_ref_from_alloca(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t array_size, size_t alloca_size)
+    {
+      dynamic_bitmap_ref_t<false>::bits_array_type new_array = reinterpret_cast<dynamic_bitmap_ref_t<false>::bits_array_type>(
+          align(array, dynamic_bitmap_ref_t<false>::bits_type::cs_alignment));
+      if (mcppalloc_unlikely(static_cast<size_t>(unsafe_cast<uint8_t>(new_array) - unsafe_cast<uint8_t>(array)) >
+                             alloca_size - array_size)) {
+        throw ::std::runtime_error("mcppalloc: out of bounds: e788e46f-2e1d-4afb-af86-d48e068d3d5c");
+      }
+      return dynamic_bitmap_ref_t<false>(array, array_size);
     }
   }
 }
