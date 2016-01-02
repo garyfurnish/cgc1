@@ -1,6 +1,5 @@
 #pragma once
 #include <atomic>
-#include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap_ref.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 namespace mcppalloc
 {
@@ -40,20 +39,19 @@ namespace mcppalloc
       {
         initialize_consts();
         m_internal.m_info.m_type_id = type_id;
-        for (size_t i = 0; i < num_blocks(); ++i)
-          free_bits()[i].fill(::std::numeric_limits<uint64_t>::max());
+        free_bits_ref().fill(::std::numeric_limits<uint64_t>::max());
       }
       inline void bitmap_state_t::clear_mark_bits() noexcept
       {
-        bitmap::make_dynamic_bitmap_ref(mark_bits(), num_blocks()).clear();
+        mark_bits_ref().clear();
       }
       inline void bitmap_state_t::clear_user_bits(size_t index) noexcept
       {
-        bitmap::make_dynamic_bitmap_ref(user_bits(index), num_blocks()).clear();
+        user_bits_ref(index).clear();
       }
       inline auto bitmap_state_t::all_free() const noexcept -> bool
       {
-        return bitmap::make_dynamic_bitmap_ref(free_bits(), num_blocks()).all_set();
+        return free_bits_ref().all_set();
       }
       inline auto bitmap_state_t::num_bit_arrays() const noexcept -> size_t
       {
@@ -62,93 +60,43 @@ namespace mcppalloc
 
       inline auto bitmap_state_t::any_free() const noexcept -> bool
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto &&it = free_bits()[i];
-          if (it.any_set())
-            return true;
-        }
-        return false;
+        return free_bits_ref().any_set();
       }
       inline auto bitmap_state_t::none_free() const noexcept -> bool
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto &&it = free_bits()[i];
-          if (it.any_set())
-            return false;
-        }
-        return true;
+        return free_bits_ref().none_set();
       }
       inline auto bitmap_state_t::first_free() const noexcept -> size_t
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto ret = free_bits()[i].first_set();
-          if (ret != ::std::numeric_limits<size_t>::max())
-            return i * bits_array_type::size_in_bits() + ret;
-        }
-        return ::std::numeric_limits<size_t>::max();
+        return free_bits_ref().first_set();
       }
       inline auto bitmap_state_t::any_marked() const noexcept -> bool
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto &&it = mark_bits()[i];
-          if (it.any_set())
-            return true;
-        }
-        return false;
+        return mark_bits_ref().any_set();
       }
       inline auto bitmap_state_t::none_marked() const noexcept -> bool
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          auto &&it = mark_bits()[i];
-          if (it.any_set())
-            return false;
-        }
-        return true;
+        return mark_bits_ref().none_set();
       }
       inline auto bitmap_state_t::free_popcount() const noexcept -> size_t
       {
-        return ::std::accumulate(free_bits(), free_bits() + num_blocks(), static_cast<size_t>(0),
-                                 [](size_t b, auto &&x) { return x.popcount() + b; });
+        return free_bits_ref().popcount();
       }
       inline void bitmap_state_t::set_free(size_t i, bool val) noexcept
       {
-        if (mcppalloc_unlikely(i >= size())) {
-          throw ::std::runtime_error("mcppalloc");
-        }
-
-        auto pos = i / bits_array_type::size_in_bits();
-        auto sub_pos = i - (pos * bits_array_type::size_in_bits());
-        free_bits()[pos].set_bit(sub_pos, val);
+        free_bits_ref().set_bit(i, val);
       }
       inline void bitmap_state_t::set_marked(size_t i) noexcept
       {
-        if (mcppalloc_unlikely(i >= size())) {
-          throw ::std::runtime_error("mcppalloc");
-        }
-
-        auto pos = i / bits_array_type::size_in_bits();
-        auto sub_pos = i - (pos * bits_array_type::size_in_bits());
-        mark_bits()[pos].set_bit_atomic(sub_pos, true, ::std::memory_order_relaxed);
+        mark_bits_ref().set_bit_atomic(i, true, ::std::memory_order_relaxed);
       }
       inline auto bitmap_state_t::is_free(size_t i) const noexcept -> bool
       {
-        if (mcppalloc_unlikely(i >= size())) {
-          throw ::std::runtime_error("mcppalloc");
-        }
-
-        auto pos = i / bits_array_type::size_in_bits();
-        auto sub_pos = i - (pos * bits_array_type::size_in_bits());
-        return free_bits()[pos].get_bit(sub_pos);
+        return free_bits_ref().get_bit(i);
       }
       inline auto bitmap_state_t::is_marked(size_t i) const noexcept -> bool
       {
-        if (mcppalloc_unlikely(i >= size())) {
-          throw ::std::runtime_error("mcppalloc");
-        }
-
-        auto pos = i / bits_array_type::size_in_bits();
-        auto sub_pos = i - (pos * bits_array_type::size_in_bits());
-        return mark_bits()[pos].get_bit(sub_pos);
+        return mark_bits_ref().get_bit(i);
       }
       inline auto bitmap_state_t::type_id() const noexcept -> type_id_t
       {
@@ -234,13 +182,19 @@ namespace mcppalloc
 
       inline void bitmap_state_t::free_unmarked() noexcept
       {
-        for (size_t i = 0; i < num_blocks(); ++i) {
-          free_bits()[i] |= ~mark_bits()[i];
-        }
+        const size_t alloca_size = block_size_in_bytes() + bitmap::dynamic_bitmap_ref_t<false>::bits_type::cs_alignment;
+        const auto mark_memory = alloca(alloca_size);
+        auto mark = bitmap::make_dynamic_bitmap_ref_from_alloca(mark_memory, num_blocks(), alloca_size);
+        mark.deep_copy(mark_bits_ref());
+        free_bits_ref() |= mark.negate();
       }
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
         return m_internal.m_info.m_num_blocks;
+      }
+      inline auto bitmap_state_t::block_size_in_bytes() const noexcept -> size_t
+      {
+        return num_blocks() * sizeof(bits_array_type);
       }
       inline auto bitmap_state_t::free_bits() noexcept -> bits_array_type *
       {
@@ -267,6 +221,32 @@ namespace mcppalloc
       {
         return mark_bits() + num_blocks() * (i + 1);
       }
+
+      inline auto bitmap_state_t::free_bits_ref() noexcept -> bitmap::dynamic_bitmap_ref_t<false>
+      {
+        return bitmap::make_dynamic_bitmap_ref(free_bits(), num_blocks());
+      }
+      inline auto bitmap_state_t::free_bits_ref() const noexcept -> bitmap::dynamic_bitmap_ref_t<true>
+      {
+        return bitmap::make_dynamic_bitmap_ref(free_bits(), num_blocks());
+      }
+      inline auto bitmap_state_t::mark_bits_ref() noexcept -> bitmap::dynamic_bitmap_ref_t<false>
+      {
+        return bitmap::make_dynamic_bitmap_ref(mark_bits(), num_blocks());
+      }
+      inline auto bitmap_state_t::mark_bits_ref() const noexcept -> bitmap::dynamic_bitmap_ref_t<true>
+      {
+        return bitmap::make_dynamic_bitmap_ref(mark_bits(), num_blocks());
+      }
+      inline auto bitmap_state_t::user_bits_ref(size_t index) noexcept -> bitmap::dynamic_bitmap_ref_t<false>
+      {
+        return bitmap::make_dynamic_bitmap_ref(user_bits(index), num_blocks());
+      }
+      inline auto bitmap_state_t::user_bits_ref(size_t index) const noexcept -> bitmap::dynamic_bitmap_ref_t<true>
+      {
+        return bitmap::make_dynamic_bitmap_ref(user_bits(index), num_blocks());
+      }
+
       inline auto bitmap_state_t::user_bits_checked(size_t i) noexcept -> bits_array_type *
       {
         if (mcppalloc_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))

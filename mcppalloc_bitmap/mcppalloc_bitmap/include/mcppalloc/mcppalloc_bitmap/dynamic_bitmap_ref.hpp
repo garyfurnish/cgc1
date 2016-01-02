@@ -1,4 +1,5 @@
 #pragma once
+#include "integer_block.hpp"
 namespace mcppalloc
 {
   namespace bitmap
@@ -15,6 +16,8 @@ namespace mcppalloc
       dynamic_bitmap_ref_t(dynamic_bitmap_ref_t &&) noexcept;
       dynamic_bitmap_ref_t &operator=(const dynamic_bitmap_ref_t &) noexcept;
       dynamic_bitmap_ref_t &operator=(dynamic_bitmap_ref_t &&) noexcept;
+
+      dynamic_bitmap_ref_t &deep_copy(const dynamic_bitmap_ref_t &);
 
       auto size() const noexcept -> size_t;
       auto size_in_bytes() const noexcept -> size_t;
@@ -80,9 +83,7 @@ namespace mcppalloc
     };
     inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz) noexcept;
     inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<true>::bits_array_type array, size_t sz) noexcept;
-    inline auto make_dynamic_bitmap_ref_from_alloca(dynamic_bitmap_ref_t<false>::bits_array_type array,
-                                                    size_t array_size,
-                                                    size_t alloca_size);
+    inline auto make_dynamic_bitmap_ref_from_alloca(void *memory, size_t array_size, size_t alloca_size);
   }
 }
 #include "dynamic_bitmap_ref_impl.hpp"

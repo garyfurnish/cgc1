@@ -1,5 +1,6 @@
 #pragma once
 #include "declarations.hpp"
+#include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap_ref.hpp>
 #include <mcppalloc/mcppalloc_bitmap/integer_block.hpp>
 namespace mcppalloc
 {
@@ -92,10 +93,22 @@ namespace mcppalloc
         void free_unmarked() noexcept;
 
         auto num_blocks() const noexcept -> size_t;
+        /**
+         * \brief Return the size of blocks in bytes.
+         **/
+        auto block_size_in_bytes() const noexcept -> size_t;
         auto free_bits() noexcept -> bits_array_type *;
         auto free_bits() const noexcept -> const bits_array_type *;
         auto mark_bits() noexcept -> bits_array_type *;
         auto mark_bits() const noexcept -> const bits_array_type *;
+
+        auto free_bits_ref() noexcept -> bitmap::dynamic_bitmap_ref_t<false>;
+        auto free_bits_ref() const noexcept -> bitmap::dynamic_bitmap_ref_t<true>;
+        auto mark_bits_ref() noexcept -> bitmap::dynamic_bitmap_ref_t<false>;
+        auto mark_bits_ref() const noexcept -> bitmap::dynamic_bitmap_ref_t<true>;
+        auto user_bits_ref(size_t index) noexcept -> bitmap::dynamic_bitmap_ref_t<false>;
+        auto user_bits_ref(size_t index) const noexcept -> bitmap::dynamic_bitmap_ref_t<true>;
+
         /**
          * \brief Return the ith array of user bits.
          **/
