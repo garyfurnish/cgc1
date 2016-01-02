@@ -3,6 +3,67 @@
 #include <random>
 namespace mcppalloc
 {
+  namespace details
+  {
+    /**
+     * \brief Securely zero a pointer, guarenteed not to be optimized out.
+     *
+     * This has no alignment restrictions.
+     **/
+    inline void secure_zero_no_vector(volatile void *s, size_t n)
+    {
+      volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
+      while (n >= sizeof(size_t)) {
+        *p_sz++ = 0;
+        n -= sizeof(size_t);
+      }
+      volatile char *p = reinterpret_cast<volatile char *>(p_sz);
+
+      while (n--)
+        *p++ = 0;
+    }
+  }
+  inline void secure_zero_stream(void *s, size_t n)
+  {
+#ifdef __AVX__
+    __m256i zero256 = _mm256_setzero_si256();
+    __m256i *p_m256 = reinterpret_cast<__m256i *>(s);
+    __m128i *p_m128 = reinterpret_cast<__m128i *>(p_m256);
+    if (!s % 32) {
+      while (n >= sizeof(__m256i)) {
+        _mm256_stream_si256(p_m256++, zero256);
+        n -= sizeof(__m256i);
+      }
+      p_m128 = reinterpret_cast<__m128i *>(p_m256);
+      if (n >= sizeof(__m128i)) {
+        _mm_stream_si128(p_m128++, _mm_setzero_si128());
+        n -= sizeof(__m128i);
+      }
+    }
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m128);
+#elif defined(__SSE2__)
+    const __m128i zero = _mm_setzero_si128();
+    __m128i *p_m128 = reinterpret_cast<__m128i *>(s);
+    if (!s % 16) {
+      while (n >= sizeof(__m128i)) {
+        _mm_stream_si128(p_m128++, zero);
+        *p_m128++ = zero;
+        n -= sizeof(__m128i);
+      }
+    }
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m128);
+#else
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
+    while (n >= sizeof(size_t) * 8) {
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      *p_sz++ = 0;
+      n -= sizeof(size_t) * 4;
+    }
+#endif
+    details::secure_zero_no_vector(p_sz, n);
+  }
   /**
    * \brief Securely zero a pointer, guarenteed to not be optimized out.
    **/
@@ -41,21 +102,10 @@ namespace mcppalloc
       *p_sz++ = 0;
       *p_sz++ = 0;
       *p_sz++ = 0;
-      *p_sz++ = 0;
-      *p_sz++ = 0;
-      *p_sz++ = 0;
-      *p_sz++ = 0;
-      n -= sizeof(size_t) * 8;
+      n -= sizeof(size_t) * 4;
     }
 #endif
-    while (n >= sizeof(size_t)) {
-      *p_sz++ = 0;
-      n -= sizeof(size_t);
-    }
-    volatile char *p = reinterpret_cast<volatile char *>(p_sz);
-
-    while (n--)
-      *p++ = 0;
+    details::secure_zero_no_vector(p_sz, n);
   }
 
   inline bool is_zero(void *v, size_t sz)

@@ -381,11 +381,7 @@ namespace cgc1
           }
         }
         assert(os->object_end() < g_gks->gc_allocator().end());
-#ifdef _WIN32
-        SecureZeroMemory(os->object_start(), os->object_size());
-#else
-        ::memset(os->object_start(), 0, os->object_size());
-#endif
+        ::mcppalloc::secure_zero_stream(os->object_start(), os->object_size());
         // add to list of objects to be freed.
         to_be_freed.push_back(::mcppalloc::hide_pointer(os->object_start()));
       }
