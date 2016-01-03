@@ -217,7 +217,73 @@ namespace cgc1
       // mark additional stuff.
       _mark_mark_vector();
     }
-    void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
+    void gc_thread_t::_mark_addrs_bitmap(void *addr, size_t depth)
+    {
+      void *fast_heap_begin = g_gks->fast_slab_begin();
+      if (depth > 300) {
+        // if recursion depth too big, put it on addresses to mark.
+        m_addresses_to_mark.insert(addr);
+        return;
+      }
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
+      // getting state moves pointer lower, so recheck bounds.
+      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
+        return;
+      if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
+        ::std::terminate();
+      if (state->addr_in_header(addr))
+        return;
+      if (state->is_marked(state->get_index(addr)))
+        return;
+      state->set_marked(state->get_index(addr));
+      if (state->type_id() != 2) {
+        // atomic, so done.
+        return;
+      }
+      // recurse to pointers.
+      for (void **it = reinterpret_cast<void **>(addr);
+           it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->real_entry_size()); ++it) {
+        _mark_addrs(*it, depth + 1);
+      }
+    }
+
+    void gc_thread_t::_mark_addrs_sparse(void *addr, size_t depth)
+    {
+      // This is calling during garbage collection, therefore no mutex is needed.
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      if (!g_gks->is_valid_object_state(os)) {
+        // This is calling during garbage collection, therefore no mutex is needed.
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
+        os = g_gks->_u_find_valid_object_state(addr);
+        if (!os)
+          return;
+      }
+      assert(is_aligned_properly(os));
+      if (!os->in_use() || os->quasi_freed() || !os->next())
+        return;
+      if (is_marked(os))
+        return;
+
+      // if it is atomic we are done here.
+      if (is_atomic(os)) {
+        set_mark(os);
+        return;
+      }
+      if (depth > 100) {
+        // if recursion depth too big, put it on addresses to mark.
+        m_addresses_to_mark.insert(addr);
+        return;
+      } else {
+        // set it as marked.
+        set_mark(os);
+        // recurse to pointers.
+        for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
+          _mark_addrs(*it, depth + 1);
+        }
+      }
+    }
+    void gc_thread_t::_mark_addrs(void *addr, size_t depth)
     {
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
@@ -238,63 +304,9 @@ namespace cgc1
 
       // not valid.
       if (!fast_heap) {
-        if (!g_gks->is_valid_object_state(os)) {
-          // This is calling during garbage collection, therefore no mutex is needed.
-          MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
-          os = g_gks->_u_find_valid_object_state(addr);
-          if (!os)
-            return;
-        }
-        assert(is_aligned_properly(os));
-        if (!os->in_use() || os->quasi_freed() || !os->next())
-          return;
-        if (!ignore_skip_marked && is_marked(os))
-          return;
-
-        // if it is atomic we are done here.
-        if (is_atomic(os)) {
-          set_mark(os);
-          return;
-        }
-        if (depth > 100) {
-          // if recursion depth too big, put it on addresses to mark.
-          m_addresses_to_mark.insert(addr);
-          return;
-        } else {
-          // set it as marked.
-          set_mark(os);
-          // recurse to pointers.
-          for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end());
-               ++it) {
-            _mark_addrs(*it, depth + 1);
-          }
-        }
+        _mark_addrs_sparse(addr, depth);
       } else {
-        if (depth > 300) {
-          // if recursion depth too big, put it on addresses to mark.
-          m_addresses_to_mark.insert(addr);
-          return;
-        }
-        auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-        // getting state moves pointer lower, so recheck bounds.
-        if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
-          return;
-        if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
-          ::std::terminate();
-        if (state->addr_in_header(addr))
-          return;
-        if (state->is_marked(state->get_index(addr)))
-          return;
-        state->set_marked(state->get_index(addr));
-        if (state->type_id() != 2) {
-          // atomic, so done.
-          return;
-        }
-        // recurse to pointers.
-        for (void **it = reinterpret_cast<void **>(addr);
-             it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->real_entry_size()); ++it) {
-          _mark_addrs(*it, depth + 1, true);
-        }
+        _mark_addrs_bitmap(addr, depth);
       }
     }
     void gc_thread_t::_mark_mark_vector()
