@@ -116,7 +116,7 @@ namespace mcppalloc
         m_internal.m_info.m_header_size = align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
-        auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz - 400;
+        auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz;
         // this needs to be min of stuff
         auto num_data = data_sz / (real_entry_size());
         num_data = ::std::min(num_data, m_internal.m_info.m_num_blocks * bits_array_type::size_in_bits());
@@ -283,7 +283,6 @@ namespace mcppalloc
         }
         const auto index = static_cast<size_t>(diff) / real_entry_size();
         if (mcppalloc_unlikely(index >= size())) {
-          assert(0);
           return ::std::numeric_limits<size_t>::max();
         }
         return index;

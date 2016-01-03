@@ -230,12 +230,15 @@ namespace cgc1
       if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
         return;
       if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
-        ::std::terminate();
+        return;
       if (state->addr_in_header(addr))
         return;
-      if (state->is_marked(state->get_index(addr)))
+      auto index = state->get_index(addr);
+      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
         return;
-      state->set_marked(state->get_index(addr));
+      if (state->is_marked(index))
+        return;
+      state->set_marked(index);
       if (state->type_id() != 2) {
         // atomic, so done.
         return;
@@ -285,28 +288,21 @@ namespace cgc1
     }
     void gc_thread_t::_mark_addrs(void *addr, size_t depth)
     {
-      // This is calling during garbage collection, therefore no mutex is needed.
-      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
       // Find heap begin and end.
-      void *heap_begin = g_gks->gc_allocator()._u_begin();
-      void *heap_end = g_gks->gc_allocator()._u_current_end();
       void *fast_heap_begin = g_gks->fast_slab_begin();
       void *fast_heap_end = g_gks->fast_slab_end();
-      bool fast_heap = false;
-      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
-      // if outside heap, definitely not valid object state.
-      if (os < heap_begin || os >= heap_end) {
-        if (addr < fast_heap_begin || addr >= fast_heap_end) {
-          return;
-        } else
-          fast_heap = true;
-      }
-
-      // not valid.
-      if (!fast_heap) {
-        _mark_addrs_sparse(addr, depth);
-      } else {
+      if (addr >= fast_heap_begin && addr < fast_heap_end) {
         _mark_addrs_bitmap(addr, depth);
+        return;
+      }
+      // This is calling during garbage collection, therefore no mutex is needed.
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      void *heap_begin = g_gks->gc_allocator()._u_begin();
+      void *heap_end = g_gks->gc_allocator()._u_current_end();
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      if (os >= heap_begin && os < heap_end) {
+        _mark_addrs_sparse(addr, depth);
+        return;
       }
     }
     void gc_thread_t::_mark_mark_vector()
