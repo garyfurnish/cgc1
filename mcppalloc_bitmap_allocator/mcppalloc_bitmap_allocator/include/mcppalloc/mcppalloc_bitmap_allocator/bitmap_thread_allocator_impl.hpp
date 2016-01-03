@@ -170,11 +170,13 @@ namespace mcppalloc
         ::std::tie(v, ret_size) = package.allocate(id);
         if (!v) {
           if (!m_free_list.empty()) {
+            auto &type_info = m_allocator.get_type(package.type_id());
+            // free list not empty
             bitmap_state_t *state = unsafe_cast<bitmap_state_t>(m_free_list.back());
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id());
+            state->initialize(package.type_id(), type_info.num_user_bits());
             m_free_list.pop_back();
             v = state->allocate();
 
@@ -183,6 +185,8 @@ namespace mcppalloc
             state->verify_magic();
             return block_type{v, state->real_entry_size()};
           } else {
+            // free list empty
+            auto &type_info = m_allocator.get_type(package.type_id());
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
               ::mcppalloc::details::allocation_failure_t failure{attempts++};
@@ -195,7 +199,7 @@ namespace mcppalloc
             }
             state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id());
+            state->initialize(package.type_id(), type_info.num_user_bits());
             assert(state->first_free() == 0);
 
             v = state->allocate();

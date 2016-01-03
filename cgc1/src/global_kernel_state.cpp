@@ -124,6 +124,15 @@ namespace cgc1
       assert(!m_freed_in_last_collection.capacity());
       m_in_destructor = false;
     }
+    void global_kernel_state_t::initialize()
+    {
+      if (m_initialize_called)
+        throw ::std::runtime_error("CGC1: Already initialized b404159e-e0b9-46f4-9e9c-98aa5a38ac1f");
+      m_initialize_called = true;
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(1, 0));
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(2, 2));
+    }
     void global_kernel_state_t::shutdown()
     {
       disable();

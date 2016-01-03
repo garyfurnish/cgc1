@@ -36,12 +36,14 @@ namespace mcppalloc
           MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         }
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
+        m_types.clear();
         m_thread_allocators.clear();
         m_free_globals.clear();
         for (auto &&package_it : m_globals)
           package_it.second.shutdown();
         {
           auto a1 = ::std::move(m_thread_allocators);
+          auto a4 = ::std::move(m_types);
           auto a2 = ::std::move(m_free_globals);
           auto a3 = ::std::move(m_globals);
         }
@@ -140,6 +142,20 @@ namespace mcppalloc
           return 0;
         return it->second.m_vectors[id].size();
       }
+      template <typename Allocator_Policy>
+      void bitmap_allocator_t<Allocator_Policy>::add_type(bitmap_type_info_t &&type_info)
+      {
+        m_types[type_info.type_id()] = ::std::move(type_info);
+      }
+      template <typename Allocator_Policy>
+      auto bitmap_allocator_t<Allocator_Policy>::get_type(type_id_t type_id) -> const bitmap_type_info_t &
+      {
+        auto it = m_types.find(type_id);
+        if (it == m_types.end())
+          throw ::std::runtime_error("mcppalloc: bitmap_allocator::get_type 8c622768-3fe5-4338-b9a3-1db6b9d2ba98");
+        return it->second;
+      }
+
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::allocator_policy() noexcept -> allocator_thread_policy_type &
       {

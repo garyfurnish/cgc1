@@ -35,11 +35,14 @@ namespace mcppalloc
         m_internal.m_pre_magic_number = cs_magic_number_pre;
         m_internal.m_post_magic_number = cs_magic_number_0;
       }
-      inline void bitmap_state_t::initialize(type_id_t type_id) noexcept
+      inline void bitmap_state_t::initialize(type_id_t type_id, uint8_t user_bit_fields) noexcept
       {
         initialize_consts();
         m_internal.m_info.m_type_id = type_id;
+        m_internal.m_info.m_num_user_bit_fields = user_bit_fields;
         free_bits_ref().fill(::std::numeric_limits<uint64_t>::max());
+        for (size_t i = 0; i < num_user_bit_fields(); ++i)
+          clear_user_bits(i);
       }
       inline void bitmap_state_t::clear_mark_bits() noexcept
       {
@@ -177,6 +180,8 @@ namespace mcppalloc
           return false;
         auto i = byte_diff / real_entry_size();
         set_free(i, true);
+        for (size_t j = 0; j < num_user_bit_fields(); ++j)
+          user_bits_ref(j).set_bit(i, false);
         return true;
       }
 
@@ -191,6 +196,10 @@ namespace mcppalloc
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
         return m_internal.m_info.m_num_blocks;
+      }
+      inline auto bitmap_state_t::num_user_bit_fields() const noexcept -> size_t
+      {
+        return m_internal.m_info.m_num_user_bit_fields;
       }
       inline auto bitmap_state_t::block_size_in_bytes() const noexcept -> size_t
       {

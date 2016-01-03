@@ -56,7 +56,7 @@ namespace mcppalloc
          * \brief Initialize part of state that is argument specific.
          * @param type_id Type of state.
          **/
-        void initialize(type_id_t type_id) noexcept;
+        void initialize(type_id_t type_id, uint8_t user_bit_fields) noexcept;
         void clear_mark_bits() noexcept;
         void clear_user_bits(size_t index) noexcept;
 
@@ -91,8 +91,14 @@ namespace mcppalloc
         bool deallocate(void *v) noexcept;
 
         void free_unmarked() noexcept;
-
+        /**
+         * \brief Return number of blocks in each bit field.
+         **/
         auto num_blocks() const noexcept -> size_t;
+        /**
+         * \brief Return number of user bit fields[
+         **/
+        auto num_user_bit_fields() const noexcept -> size_t;
         /**
          * \brief Return the size of blocks in bytes.
          **/

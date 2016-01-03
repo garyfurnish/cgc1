@@ -58,7 +58,7 @@ static void bitmap_state_test0()
   auto max_end = ret + packed_size;
   AssertThat(max_end, IsGreaterThanOrEqualTo(ps->end()));
   AssertThat(ps->size(), Equals(expected_entries));
-  ps->initialize(0);
+  ps->initialize(0, 0);
   AssertThat(ps->any_free(), IsTrue());
   AssertThat(ps->none_free(), IsFalse());
   AssertThat(ps->first_free(), Equals(0_sz));
@@ -102,7 +102,7 @@ static void bitmap_state_test0()
     }
   }
   {
-    ps->initialize(0);
+    ps->initialize(0, 0);
     ps->clear_mark_bits();
     AssertThat(ps->is_free(0), IsTrue());
     AssertThat(ps->is_free(1), IsTrue());
@@ -114,7 +114,7 @@ static void bitmap_state_test0()
     AssertThat(ps->is_free(0), IsTrue());
     AssertThat(ps->is_free(1), IsTrue());
   }
-  ps->initialize(0);
+  ps->initialize(0, 0);
   ps->clear_mark_bits();
   ::std::vector<void *> ptrs;
   bool keep_going = true;
@@ -215,6 +215,8 @@ static void multiple_slab_test1()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(2000000, 2000000);
+  // TODO: Commenting this out yields a crash
+  bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
   allocator_type::package_type package1(0);
   allocator_type::package_type package2(0);
   package1.insert(::std::move(package2));
@@ -268,6 +270,7 @@ void exhaustive_test()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(20000000, 20000000);
+  bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
   auto &poa = bitmap_allocator;
 
   auto &ta = poa.initialize_thread();

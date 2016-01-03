@@ -160,6 +160,7 @@ namespace cgc1
     if (!details::g_gks) {
       global_kernel_state_param_t param;
       details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
+      details::g_gks->initialize();
     }
     details::g_gks->initialize_current_thread(top_of_stack);
     auto tlks = details::get_tlks();

@@ -47,6 +47,10 @@ namespace cgc1
       global_kernel_state_t &operator=(global_kernel_state_t &&) = delete;
       ~global_kernel_state_t();
       /**
+       * \brief Perform initialization work that can not be performed in constructor.
+       **/
+      void initialize() REQUIRES(!m_mutex, !m_thread_mutex);
+      /**
        * \brief Perform shutdown work that must be done before destruction.
       **/
       void shutdown() REQUIRES(!m_mutex, !m_thread_mutex);
@@ -426,6 +430,10 @@ namespace cgc1
        * \brief Saved initialization parameters.
        **/
       const global_kernel_state_param_t m_initialization_parameters;
+      /**
+       * \brief Has initialize been called yet?
+       **/
+      bool m_initialize_called{false};
 
     public:
       ::std::atomic<bool> m_in_destructor{false};
