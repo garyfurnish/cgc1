@@ -74,7 +74,9 @@ namespace mcppalloc
         auto is_marked(size_t i) const noexcept -> bool;
 
         auto type_id() const noexcept -> type_id_t;
-
+        /**
+         * \brief Return size in number of possible allocations.
+         **/
         auto size() const noexcept -> size_t;
         void _compute_size() noexcept;
         auto size_bytes() const noexcept -> size_t;
@@ -90,7 +92,8 @@ namespace mcppalloc
         void *allocate() noexcept;
         bool deallocate(void *v) noexcept;
 
-        void free_unmarked() noexcept;
+        void or_with_to_be_freed(bitmap::dynamic_bitmap_ref_t<false> ref);
+        void free_unmarked();
         /**
          * \brief Return number of blocks in each bit field.
          **/

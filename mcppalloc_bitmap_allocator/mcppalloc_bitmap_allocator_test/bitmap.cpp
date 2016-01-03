@@ -287,11 +287,11 @@ void exhaustive_test()
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(v);
       if (mcppalloc_unlikely(state == v)) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 5c9af962-57e6-4bf1-a843-12a239343c27\n";
-        ::std::terminate();
+        ::std::abort();
       }
       if (mcppalloc_unlikely(v_end > state->end())) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 7caa9401-26f1-4cdc-9849-837b2767fa1e\n";
-        ::std::terminate();
+        ::std::abort();
       }
       if (!ptrs.empty()) {
         void *const prev = ptrs.back();
@@ -300,7 +300,7 @@ void exhaustive_test()
         if (state != prev_state && mcppalloc_unlikely(prev_end >= state)) {
           ::std::cerr << prev << " " << state << " " << prev_end << "\n";
           ::std::cerr << "Consistency error in bitmap_exhaustive_test ad5058b9-85b0-461e-8c91-aca93faf4beb\n";
-          ::std::terminate();
+          ::std::abort();
         }
       }
       ptrs.push_back(v);

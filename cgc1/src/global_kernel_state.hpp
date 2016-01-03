@@ -28,7 +28,7 @@ namespace cgc1
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
       using internal_allocator_policy_type = ::mcppalloc::default_allocator_policy_t<cgc_internal_allocator_allocator_t>;
       using internal_allocator_t = ::mcppalloc::sparse::allocator_t<internal_allocator_policy_type>;
-      using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>;
+      using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_bitmap_allocator_policy_t>;
       using internal_slab_allocator_type = mcppalloc::slab_allocator::details::slab_allocator_t;
       using duration_type = ::std::chrono::duration<double>;
 #ifdef __APPLE__

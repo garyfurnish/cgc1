@@ -13,7 +13,7 @@ namespace cgc1
      *
      * In particular note that gc user data is used.
      **/
-    struct gc_allocator_thread_policy_t : public ::mcppalloc::details::allocator_thread_policy_tag_t {
+    struct gc_sparse_allocator_thread_policy_t : public ::mcppalloc::details::allocator_thread_policy_tag_t {
       void on_allocation(void *addr, size_t sz)
       {
         ::mcppalloc::secure_zero(addr, sz);
@@ -26,21 +26,44 @@ namespace cgc1
 
       using allocator_block_user_data_type = gc_user_data_t;
     };
-    struct gc_allocator_policy_t : public ::mcppalloc::allocator_policy_tag_t {
+    struct gc_bitmap_allocator_thread_policy_t : public ::mcppalloc::details::allocator_thread_policy_tag_t {
+      ::mcppalloc::do_nothing_t on_allocation;
+      ::mcppalloc::do_nothing_t on_create_allocator_block;
+      ::mcppalloc::do_nothing_t on_destroy_allocator_block;
+      ::mcppalloc::do_nothing_t on_creation;
+      auto on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
+          -> ::mcppalloc::details::allocation_failure_action_t;
+
+      using allocator_block_user_data_type = gc_user_data_t;
+    };
+
+    struct gc_sparse_allocator_policy_t : public ::mcppalloc::allocator_policy_tag_t {
       using uintptr_type = uintptr_t;
       using pointer_type = void *;
       using size_type = size_t;
       using ptrdiff_type = ptrdiff_t;
       using internal_allocator_type = cgc_internal_allocator_t<void>;
       using user_data_type = details::gc_user_data_t;
-      using thread_policy_type = gc_allocator_thread_policy_t;
+      using thread_policy_type = gc_sparse_allocator_thread_policy_t;
       static const constexpr size_type cs_minimum_alignment = 16;
-      gc_allocator_policy_t() = delete;
+      gc_sparse_allocator_policy_t() = delete;
     };
+    struct gc_bitmap_allocator_policy_t : public ::mcppalloc::allocator_policy_tag_t {
+      using uintptr_type = uintptr_t;
+      using pointer_type = void *;
+      using size_type = size_t;
+      using ptrdiff_type = ptrdiff_t;
+      using internal_allocator_type = cgc_internal_allocator_t<void>;
+      using user_data_type = details::gc_user_data_t;
+      using thread_policy_type = gc_bitmap_allocator_thread_policy_t;
+      static const constexpr size_type cs_minimum_alignment = 16;
+      gc_bitmap_allocator_policy_t() = delete;
+    };
+
     /**
      * \brief GC allocator type.
     **/
-    using gc_allocator_t = ::mcppalloc::sparse::allocator_t<gc_allocator_policy_t>;
+    using gc_allocator_t = ::mcppalloc::sparse::allocator_t<gc_sparse_allocator_policy_t>;
     /**
      * \brief Type of object state for gc sparse allocator.
      **/

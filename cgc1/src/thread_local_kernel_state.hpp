@@ -19,7 +19,7 @@ namespace cgc1
     {
     public:
       using bitmap_thread_allocator_type =
-          typename ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>::thread_allocator_type;
+          typename ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_bitmap_allocator_policy_t>::thread_allocator_type;
       /**
        * \brief Constructor.
        **/

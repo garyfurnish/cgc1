@@ -44,7 +44,7 @@ namespace mcppalloc
           for (auto &&vec : package.second.m_vectors) {
             if (mcppalloc_unlikely(!vec.empty())) {
               ::std::cerr << ::std::this_thread::get_id() << " error: deallocating bitmap_thread_allocator_t with objects left\n";
-              ::std::terminate();
+              ::std::abort();
             }
           }
         }
@@ -222,14 +222,14 @@ namespace mcppalloc
         if (mcppalloc_unlikely(!state->has_valid_magic_numbers())) {
           ::std::cerr
               << "mcppalloc bitmap_thread_allocator state has invalid magic numbers ad761a4e-656e-45a8-abe9-541414679c1f\n";
-          ::std::terminate();
+          ::std::abort();
         }
         state->deallocate(v);
         if (state->all_free()) {
           auto id = get_bitmap_size_id(state->declared_entry_size());
           if (mcppalloc_unlikely(id == ::std::numeric_limits<size_t>::max())) {
             ::std::cerr << "mcppalloc bitmap_thread_allocator consistency error aa16e07a-5f8c-4a97-b809-c944ff4c45b9\n";
-            ::std::terminate();
+            ::std::abort();
           }
           bool success = package.remove(id, state);
           // if it fails it could be anywhere.

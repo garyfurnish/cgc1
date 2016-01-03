@@ -163,8 +163,10 @@ namespace mcppalloc
         if (mcppalloc_unlikely(is_free(i))) {
           if (mcppalloc_likely(retries < 15)) {
             goto RESTART;
-          } else
-            ::std::terminate();
+          } else {
+            ::std::cerr << "mcppalloc: bitmap_state terminating due to allocation failure 0b3fb7a6-7270-45e3-a1cf-da341de0ccfb\n";
+            ::std::abort();
+          }
         }
         assert(memory_address);
         verify_magic();
@@ -184,14 +186,17 @@ namespace mcppalloc
           user_bits_ref(j).set_bit(i, false);
         return true;
       }
-
-      inline void bitmap_state_t::free_unmarked() noexcept
+      inline void bitmap_state_t::or_with_to_be_freed(bitmap::dynamic_bitmap_ref_t<false> to_be_freed)
       {
         const size_t alloca_size = block_size_in_bytes() + bitmap::dynamic_bitmap_ref_t<false>::bits_type::cs_alignment;
         const auto mark_memory = alloca(alloca_size);
         auto mark = bitmap::make_dynamic_bitmap_ref_from_alloca(mark_memory, num_blocks(), alloca_size);
         mark.deep_copy(mark_bits_ref());
-        free_bits_ref() |= mark.negate();
+        to_be_freed |= mark.negate();
+      }
+      inline void bitmap_state_t::free_unmarked()
+      {
+        or_with_to_be_freed(free_bits_ref());
       }
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
@@ -297,7 +302,8 @@ namespace mcppalloc
       inline void bitmap_state_t::verify_magic() const
       {
         if (mcppalloc_unlikely(!has_valid_magic_numbers())) {
-          ::std::terminate();
+          ::std::cerr << "mcppalloc: bitmap_state: invalid magic numbers 027e8d50-8555-4e7f-93a7-4d048b506436\n";
+          ::std::abort();
         }
       }
       inline auto bitmap_state_t::addr_in_header(void *v) const noexcept -> bool
