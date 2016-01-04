@@ -14,12 +14,12 @@ namespace mcppalloc
     {
       volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
       while (n >= sizeof(size_t)) {
-	#ifdef __SSE__
-	_mm_stream_pi(reinterpret_cast<__m64*>(const_cast<size_t*>(p_sz)),__m64{0});
-	p_sz++;
-	#else
+#ifdef __SSE__
+        _mm_stream_pi(reinterpret_cast<__m64 *>(const_cast<size_t *>(p_sz)), __m64{0});
+        p_sz++;
+#else
         *p_sz++ = 0;
-	#endif
+#endif
         n -= sizeof(size_t);
       }
       volatile char *p = reinterpret_cast<volatile char *>(p_sz);
@@ -61,7 +61,7 @@ namespace mcppalloc
       n -= sizeof(size_t) * 4;
     }
 #endif
-    if(p_sz)
+    if (p_sz)
       details::secure_zero_no_vector(p_sz, n);
   }
   /**

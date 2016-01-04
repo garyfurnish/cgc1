@@ -30,7 +30,7 @@ namespace mcppalloc
          **/
         static constexpr const size_t cs_num_vectors = 5;
         using allocator_policy_type = Allocator_Policy;
-	using block_type = block_t<allocator_policy_type>;
+        using block_type = block_t<allocator_policy_type>;
         using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
         /**
          * \brief Type of vector holding states of a given id.

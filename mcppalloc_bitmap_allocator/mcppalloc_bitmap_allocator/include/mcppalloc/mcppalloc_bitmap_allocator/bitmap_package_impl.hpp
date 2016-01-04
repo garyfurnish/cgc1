@@ -42,7 +42,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_package_t<Allocator_Policy>::allocate(size_t id) noexcept -> block_type
       {
-	block_type ret{nullptr,0};
+        block_type ret{nullptr, 0};
         auto &vec = m_vectors[id];
         auto range = ::boost::make_iterator_range(vec.rbegin(), vec.rend());
         for (auto &&it = range.begin(); it != range.end(); ++it) {
@@ -50,8 +50,8 @@ namespace mcppalloc
           packed.verify_magic();
           ret.m_ptr = packed.allocate();
           if (ret.m_ptr) {
-	    ret.m_size = packed.real_entry_size();
-	    return ret;
+            ret.m_size = packed.real_entry_size();
+            return ret;
           }
         }
         return ret;

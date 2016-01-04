@@ -84,37 +84,31 @@ namespace mcppalloc
       MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::first_set() const noexcept -> size_t
       {
 #ifdef __AVX__
-	__m256i m = *unsafe_cast<__m256i>(&m_array[0]);
-	static_assert(size()>=8,"");
-	__m256i m2 = *unsafe_cast<__m256i>(&m_array[4]);
-	if (!_mm256_testz_si256(m, m)) {
-	  for (size_t i = 0; i < 4; ++i)
-	    {
-	      const uint64_t &it = m_array[i];
-	      auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
-	      if (first)
-		return (64 * i) + (first - 1);
-	    }
-	}
-	else if(!_mm256_testz_si256(m2,m2))
-	  {
-	    for (size_t i = 4; i < 8; ++i) {
-	      const uint64_t &it = m_array[i];
-	      auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
-	      if (first)
-		return (64 * i) + (first - 1);
-	    }	    
-	  }
-	else
-	  {
-	    for (size_t i = 8; i < m_array.size(); ++i) {
-	      const uint64_t &it = m_array[i];
-	      auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
-	      if (first)
-		return (64 * i) + (first - 1);
-	    }
-
-	  }
+        __m256i m = *unsafe_cast<__m256i>(&m_array[0]);
+        static_assert(size() >= 8, "");
+        __m256i m2 = *unsafe_cast<__m256i>(&m_array[4]);
+        if (!_mm256_testz_si256(m, m)) {
+          for (size_t i = 0; i < 4; ++i) {
+            const uint64_t &it = m_array[i];
+            auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
+            if (first)
+              return (64 * i) + (first - 1);
+          }
+        } else if (!_mm256_testz_si256(m2, m2)) {
+          for (size_t i = 4; i < 8; ++i) {
+            const uint64_t &it = m_array[i];
+            auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
+            if (first)
+              return (64 * i) + (first - 1);
+          }
+        } else {
+          for (size_t i = 8; i < m_array.size(); ++i) {
+            const uint64_t &it = m_array[i];
+            auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
+            if (first)
+              return (64 * i) + (first - 1);
+          }
+        }
 #else
         for (size_t i = 0; i < m_array.size(); ++i) {
           const uint64_t &it = m_array[i];

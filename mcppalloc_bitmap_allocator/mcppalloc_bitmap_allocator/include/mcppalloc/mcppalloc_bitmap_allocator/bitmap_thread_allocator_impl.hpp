@@ -177,12 +177,12 @@ namespace mcppalloc
             state->initialize(package.type_id(), type_info.num_user_bits());
             m_free_list.pop_back();
             ret.m_ptr = state->allocate();
-	    ret.m_size = state->real_entry_size();
+            ret.m_size = state->real_entry_size();
 
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(ret.m_ptr,ret.m_size);
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
             state->verify_magic();
-	    return ret;
+            return ret;
           } else {
             // free list empty
             auto &type_info = m_allocator.get_type(package.type_id());
@@ -202,10 +202,10 @@ namespace mcppalloc
             assert(state->first_free() == 0);
 
             ret.m_ptr = state->allocate();
-	    ret.m_size = state->real_entry_size();
+            ret.m_size = state->real_entry_size();
             assert(v);
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(ret.m_ptr,ret.m_size);
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
             state->verify_magic();
             return ret;
           }
