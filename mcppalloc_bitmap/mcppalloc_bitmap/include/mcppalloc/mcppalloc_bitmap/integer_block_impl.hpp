@@ -193,10 +193,16 @@ namespace mcppalloc
             func(offset + i * 64, offset + ((i + 4) * 64));
           }
         }
-#elif defined(__SSE2__)
+#elif defined(__SSE4__)
         for (size_t i = 0; i + 1 < size(); i += 2) {
-          __m128i *m = unsafe_cast<__m128i *>(&m_array[i]);
+          __m128i *m = unsafe_cast<__m128i>(&m_array[i]);
           if (_mm_test_all_ones(*m)) {
+            func(offset + i * 64, offset + ((i + 2) * 64));
+          }
+        }
+#else
+        for (size_t i = 0; i + 1 < size(); i += 2) {
+          if (m_array[i] == ::std::numeric_limits<uint64_t>::max()) {
             func(offset + i * 64, offset + ((i + 1) * 64));
           }
         }
