@@ -40,6 +40,7 @@ namespace mcppalloc
         initialize_consts();
         m_internal.m_info.m_type_id = type_id;
         m_internal.m_info.m_num_user_bit_fields = user_bit_fields;
+        _compute_size();
         free_bits_ref().fill(::std::numeric_limits<uint64_t>::max());
         for (size_t i = 0; i < num_user_bit_fields(); ++i)
           clear_user_bits(i);
