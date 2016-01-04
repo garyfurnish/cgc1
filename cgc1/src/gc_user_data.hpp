@@ -11,6 +11,10 @@ namespace cgc1
     {
     public:
       /**
+       * \brief Type of finalizer.
+       **/
+      using finalizer_type = ::std::function<void(void *)>;
+      /**
        * \brief Constructor
        *
        * @param block Block that this allocation belongs to.
@@ -44,9 +48,17 @@ namespace cgc1
         m_allow_arbitrary_finalizer_thread = allow;
       }
       /**
+       * \brief Return reference to finalizer.
+       **/
+      auto finalizer_ref() noexcept -> finalizer_type &;
+      /**
+       * \brief Return reference to finalizer.
+       **/
+      auto finalizer_ref() const noexcept -> const finalizer_type &;
+      /**
        * \brief Optional finalizer function to run.
       **/
-      ::std::function<void(void *)> m_finalizer = nullptr;
+      finalizer_type m_finalizer = nullptr;
 
     private:
       /**
@@ -63,3 +75,4 @@ namespace cgc1
     };
   }
 }
+#include "gc_user_data_impl.hpp"

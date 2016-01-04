@@ -224,7 +224,7 @@ static void packed_allocator_test()
     AssertThat(state->is_marked(index), IsFalse());
     AssertThat(state->is_free(index), IsTrue());
   }
-  //  AssertThat(is_finalized.load(), IsTrue());
+  AssertThat(is_finalized.load(), IsTrue());
   locations.clear();
 }
 

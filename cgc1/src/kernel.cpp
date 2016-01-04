@@ -215,8 +215,9 @@ namespace cgc1
         throw ::std::runtime_error("cgc1: could not find index to register finalizer: c002eaba-8b43-4710-a6c0-46336101d45f");
       if (mcppalloc_unlikely(ba_state->num_user_bit_fields() != 2))
         throw ::std::runtime_error("cgc1: unable to register finalizer: c0d42cd8-23fc-43d3-be6b-daee36fe17be");
-      ba_state->user_bits_ref(0).set_bit(index, true);
-      ba_state->user_bits_ref(1).set_bit(index, true);
+      ba_state->user_bits_ref(details::cs_bitmap_allocation_user_bit_finalizeable).set_bit(index, true);
+      ba_state->user_bits_ref(details::cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread)
+          .set_bit(index, allow_arbitrary_finalizer_thread);
       ba_user_data->gc_user_data_ref().set_is_default(false);
       ba_user_data->gc_user_data_ref().set_allow_arbitrary_finalizer_thread(allow_arbitrary_finalizer_thread);
       ba_user_data->gc_user_data_ref().m_finalizer = ::std::move(finalizer);

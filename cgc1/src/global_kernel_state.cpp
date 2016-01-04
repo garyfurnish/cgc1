@@ -537,6 +537,23 @@ namespace cgc1
         for (size_t i = 0; i < state->size(); ++i) {
           if (!to_be_freed.get_bit(i))
             continue;
+          const auto object = state->get_object(i);
+          if (state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).get_bit(i)) {
+            const auto ud = bitmap_allocator_user_data(object);
+            if (mcppalloc_unlikely(!ud))
+              continue;
+            state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).set_bit(i, false);
+            state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread).set_bit(i, false);
+            auto finalizer = ::std::move(ud->gc_user_data_ref().m_finalizer);
+            try {
+              finalizer(object);
+            } catch (::std::exception &e) {
+              ::std::cerr << "CGC1: Finalizer exception: " << e.what();
+            } catch (...) {
+              ::std::cerr << "CGC1: Finalizer threw unknown exception: 872ed1cd-be5c-4e65-baed-9e44de0a1dc8";
+              ::std::abort();
+            }
+          }
           ::mcppalloc::secure_zero_stream(state->get_object(i), state->real_entry_size());
         }
         state->free_unmarked();

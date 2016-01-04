@@ -15,7 +15,26 @@ namespace cgc1
   }
   namespace details
   {
-
+    /**
+     * \brief Type code for raw allocations.
+     **/
+    static const constexpr size_t cs_bitmap_allocation_type_raw{0};
+    /**
+     * \brief Type code for atomic allocations.
+     **/
+    static const constexpr size_t cs_bitmap_allocation_type_atomic{1};
+    /**
+     * \brief Type code for allocations with user data.
+     **/
+    static const constexpr size_t cs_bitmap_allocation_type_user_data{2};
+    /**
+     * \brief User bit index for enabling finalization.
+     **/
+    static const constexpr size_t cs_bitmap_allocation_user_bit_finalizeable{0};
+    /**
+     * \brief User bit index for enabling finalization on arbitrary threads.
+     **/
+    static const constexpr size_t cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread{1};
     /**
    * \brief User data that can be associated with an allocation.
    **/
@@ -54,8 +73,7 @@ namespace cgc1
         assert(0);
         return nullptr;
       }
-      if (mcppalloc_unlikely(state->type_id() != 2)) {
-        assert(0);
+      if (state->type_id() != 2) {
         return nullptr;
       }
       const auto bin_sz = state->real_entry_size();
