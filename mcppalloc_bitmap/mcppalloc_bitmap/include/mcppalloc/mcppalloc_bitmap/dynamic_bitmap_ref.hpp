@@ -77,6 +77,25 @@ namespace mcppalloc
 
       dynamic_bitmap_ref_t &operator^=(const dynamic_bitmap_ref_t &) noexcept;
 
+      /**
+       * \brief For some contiguous bits, call func on them, then flip the bits.
+       *
+       * This may do some or all bits.
+       * (The idea is this uses vector instructions to find some contiguous bits.
+       * @param limit Maximum index to examine.
+       * @param func Function should be (size_t begin_index, size_t end_index).
+       **/
+      template <typename Func>
+      void for_some_contiguous_bits_flip(size_t limit, Func &&func);
+      /**
+       * \brief Call function on all set bits.
+       *
+       * @param limit Maximum index to examine.
+       * @param func Function should take an index.
+       **/
+      template <typename Func>
+      void for_set_bits(size_t limit, Func &&func) const;
+
     private:
       bits_array_type m_array;
       size_t m_size;

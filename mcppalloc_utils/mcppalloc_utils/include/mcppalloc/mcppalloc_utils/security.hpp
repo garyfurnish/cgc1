@@ -28,19 +28,13 @@ namespace mcppalloc
 #ifdef __AVX__
     __m256i zero256 = _mm256_setzero_si256();
     __m256i *p_m256 = reinterpret_cast<__m256i *>(s);
-    __m128i *p_m128 = reinterpret_cast<__m128i *>(p_m256);
     if (!s % 32) {
       while (n >= sizeof(__m256i)) {
         _mm256_stream_si256(p_m256++, zero256);
         n -= sizeof(__m256i);
       }
-      p_m128 = reinterpret_cast<__m128i *>(p_m256);
-      if (n >= sizeof(__m128i)) {
-        _mm_stream_si128(p_m128++, _mm_setzero_si128());
-        n -= sizeof(__m128i);
-      }
     }
-    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m128);
+    volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m256);
 #elif defined(__SSE2__)
     const __m128i zero = _mm_setzero_si128();
     __m128i *p_m128 = reinterpret_cast<__m128i *>(s);

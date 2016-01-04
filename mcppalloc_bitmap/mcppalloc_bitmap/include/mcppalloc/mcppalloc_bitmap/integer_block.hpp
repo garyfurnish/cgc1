@@ -76,6 +76,22 @@ namespace mcppalloc
 
         integer_block_t operator^(const integer_block_t &) const noexcept;
         integer_block_t &operator^=(const integer_block_t &) noexcept;
+        /**
+       * \brief Call function on all set bits.
+       *
+       * @param offset Offset to add to function when calling.
+       * @param func Function should take an index.
+       **/
+        template <typename Func>
+        void for_some_contiguous_bits_flip(size_t offset, Func &&func);
+        /**
+         * \brief For bits that are set, call function on some of them, flip bits if called.
+         *
+         * @param offset Offset to add to function when calling.
+         * @param func to call, takes a range of indexes.
+         **/
+        template <typename Func>
+        void for_set_bits(size_t offset, size_t limit, Func &&func);
 
         static constexpr size_t size() noexcept;
         static constexpr size_t size_in_bytes() noexcept;

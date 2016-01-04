@@ -183,6 +183,38 @@ namespace mcppalloc
       }
       return *this;
     }
+    template <bool is_const>
+    template <typename Func>
+    void dynamic_bitmap_ref_t<is_const>::for_some_contiguous_bits_flip(size_t limit, Func &&func)
+    {
+      limit = ::std::min(limit, size_in_bits());
+      const auto max_block = limit / bits_type::size_in_bits();
+      for (size_t block = 0; block < max_block; ++block) {
+        m_array[block].for_some_contiguous_bits_flip(block * bits_type::size_in_bits(), func);
+      }
+    }
+    template <bool is_const>
+    template <typename Func>
+    void dynamic_bitmap_ref_t<is_const>::for_set_bits(size_t limit, Func &&func) const
+    {
+      limit = ::std::min(limit, size_in_bits());
+      for (size_t block = 0; block < size(); ++block) {
+        size_t internal_limit = bits_type::size_in_bits();
+        bool done = false;
+        if ((block + 1) * bits_type::size_in_bits() > limit) {
+          internal_limit = limit % bits_type::size_in_bits() ? limit % bits_type::size_in_bits() : internal_limit;
+          done = true;
+        }
+        m_array[block].for_set_bits(block * bits_type::size_in_bits(), internal_limit, ::std::move(func));
+        if (done)
+          break;
+      }
+      /*      for (size_t i = first_set(); i < limit; ++i) {
+  if (get_bit(i))
+    func(i);
+    }*/
+    }
+
     inline auto make_dynamic_bitmap_ref(dynamic_bitmap_ref_t<false>::bits_array_type array, size_t sz) noexcept
     {
       return dynamic_bitmap_ref_t<false>(array, sz);

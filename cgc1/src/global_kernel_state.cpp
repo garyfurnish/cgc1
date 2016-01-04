@@ -534,8 +534,13 @@ namespace cgc1
             ::mcppalloc::bitmap::make_dynamic_bitmap_ref_from_alloca(to_be_freed_memory, state->num_blocks(), alloca_size);
         to_be_freed.clear();
         state->or_with_to_be_freed(to_be_freed);
+        const auto free_with_finalizer_memory = alloca(alloca_size);
+        auto free_with_finalizer = ::mcppalloc::bitmap::make_dynamic_bitmap_ref_from_alloca(free_with_finalizer_memory,
+                                                                                            state->num_blocks(), alloca_size);
+        free_with_finalizer.deep_copy(to_be_freed);
+        free_with_finalizer &= state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable);
         for (size_t i = 0; i < state->size(); ++i) {
-          if (!to_be_freed.get_bit(i))
+          if (!free_with_finalizer.get_bit(i))
             continue;
           const auto object = state->get_object(i);
           if (state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).get_bit(i)) {
@@ -553,9 +558,17 @@ namespace cgc1
               ::std::cerr << "CGC1: Finalizer threw unknown exception: 872ed1cd-be5c-4e65-baed-9e44de0a1dc8";
               ::std::abort();
             }
+            ::mcppalloc::secure_zero_stream(object, state->real_entry_size());
           }
-          ::mcppalloc::secure_zero_stream(state->get_object(i), state->real_entry_size());
         }
+
+        to_be_freed &= free_with_finalizer.negate();
+        to_be_freed.for_some_contiguous_bits_flip(state->size(), [state](size_t begin, size_t end) {
+          ::mcppalloc::secure_zero_stream(state->get_object(begin), state->real_entry_size() * (end - begin));
+        });
+        to_be_freed.for_set_bits(state->size(), [state](size_t i) {
+          ::mcppalloc::secure_zero_stream(state->get_object(i), state->real_entry_size());
+        });
         state->free_unmarked();
       });
       // wait for sweeping to finish.
