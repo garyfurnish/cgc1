@@ -2,6 +2,7 @@
 #include "bitmap_state.hpp"
 #include "declarations.hpp"
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <mcppalloc/block.hpp>
 #include <mcppalloc/mcppalloc_utils/container.hpp>
 namespace mcppalloc
 {
@@ -29,6 +30,7 @@ namespace mcppalloc
          **/
         static constexpr const size_t cs_num_vectors = 5;
         using allocator_policy_type = Allocator_Policy;
+	using block_type = block_t<allocator_policy_type>;
         using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
         /**
          * \brief Type of vector holding states of a given id.
@@ -80,7 +82,7 @@ namespace mcppalloc
         /**
          * \brief Allocate an object with given id.
          **/
-        auto allocate(size_t id) noexcept -> ::std::pair<void *, size_t>;
+        auto allocate(size_t id) noexcept -> block_type;
         /**
          * \brief Do Maintenance for package.
          **/

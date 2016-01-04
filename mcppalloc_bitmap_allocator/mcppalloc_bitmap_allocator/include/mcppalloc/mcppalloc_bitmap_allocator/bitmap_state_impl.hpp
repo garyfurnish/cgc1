@@ -301,10 +301,12 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::verify_magic() const
       {
+	#ifdef _DEBUG
         if (mcppalloc_unlikely(!has_valid_magic_numbers())) {
           ::std::cerr << "mcppalloc: bitmap_state: invalid magic numbers 027e8d50-8555-4e7f-93a7-4d048b506436\n";
           ::std::abort();
         }
+	#endif
       }
       inline auto bitmap_state_t::addr_in_header(void *v) const noexcept -> bool
       {

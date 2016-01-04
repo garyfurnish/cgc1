@@ -128,7 +128,25 @@ namespace mcppalloc
     template <bool is_const>
     inline auto dynamic_bitmap_ref_t<is_const>::first_set() const noexcept -> size_t
     {
-      for (size_t i = 0; i < size(); ++i) {
+      size_t i = 0;
+      const size_t rounded_max = (size()/4)*4;
+      while(i < rounded_max)
+	{
+	  auto ret = m_array[i].first_set();
+	  if (ret != ::std::numeric_limits<size_t>::max())
+	    return i * bits_type::size_in_bits() + ret;
+	  ret = m_array[i+1].first_set();
+	  if (ret != ::std::numeric_limits<size_t>::max())
+	    return (i+1) * bits_type::size_in_bits() + ret;
+	  ret = m_array[i+2].first_set();
+	  if (ret != ::std::numeric_limits<size_t>::max())
+	    return (i+2) * bits_type::size_in_bits() + ret;
+	  ret = m_array[i+3].first_set();
+	  if (ret != ::std::numeric_limits<size_t>::max())
+	    return (i+3) * bits_type::size_in_bits() + ret;	  
+	  i+=4;
+	}
+      for (; i < size(); ++i) {
         auto ret = m_array[i].first_set();
         if (ret != ::std::numeric_limits<size_t>::max())
           return i * bits_type::size_in_bits() + ret;

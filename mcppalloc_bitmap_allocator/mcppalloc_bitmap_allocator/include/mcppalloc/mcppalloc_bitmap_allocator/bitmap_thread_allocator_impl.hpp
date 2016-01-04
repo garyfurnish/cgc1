@@ -165,10 +165,8 @@ namespace mcppalloc
       RESTART:
         _check_maintenance();
         const auto id = get_bitmap_size_id(sz);
-        void *v;
-        size_t ret_size;
-        ::std::tie(v, ret_size) = package.allocate(id);
-        if (!v) {
+        block_type ret = package.allocate(id);
+        if (!ret.m_ptr) {
           if (!m_free_list.empty()) {
             auto &type_info = m_allocator.get_type(package.type_id());
             // free list not empty
@@ -178,12 +176,13 @@ namespace mcppalloc
             state->m_internal.m_info = package_type::_get_info(id);
             state->initialize(package.type_id(), type_info.num_user_bits());
             m_free_list.pop_back();
-            v = state->allocate();
+            ret.m_ptr = state->allocate();
+	    ret.m_size = state->real_entry_size();
 
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr,ret.m_size);
             state->verify_magic();
-            return block_type{v, state->real_entry_size()};
+	    return ret;
           } else {
             // free list empty
             auto &type_info = m_allocator.get_type(package.type_id());
@@ -202,17 +201,18 @@ namespace mcppalloc
             state->initialize(package.type_id(), type_info.num_user_bits());
             assert(state->first_free() == 0);
 
-            v = state->allocate();
+            ret.m_ptr = state->allocate();
+	    ret.m_size = state->real_entry_size();
             assert(v);
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr,ret.m_size);
             state->verify_magic();
-            return block_type{v, state->real_entry_size()};
+            return ret;
           }
         }
-        assert(ret_size >= sz);
-        m_allocator.allocator_policy().on_allocation(v, ret_size);
-        return block_type{v, ret_size};
+        assert(ret.m_size >= sz);
+        m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
+        return ret;
       }
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::deallocate(void *v, package_type &package) noexcept -> bool

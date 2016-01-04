@@ -14,7 +14,12 @@ namespace mcppalloc
     {
       volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
       while (n >= sizeof(size_t)) {
+	#ifdef __SSE__
+	_mm_stream_pi(reinterpret_cast<__m64*>(const_cast<size_t*>(p_sz)),__m64{0});
+	p_sz++;
+	#else
         *p_sz++ = 0;
+	#endif
         n -= sizeof(size_t);
       }
       volatile char *p = reinterpret_cast<volatile char *>(p_sz);
@@ -28,7 +33,7 @@ namespace mcppalloc
 #ifdef __AVX__
     __m256i zero256 = _mm256_setzero_si256();
     __m256i *p_m256 = reinterpret_cast<__m256i *>(s);
-    if (!s % 32) {
+    if (!(reinterpret_cast<size_t>(s) % 32)) {
       while (n >= sizeof(__m256i)) {
         _mm256_stream_si256(p_m256++, zero256);
         n -= sizeof(__m256i);
@@ -38,7 +43,7 @@ namespace mcppalloc
 #elif defined(__SSE2__)
     const __m128i zero = _mm_setzero_si128();
     __m128i *p_m128 = reinterpret_cast<__m128i *>(s);
-    if (!s % 16) {
+    if (!(reinterpret_cast<size_t>(s) % 16)) {
       while (n >= sizeof(__m128i)) {
         _mm_stream_si128(p_m128++, zero);
         *p_m128++ = zero;
@@ -48,7 +53,7 @@ namespace mcppalloc
     volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(p_m128);
 #else
     volatile size_t *p_sz = reinterpret_cast<volatile size_t *>(s);
-    while (n >= sizeof(size_t) * 8) {
+    while (n >= sizeof(size_t) * 4) {
       *p_sz++ = 0;
       *p_sz++ = 0;
       *p_sz++ = 0;
@@ -56,7 +61,8 @@ namespace mcppalloc
       n -= sizeof(size_t) * 4;
     }
 #endif
-    details::secure_zero_no_vector(p_sz, n);
+    if(p_sz)
+      details::secure_zero_no_vector(p_sz, n);
   }
   /**
    * \brief Securely zero a pointer, guarenteed to not be optimized out.

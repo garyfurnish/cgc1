@@ -23,7 +23,7 @@
 #include <thread>
 #endif
 
-static const size_t num_alloc = 1000000;
+static const size_t num_alloc = 10000000;
 static const size_t num_thread = ::std::thread::hardware_concurrency() * 4;
 static const size_t num_thread_alloc = num_alloc / num_thread;
 static const size_t alloc_sz = 64;

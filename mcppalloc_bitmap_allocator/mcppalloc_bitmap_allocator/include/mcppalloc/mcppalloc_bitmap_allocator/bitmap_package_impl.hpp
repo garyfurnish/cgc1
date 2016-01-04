@@ -40,24 +40,21 @@ namespace mcppalloc
         return m_type_id;
       }
       template <typename Allocator_Policy>
-      auto bitmap_package_t<Allocator_Policy>::allocate(size_t id) noexcept -> ::std::pair<void *, size_t>
+      auto bitmap_package_t<Allocator_Policy>::allocate(size_t id) noexcept -> block_type
       {
+	block_type ret{nullptr,0};
         auto &vec = m_vectors[id];
         auto range = ::boost::make_iterator_range(vec.rbegin(), vec.rend());
         for (auto &&it = range.begin(); it != range.end(); ++it) {
-          auto prev = it + 1;
-          if (vec.rend() != prev) {
-            auto &prev_packed = **prev;
-            mcppalloc_builtin_prefetch(&prev_packed);
-          }
           auto &packed = **it;
           packed.verify_magic();
-          auto ret = packed.allocate();
-          if (ret) {
-            return ::std::make_pair(ret, packed.real_entry_size());
+          ret.m_ptr = packed.allocate();
+          if (ret.m_ptr) {
+	    ret.m_size = packed.real_entry_size();
+	    return ret;
           }
         }
-        return ::std::make_pair(nullptr, 0);
+        return ret;
       }
       template <typename Allocator_Policy>
       void bitmap_package_t<Allocator_Policy>::to_ptree(::boost::property_tree::ptree &ptree, int level) const
