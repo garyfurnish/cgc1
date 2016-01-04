@@ -203,7 +203,6 @@ namespace mcppalloc
 
             ret.m_ptr = state->allocate();
             ret.m_size = state->real_entry_size();
-            assert(v);
             package.insert(id, state);
             m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
             state->verify_magic();
