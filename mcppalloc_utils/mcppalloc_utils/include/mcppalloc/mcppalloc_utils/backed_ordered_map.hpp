@@ -1,28 +1,28 @@
 #pragma once
-#include <stdexcept>
 #include <mcppalloc/mcppalloc_utils/align.hpp>
+#include <stdexcept>
 namespace mcppalloc
 {
   namespace containers
   {
-    template<typename K, typename V, typename Less>
+    template <typename K, typename V, typename Less>
     class backed_ordered_map
     {
     public:
       using key_type = K;
       using mapped_type = V;
-      using value_type = ::std::pair<key_type,mapped_type>;
-      using iterator = value_type*;
-      using const_iterator = const value_type*;
+      using value_type = ::std::pair<key_type, mapped_type>;
+      using iterator = value_type *;
+      using const_iterator = const value_type *;
       using size_type = size_t;
       using difference_type = ptrdiff_t;
 
       backed_ordered_map();
-      backed_ordered_map(void* v, size_t sz);
-      backed_ordered_map(const backed_ordered_map&)=delete;
-      backed_ordered_map(backed_ordered_map&&);
-      backed_ordered_map& operator=(backed_ordered_map&) = delete;
-      backed_ordered_map& operator=(backed_ordered_map&&) = delete;
+      backed_ordered_map(void *v, size_t sz);
+      backed_ordered_map(const backed_ordered_map &) = delete;
+      backed_ordered_map(backed_ordered_map &&);
+      backed_ordered_map &operator=(backed_ordered_map &) = delete;
+      backed_ordered_map &operator=(backed_ordered_map &&) = delete;
 
       auto size() noexcept -> size_type;
       auto capacity() noexcept -> size_type;
@@ -69,28 +69,32 @@ namespace mcppalloc
        **/
       auto cend() const noexcept -> const_iterator;
 
-      auto operator[](const key_type &) -> mapped_type&;
-      auto operator[](BOOST_RV_REF(key_type)) -> mapped_type&;
-      
-      auto at(const key_type &) -> mapped_type&;
-      auto at(const key_type &) const ->const mapped_type&;
+      auto operator[](const key_type &) -> mapped_type &;
+      auto operator[](BOOST_RV_REF(key_type)) -> mapped_type &;
+
+      auto at(const key_type &) -> mapped_type &;
+      auto at(const key_type &) const -> const mapped_type &;
 
       /**
-       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with key equivalent to the key of x.
+       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with
+       *key equivalent to the key of x.
        *
        * Complexity: Logarithmic search time plus linear insertion to the elements with bigger keys than x.
        * Note: If an element it's inserted it might invalidate elements.
-       * @return The bool component of the returned pair is true if and only if the insertion takes place, and the iterator component of the pair points to the element with key equivalent to the key of x.
+       * @return The bool component of the returned pair is true if and only if the insertion takes place, and the iterator
+       *component of the pair points to the element with key equivalent to the key of x.
        **/
-      auto insert(const value_type &) -> std::pair< iterator, bool >;
+      auto insert(const value_type &) -> std::pair<iterator, bool>;
       /**
-       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with key equivalent to the key of x.
+       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with
+       *key equivalent to the key of x.
        *
        * Complexity: Logarithmic search time plus linear insertion to the elements with bigger keys than x.
        * Note: If an element it's inserted it might invalidate elements.
-       * @return The bool component of the returned pair is true if and only if the insertion takes place, and the iterator component of the pair points to the element with key equivalent to the key of x.
+       * @return The bool component of the returned pair is true if and only if the insertion takes place, and the iterator
+       *component of the pair points to the element with key equivalent to the key of x.
        **/
-      auto insert(value_type&&) -> ::std::pair<iterator,bool>;
+      auto insert(value_type &&) -> ::std::pair<iterator, bool>;
       /**
        * \brief Erases all elements in the container with key equivalent to x.
        *
@@ -100,7 +104,7 @@ namespace mcppalloc
       auto erase(const key_type &) -> size_type;
       /**
        * \brief erase(a.begin(),a.end()).
-       * 
+       *
        * Postcondition: size() == 0.
        * Complexity: linear in size().
       **/
@@ -132,12 +136,12 @@ namespace mcppalloc
        * This does not throw but returns false if k does not exist.
        * @return Iterator and true if move took place, false otherwise.
        **/
-      auto move(const key_type& k, value_type&& v) -> ::std::pair<iterator, bool>;
+      auto move(const key_type &k, value_type &&v) -> ::std::pair<iterator, bool>;
+
     private:
-      void* m_v{nullptr};
+      void *m_v{nullptr};
       size_t m_size{0};
       size_t m_capacity{0};
-      
     }
   }
 }

@@ -1,6 +1,6 @@
 #pragma once
-#include <boost/property_tree/ptree_fwd.hpp>
 #include "slab_allocator_dll.hpp"
+#include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/mcppalloc_utils/alignment.hpp>
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>

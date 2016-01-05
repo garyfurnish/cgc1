@@ -7,32 +7,32 @@ namespace mcppalloc
   {
     namespace details
     {
-       slab_allocator_t::slab_allocator_t(size_t size, size_t size_hint)
+      slab_allocator_t::slab_allocator_t(size_t size, size_t size_hint)
       {
         if (!m_slab.allocate(size, slab_t::find_hole(size_hint)))
           throw ::std::runtime_error("Unable to allocate slab");
         m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
         m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
       }
-       slab_allocator_t::~slab_allocator_t()
+      slab_allocator_t::~slab_allocator_t()
       {
         _verify();
       }
-       void slab_allocator_t::_verify()
+      void slab_allocator_t::_verify()
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
           it->verify_magic();
         }
       }
-       void slab_allocator_t::align_next(size_t sz)
+      void slab_allocator_t::align_next(size_t sz)
       {
         uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
         auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_header_sz;
         allocate_raw(offset);
       }
 
-       void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
+      void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
       {
         object->verify_magic();
         if (sz + cs_header_sz * 2 > object->object_size(cs_alignment)) {
@@ -50,7 +50,7 @@ namespace mcppalloc
           return object->object_start(cs_alignment);
         }
       }
-       void *slab_allocator_t::_u_allocate_raw_at_end(size_t sz)
+      void *slab_allocator_t::_u_allocate_raw_at_end(size_t sz)
       {
         // get total needed size.
         size_t total_size = slab_allocator_object_t::needed_size(sizeof(slab_allocator_object_t), sz, cs_alignment);
@@ -80,7 +80,7 @@ namespace mcppalloc
         auto ret = object->object_start(cs_alignment);
         return ret;
       }
-       void *slab_allocator_t::allocate_raw(size_t sz)
+      void *slab_allocator_t::allocate_raw(size_t sz)
       {
         // TODO: THIS IS AWFUL as we have to look through everything to see if anything is free.
         // align request.
@@ -150,7 +150,7 @@ namespace mcppalloc
           return lb->object_start(cs_alignment);
         }
       }
-       void slab_allocator_t::deallocate_raw(void *v)
+      void slab_allocator_t::deallocate_raw(void *v)
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto object = slab_allocator_object_t::from_object_start(v, cs_alignment);
@@ -169,15 +169,15 @@ namespace mcppalloc
           m_end = object;
         }
       }
-       ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
+      ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
       {
         return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
       }
-       auto slab_allocator_t::current_size() const noexcept -> size_t
+      auto slab_allocator_t::current_size() const noexcept -> size_t
       {
         return static_cast<size_t>(reinterpret_cast<uint8_t *>(m_end) - m_slab.begin());
       }
-       void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
+      void slab_allocator_t::to_ptree(::boost::property_tree::ptree &ptree, int level) const
       {
         (void)level;
         ptree.put("size", ::std::to_string(m_slab.size()));

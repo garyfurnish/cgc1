@@ -29,7 +29,6 @@ namespace mcppalloc
       {
         return _u_object_current_end() == _u_object_begin();
       }
-
     }
   }
 }

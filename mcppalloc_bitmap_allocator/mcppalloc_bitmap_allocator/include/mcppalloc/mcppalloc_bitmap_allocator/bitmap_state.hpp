@@ -12,14 +12,14 @@ namespace mcppalloc
       using type_id_t = uint32_t;
       static constexpr const size_t c_bitmap_alignment = 32;
       struct alignas(size_t) bitmap_state_info_t {
-        size_t m_num_blocks; //8 
-        size_t m_data_entry_sz; //16
-        size_t m_size; //24
-        size_t m_header_size; //32
-	size_t m_cached_first_free; //40
-        type_id_t m_type_id; //44
-	uint8_t m_num_user_bit_fields; 
-	uint8_t m_pad2[3];
+        size_t m_num_blocks;        // 8
+        size_t m_data_entry_sz;     // 16
+        size_t m_size;              // 24
+        size_t m_header_size;       // 32
+        size_t m_cached_first_free; // 40
+        type_id_t m_type_id;        // 44
+        uint8_t m_num_user_bit_fields;
+        uint8_t m_pad2[3];
       };
 
       struct alignas(c_bitmap_alignment) bitmap_state_internal_t {
@@ -65,14 +65,14 @@ namespace mcppalloc
         auto any_free() const noexcept -> bool;
         auto none_free() const noexcept -> bool;
         auto all_free() const noexcept -> bool;
-	/**
-	 * \brief Return cached value that is first free index.
-	 **/
+        /**
+         * \brief Return cached value that is first free index.
+         **/
         auto first_free() const noexcept -> size_t;
-	/**
-	 * \brief Recompute cached first free index.
-	 **/
-	auto _compute_first_free() noexcept -> size_t;
+        /**
+         * \brief Recompute cached first free index.
+         **/
+        auto _compute_first_free() noexcept -> size_t;
         auto any_marked() const noexcept -> bool;
         auto none_marked() const noexcept -> bool;
         auto free_popcount() const noexcept -> size_t;

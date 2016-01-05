@@ -42,7 +42,7 @@ namespace mcppalloc
         m_internal.m_info.m_num_user_bit_fields = user_bit_fields;
         _compute_size();
         free_bits_ref().fill(::std::numeric_limits<uint64_t>::max());
-	m_internal.m_info.m_cached_first_free=0;
+        m_internal.m_info.m_cached_first_free = 0;
         for (size_t i = 0; i < num_user_bit_fields(); ++i)
           clear_user_bits(i);
       }
@@ -73,13 +73,13 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::first_free() const noexcept -> size_t
       {
-	return m_internal.m_info.m_cached_first_free;
+        return m_internal.m_info.m_cached_first_free;
       }
       inline auto bitmap_state_t::_compute_first_free() noexcept -> size_t
       {
         auto ret = free_bits_ref().first_set();
-	m_internal.m_info.m_cached_first_free = ret;
-	return ret;
+        m_internal.m_info.m_cached_first_free = ret;
+        return ret;
       }
       inline auto bitmap_state_t::any_marked() const noexcept -> bool
       {
@@ -95,21 +95,19 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::set_free(size_t i, bool val) noexcept
       {
-	if(val)
-	  m_internal.m_info.m_cached_first_free=::std::min(i,m_internal.m_info.m_cached_first_free);
-	else if(i ==m_internal.m_info.m_cached_first_free)
-	  {
-	    //not free
-	    if(i+1 >= size())
-	      m_internal.m_info.m_cached_first_free=::std::numeric_limits<size_t>::max();
-	    else if(is_free(i+1))
-	      m_internal.m_info.m_cached_first_free++;
-	    else
-	      {
-		//could be anywhere
-		_compute_first_free();
-	      }
-	  }
+        if (val)
+          m_internal.m_info.m_cached_first_free = ::std::min(i, m_internal.m_info.m_cached_first_free);
+        else if (i == m_internal.m_info.m_cached_first_free) {
+          // not free
+          if (i + 1 >= size())
+            m_internal.m_info.m_cached_first_free = ::std::numeric_limits<size_t>::max();
+          else if (is_free(i + 1))
+            m_internal.m_info.m_cached_first_free++;
+          else {
+            // could be anywhere
+            _compute_first_free();
+          }
+        }
         free_bits_ref().set_bit(i, val);
       }
       inline void bitmap_state_t::set_marked(size_t i) noexcept
@@ -175,7 +173,7 @@ namespace mcppalloc
         size_t retries = 0;
       RESTART:
         auto i = first_free();
-	// guarentee the memory address exists somewhere that is visible to gc
+        // guarentee the memory address exists somewhere that is visible to gc
         volatile auto memory_address = begin() + real_entry_size() * i;
         if (i >= size())
           return nullptr;
@@ -220,7 +218,7 @@ namespace mcppalloc
       inline void bitmap_state_t::free_unmarked()
       {
         or_with_to_be_freed(free_bits_ref());
-	_compute_first_free();
+        _compute_first_free();
       }
       inline auto bitmap_state_t::num_blocks() const noexcept -> size_t
       {
