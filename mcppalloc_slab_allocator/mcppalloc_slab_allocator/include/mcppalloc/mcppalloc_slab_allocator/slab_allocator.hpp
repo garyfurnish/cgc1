@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/property_tree/ptree_fwd.hpp>
+#include "slab_allocator_dll.hpp"
 #include <mcppalloc/mcppalloc_utils/alignment.hpp>
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
@@ -23,7 +24,7 @@ namespace mcppalloc
        * It differs from allocator_t in that this allocator is completely in place.
        * This is both less memory and runtime efficient, but can be used to back the allocator_t.
       **/
-      class slab_allocator_t
+      class MCPPALLOC_SLAB_ALLOCATOR_DLL_PUBLIC slab_allocator_t
       {
       public:
         static constexpr const size_t cs_alignment = 32;
@@ -144,4 +145,4 @@ namespace mcppalloc
     }
   }
 }
-#include "slab_allocator_impl.hpp"
+#include "slab_allocator_inlines.hpp"

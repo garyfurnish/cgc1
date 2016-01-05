@@ -12,4 +12,4 @@ add_executable(mcppalloc_bitmap_allocator_test
   main.cpp
   bitmap.cpp
   )
-target_link_libraries(mcppalloc_bitmap_allocator_test)
+target_link_libraries(mcppalloc_bitmap_allocator_test mcppalloc_slab_allocator)

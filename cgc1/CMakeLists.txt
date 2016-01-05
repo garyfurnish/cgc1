@@ -38,6 +38,9 @@ list (APPEND SRC_FILES ${SRC_FILES} include/cgc1/win32_slab.hpp
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 add_library(cgc1 ${SRC_FILES})
 add_library(gc SHARED ${SRC_FILES} src/new.cpp)
+target_link_libraries(cgc1 mcppalloc_slab_allocator)
+target_link_libraries(gc mcppalloc_slab_allocator)
+
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(cgc1 pthread)
   target_link_libraries(gc pthread)

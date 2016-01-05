@@ -78,7 +78,7 @@ namespace mcppalloc
         using namespace mcppalloc::literals;
         bitmap_state_t state;
         state.m_internal.m_info =
-            bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0, type_id, 0, 0, {0, 0, 0}};
+            bitmap_state_info_t{cs_total_size / ((1 + id) << 5) / 512, (1_sz << (5 + id)), 0, 0, 0, type_id, 0, {0, 0, 0}};
         state._compute_size();
         return state.m_internal.m_info;
       }

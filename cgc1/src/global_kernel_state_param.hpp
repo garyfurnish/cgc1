@@ -77,11 +77,11 @@ namespace cgc1
     /**
      * \brief Size of packed allocator at start.
      **/
-    size_t m_packed_allocator_start_size = ::mcppalloc::details::pow2(28);
+    size_t m_packed_allocator_start_size = ::mcppalloc::details::pow2(32);
     /**
      * \brief Expansion size of packed allocator.
      **/
-    size_t m_packed_allocator_expansion_size = ::mcppalloc::details::pow2(32);
+    size_t m_packed_allocator_expansion_size = ::mcppalloc::details::pow2(33);
     /**
      * \brief Size of internal allocator at start.
      **/

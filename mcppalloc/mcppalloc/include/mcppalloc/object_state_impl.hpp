@@ -30,11 +30,13 @@ namespace mcppalloc
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::verify_magic() noexcept
     {
-      if (mcppalloc_unlikely(m_pre_magic != cs_pre_magic)) {
+#ifdef _DEBUG
+      if (mcppalloc[_unlikely(m_pre_magic != cs_pre_magic)) {
         ::std::terminate();
       } else if (mcppalloc_unlikely(m_post_magic != cs_post_magic)) {
         ::std::terminate();
       }
+#endif
     }
 
     template <typename Allocator_Policy>
