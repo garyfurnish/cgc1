@@ -212,7 +212,7 @@ namespace mcppalloc
       template <typename Func>
       void integer_block_t<Quads>::for_some_contiguous_bits_flip(size_t offset, Func &&func)
       {
-#if  defined(__AVX2__) && !defined(__APPLE__)
+#if defined(__AVX2__) && !defined(__APPLE__)
         const __m256i ones = _mm256_set1_epi64x(-1);
         for (size_t i = 0; i + 3 < size(); i += 4) {
           __m256i m = *unsafe_cast<__m256i>(&m_array[i]);
