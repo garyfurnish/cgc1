@@ -30,7 +30,7 @@ namespace mcppalloc
   }
   inline void secure_zero_stream(void *s, size_t n)
   {
-#ifdef __AVX__
+#if defined(__AVX__) && !defined(__APPLE__)
     __m256i zero256 = _mm256_setzero_si256();
     __m256i *p_m256 = reinterpret_cast<__m256i *>(s);
     if (!(reinterpret_cast<size_t>(s) % 32)) {
@@ -68,7 +68,7 @@ namespace mcppalloc
    **/
   inline void secure_zero(void *s, size_t n)
   {
-#ifdef __AVX__
+#if defined(__AVX__) && !defined(__APPLE__)
     __m256i zero256 = _mm256_setzero_si256();
     volatile __m256i *p_m256 = reinterpret_cast<volatile __m256i *>(s);
     volatile __m128i *p_m128 = reinterpret_cast<volatile __m128i *>(p_m256);

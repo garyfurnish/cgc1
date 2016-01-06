@@ -83,7 +83,7 @@ namespace mcppalloc
       template <size_t Quads>
       MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::first_set() const noexcept -> size_t
       {
-#ifdef __AVX__
+#if defined(__AVX__) && !defined(__APPLE__)
         __m256i m = *unsafe_cast<__m256i>(&m_array[0]);
         static_assert(size() >= 8, "");
         __m256i m2 = *unsafe_cast<__m256i>(&m_array[4]);
@@ -212,7 +212,7 @@ namespace mcppalloc
       template <typename Func>
       void integer_block_t<Quads>::for_some_contiguous_bits_flip(size_t offset, Func &&func)
       {
-#ifdef __AVX2__
+#if defined(__AVX2__) && !defined(__APPLE__)
         const __m256i ones = _mm256_set1_epi64x(-1);
         for (size_t i = 0; i + 3 < size(); i += 4) {
           __m256i m = *unsafe_cast<__m256i>(&m_array[i]);

@@ -5,7 +5,9 @@ namespace mcppalloc
 {
   namespace details
   {
-    using user_data_alignment_t = size_t;
+    using user_data_alignment_t = struct alignas(16) {
+      size_t x, y;
+    };
     /**
      * \brief Base class for user data associated with a entry.
      **/
@@ -56,6 +58,7 @@ namespace mcppalloc
        * True if is default, false otherwise.
       **/
     };
+    static_assert(sizeof(user_data_base_t) % sizeof(user_data_alignment_t) == 0, "");
     /**
      * \brief Return true if the object state is a valid object state, false otherwise.
      *
