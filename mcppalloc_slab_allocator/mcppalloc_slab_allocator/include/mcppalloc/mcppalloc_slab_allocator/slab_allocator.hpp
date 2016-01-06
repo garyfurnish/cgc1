@@ -1,5 +1,6 @@
 #pragma once
 #include "slab_allocator_dll.hpp"
+#include <array>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/mcppalloc_utils/alignment.hpp>
 #include <mcppalloc/mcppalloc_utils/backed_ordered_map.hpp>

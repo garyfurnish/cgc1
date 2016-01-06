@@ -1,5 +1,6 @@
 #pragma once
 #include <mcppalloc/user_data_base.hpp>
+#include <functional>
 namespace cgc1
 {
   namespace details
