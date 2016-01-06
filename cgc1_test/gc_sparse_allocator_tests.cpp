@@ -701,5 +701,24 @@ void gc_bandit_tests()
       return_to_global_test2();
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
     });
+    it("test2,", []() {
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
+      for (size_t i = 0; i < 1000; ++i) {
+        vec.push_back(i);
+        vec2.push_back(i);
+        vec3.push_back(i);
+        vec4.push_back(i);
+      }
+      for (size_t i = 0; i < 1000; ++i) {
+        AssertThat(vec[i], Equals(i));
+        AssertThat(vec2[i], Equals(i));
+        AssertThat(vec3[i], Equals(i));
+        AssertThat(vec4[i], Equals(i));
+      }
+    });
+
   });
 }

@@ -9,8 +9,10 @@ using namespace bandit;
 extern void allocator_block_tests();
 extern void allocator_block_set_tests();
 extern void allocator_tests();
+extern void slab_allocator_bandit_tests();
 
 go_bandit([]() {
+  slab_allocator_bandit_tests();
   describe("Pages", []() {
     it("test1", []() {
       mcppalloc::slab_t page(mcppalloc::slab_t::page_size() * 50,

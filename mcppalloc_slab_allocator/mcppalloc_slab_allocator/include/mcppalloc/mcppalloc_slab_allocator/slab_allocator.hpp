@@ -87,7 +87,7 @@ namespace mcppalloc
          * @param sz Size of object allocation required.
          * @return Start of object memory.
          **/
-        void *_u_split_allocate(slab_allocator_object_t *object, size_t sz);
+        void *_u_split_allocate(slab_allocator_object_t *object, size_t sz) REQUIRES(m_mutex);
         /**
          * \brief Allocate memory at end.
          *
@@ -95,7 +95,7 @@ namespace mcppalloc
          * @param sz Size of object allocation required.
          * @return Start of object memory.
          **/
-        void *_u_allocate_raw_at_end(size_t sz);
+        void *_u_allocate_raw_at_end(size_t sz) REQUIRES(m_mutex);
         /**
          * \brief Allocate memory.
          *
@@ -126,6 +126,9 @@ namespace mcppalloc
         void to_ptree(::boost::property_tree::ptree &ptree, int level) const;
 
       private:
+        void _u_add_free(slab_allocator_object_t *v) REQUIRES(m_mutex);
+        void _u_remove_free(slab_allocator_object_t *v) REQUIRES(m_mutex);
+        void _u_generate_free_list() REQUIRES(m_mutex);
         /**
          * \brief Mutex for allocator.
          **/
@@ -138,7 +141,19 @@ namespace mcppalloc
          * \brief Current position of end object state (invalid).
          **/
         slab_allocator_object_t *m_end;
-        containers::backed_ordered_multimap<size_t, void *> free_map;
+        /**
+         * \brief True if free map overflowed and dumped free positions on the floor.
+         **/
+        bool m_free_map_needs_regeneration{false};
+        using free_map_type = containers::backed_ordered_multimap<size_t, slab_allocator_object_t *>;
+        /**
+         * \brief Map of free positions.
+         **/
+        free_map_type m_free_map;
+        /**
+         * \brief Array backing for free map.
+        **/
+        ::std::array<typename free_map_type::value_type, 1500> m_free_map_back;
       };
       constexpr size_t slab_allocator_t::alignment() noexcept
       {

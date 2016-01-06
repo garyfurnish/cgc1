@@ -69,10 +69,31 @@ go_bandit([]() {
       auto ret = map.insert(::std::make_pair(5, 0));
       AssertThat(map.size(), Equals(1_sz));
       AssertThat(ret.second, IsTrue());
-      ret = map.insert(::std::make_pair(4, 1));
+      ret = map.insert(::std::make_pair(5, 1));
       AssertThat(map.size(), Equals(1_sz));
       AssertThat(ret.second, IsFalse());
+      ::std::vector<::std::pair<size_t, size_t>> t1{{5, 0}, {5, 1}};
+      AssertThat(::std::equal(map.begin(), map.end(), t1.begin()), IsTrue());
+
     });
+    it("backed_ordered_multimap_test1", []() {
+      size_t array[500];
+      bom_t map(array, sizeof(array));
+      auto ret = map.insert(::std::make_pair(5, 0));
+      ret = map.insert(::std::make_pair(5, 1));
+      ::std::vector<::std::pair<size_t, size_t>> t1{{5, 0}, {5, 1}};
+      AssertThat(::std::equal(map.begin(), map.end(), t1.begin()), IsTrue());
+
+    });
+    it("backed_ordered_multimap_test2", []() {
+      size_t array[500];
+      bom_t map(array, sizeof(array));
+      map.insert(::std::make_pair(0, 5));
+      AssertThat(map.lower_bound(0), Equals(map.begin()));
+      AssertThat(map.find(0), Equals(map.begin()));
+
+    });
+
   });
 });
 

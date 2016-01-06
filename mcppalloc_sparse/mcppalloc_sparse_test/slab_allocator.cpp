@@ -1,4 +1,3 @@
-#include "../cgc1/src/internal_allocator.hpp"
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_utils/container.hpp>
@@ -59,14 +58,18 @@ void slab_allocator_bandit_tests()
                  Equals(3 * slab_type::cs_header_sz + 2 * align(100, slab_type::alignment())));
       AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
                  Equals(4 * slab_type::cs_header_sz + 3 * align(100, slab_type::alignment())));
+      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       slab.deallocate_raw(alloc3);
+      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       slab.deallocate_raw(alloc4);
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next() ==
                      &*slab._u_object_current_end(),
                  IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next()->next_valid(), IsFalse());
+      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
+      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
       AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
                  Equals(3 * slab_type::cs_header_sz + 2 * align(100, slab_type::alignment())));
@@ -106,24 +109,6 @@ void slab_allocator_bandit_tests()
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc4, slab_type::alignment())->next_valid(), IsTrue());
 
-    });
-    it("test2,", []() {
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
-      for (size_t i = 0; i < 1000; ++i) {
-        vec.push_back(i);
-        vec2.push_back(i);
-        vec3.push_back(i);
-        vec4.push_back(i);
-      }
-      for (size_t i = 0; i < 1000; ++i) {
-        AssertThat(vec[i], Equals(i));
-        AssertThat(vec2[i], Equals(i));
-        AssertThat(vec3[i], Equals(i));
-        AssertThat(vec4[i], Equals(i));
-      }
     });
   });
 }

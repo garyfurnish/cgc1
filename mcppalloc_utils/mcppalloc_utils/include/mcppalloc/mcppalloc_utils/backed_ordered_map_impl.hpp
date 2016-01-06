@@ -33,14 +33,17 @@ namespace mcppalloc
       rhs.m_v = nullptr;
       rhs.m_size = 0;
       rhs.m_capacity = 0;
+      return *this;
     }
     template <typename K, typename V, typename Less>
     backed_ordered_multimap<K, V, Less>::~backed_ordered_multimap()
     {
-      clear();
-      m_v = nullptr;
-      m_size = 0;
-      m_capacity = 0;
+      if (m_v) {
+        clear();
+        m_v = nullptr;
+        m_size = 0;
+        m_capacity = 0;
+      }
     }
     template <typename K, typename V, typename Less>
     auto backed_ordered_multimap<K, V, Less>::size() noexcept -> size_type
@@ -190,6 +193,7 @@ namespace mcppalloc
       const auto it = begin() + (cit - begin());
       ::std::rotate(it, it + 1, end());
       (end() - 1)->~value_type();
+      m_size -= 1;
       return it;
     }
     template <typename K, typename V, typename Less>
