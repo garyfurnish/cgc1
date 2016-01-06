@@ -242,8 +242,14 @@ namespace mcppalloc
     template <typename K, typename V, typename Less>
     auto backed_ordered_multimap<K, V, Less>::move(const key_type &k, value_type &&v) -> ::std::pair<iterator, bool>
     {
-      auto insert_it = upper_bound(v.first);
       auto remove_it = find(k);
+      return move(remove_it, ::std::move(v));
+    }
+    template <typename K, typename V, typename Less>
+    auto backed_ordered_multimap<K, V, Less>::move(const_iterator orig, value_type &&v) -> ::std::pair<iterator, bool>
+    {
+      auto insert_it = upper_bound(v.first);
+      auto remove_it = begin() + (orig - cbegin());
       if (remove_it == end())
         return insert(::std::move(v));
       if (remove_it < insert_it) {

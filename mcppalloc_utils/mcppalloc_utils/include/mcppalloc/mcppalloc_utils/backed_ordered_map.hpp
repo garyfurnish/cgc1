@@ -161,6 +161,14 @@ namespace mcppalloc
        * @return Iterator and true if move took place, false otherwise.
        **/
       auto move(const key_type &k, value_type &&v) -> ::std::pair<iterator, bool>;
+      /**
+       * \brief Remove key and insert value.
+       *
+       * This can be done faster in many cases.
+       * This does not throw but returns false if k does not exist.
+       * @return Iterator and true if move took place, false otherwise.
+       **/
+      auto move(const_iterator orig, value_type &&v) -> ::std::pair<iterator, bool>;
 
     private:
       void *m_v{nullptr};

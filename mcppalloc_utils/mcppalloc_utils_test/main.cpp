@@ -48,13 +48,13 @@ go_bandit([]() {
       AssertThat(ret.second, IsTrue());
       ::std::vector<::std::pair<size_t, size_t>> t1{{0, 1}, {1, 2}, {2, 3}, {3, 2}, {4, 1}, {5, 0}};
       AssertThat(::std::equal(map.begin(), map.end(), t1.begin()), IsTrue());
-      map.move(0, {4, 3});
+      map.move(0_sz, {4, 3});
       ::std::vector<::std::pair<size_t, size_t>> t2{{1, 2}, {2, 3}, {3, 2}, {4, 1}, {4, 3}, {5, 0}};
       AssertThat(::std::equal(map.begin(), map.end(), t2.begin()), IsTrue());
-      map.move(3, {0, 50});
+      map.move(3_sz, {0, 50});
       ::std::vector<::std::pair<size_t, size_t>> t3{{0, 50}, {1, 2}, {2, 3}, {4, 1}, {4, 3}, {5, 0}};
       AssertThat(::std::equal(map.begin(), map.end(), t3.begin()), IsTrue());
-      map.move(0, {0, 51});
+      map.move(0_sz, {0, 51});
       ::std::vector<::std::pair<size_t, size_t>> t4{{0, 51}, {1, 2}, {2, 3}, {4, 1}, {4, 3}, {5, 0}};
       AssertThat(::std::equal(map.begin(), map.end(), t4.begin()), IsTrue());
       /*      for (auto &&obj : map) {

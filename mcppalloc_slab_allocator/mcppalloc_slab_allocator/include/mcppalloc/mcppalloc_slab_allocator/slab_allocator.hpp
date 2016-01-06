@@ -129,6 +129,7 @@ namespace mcppalloc
         void _u_add_free(slab_allocator_object_t *v) REQUIRES(m_mutex);
         void _u_remove_free(slab_allocator_object_t *v) REQUIRES(m_mutex);
         void _u_generate_free_list() REQUIRES(m_mutex);
+        void _u_move_free(slab_allocator_object_t *orig, slab_allocator_object_t *new_obj) REQUIRES(m_mutex);
         /**
          * \brief Mutex for allocator.
          **/

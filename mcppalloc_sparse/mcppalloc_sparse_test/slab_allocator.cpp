@@ -58,18 +58,14 @@ void slab_allocator_bandit_tests()
                  Equals(3 * slab_type::cs_header_sz + 2 * align(100, slab_type::alignment())));
       AssertThat(static_cast<uintptr_t>(alloc4 - slab.begin()),
                  Equals(4 * slab_type::cs_header_sz + 3 * align(100, slab_type::alignment())));
-      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       slab.deallocate_raw(alloc3);
-      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       slab.deallocate_raw(alloc4);
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next() ==
                      &*slab._u_object_current_end(),
                  IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next()->next_valid(), IsFalse());
-      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       alloc3 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
-      ::std::cout << __FILE__ << " " << __LINE__ << ::std::endl;
       alloc4 = reinterpret_cast<uint8_t *>(slab.allocate_raw(100));
       AssertThat(static_cast<uintptr_t>(alloc3 - slab.begin()),
                  Equals(3 * slab_type::cs_header_sz + 2 * align(100, slab_type::alignment())));

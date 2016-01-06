@@ -48,22 +48,28 @@ namespace mcppalloc
           }
         }
       }
+      void slab_allocator_t::_u_move_free(slab_allocator_object_t *orig, slab_allocator_object_t *new_obj)
+      {
+        auto orig_it = m_free_map.lower_bound(orig->object_size());
+        while (orig_it != m_free_map.end()) {
+          if (orig_it->second != orig)
+            orig_it++;
+          else
+            break;
+        }
+        if (orig_it == m_free_map.end()) {
+          _u_add_free(new_obj);
+          return;
+        }
+        m_free_map.move(orig_it, ::std::make_pair(new_obj->object_size(), new_obj));
+      }
       void slab_allocator_t::_u_generate_free_list()
       {
         m_free_map_needs_regeneration = false;
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
           it->verify_magic();
-          if (mcppalloc_unlikely(&*it == _u_object_end())) {
-            ::std::cerr << "mcppalloc slab allocator consistency error 8b0fdce5-4991-4ba8-af46-e18cbdaf9dbd" << ::std::endl;
-            ::std::terminate();
-          }
-          if (mcppalloc_unlikely(&*it > _u_object_end())) {
+          if (mcppalloc_unlikely(&*it >= _u_object_end())) {
             ::std::cerr << "mcppalloc slab allocator consistency error a35664e3-21f9-4ea7-a921-844b8a2dc598" << ::std::endl;
-            ::std::terminate();
-          }
-          if (mcppalloc_unlikely(reinterpret_cast<uint8_t *>(&*it) < begin())) {
-            ::std::cerr << &*it << " " << reinterpret_cast<void *>(begin()) << "\n";
-            ::std::cerr << "mcppalloc slab allocator consistency error d4f8215d-98c3-4d1f-9e1b-00f09ae42e5c" << ::std::endl;
             ::std::terminate();
           }
           // if in use, go to next.
@@ -81,8 +87,8 @@ namespace mcppalloc
       void *slab_allocator_t::_u_split_allocate(slab_allocator_object_t *object, size_t sz)
       {
         object->verify_magic();
-        _u_remove_free(object);
         if (sz + cs_header_sz * 2 > object->object_size(cs_alignment)) {
+          _u_remove_free(object);
           // if not enough space to split, just take it all.
           object->set_in_use(true);
           return object->object_start(cs_alignment);
@@ -91,7 +97,7 @@ namespace mcppalloc
           auto new_next = reinterpret_cast<slab_allocator_object_t *>(object->object_start(cs_alignment) + sz);
           // set new object state.
           new_next->set_all(object->next(), false, object->next_valid());
-          _u_add_free(new_next);
+          _u_move_free(object, new_next);
           // set current object  state.
           object->set_all(new_next, true, true);
           // return location of start of object.
