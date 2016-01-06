@@ -1,8 +1,7 @@
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_utils/container.hpp>
-#include "../cgc1/src/internal_allocator.hpp"
+#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 using namespace bandit;
 using ::mcppalloc::unsafe_cast;
 using ::mcppalloc::align;
@@ -106,24 +105,6 @@ void slab_allocator_bandit_tests()
       AssertThat(slab_allocator_object_t::from_object_start(alloc3, slab_type::alignment())->next_valid(), IsTrue());
       AssertThat(slab_allocator_object_t::from_object_start(alloc4, slab_type::alignment())->next_valid(), IsTrue());
 
-    });
-    it("test2,", []() {
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
-      for (size_t i = 0; i < 1000; ++i) {
-        vec.push_back(i);
-        vec2.push_back(i);
-        vec3.push_back(i);
-        vec4.push_back(i);
-      }
-      for (size_t i = 0; i < 1000; ++i) {
-        AssertThat(vec[i], Equals(i));
-        AssertThat(vec2[i], Equals(i));
-        AssertThat(vec3[i], Equals(i));
-        AssertThat(vec4[i], Equals(i));
-      }
     });
   });
 }

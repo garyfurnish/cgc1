@@ -1,9 +1,9 @@
 #pragma once
-#include <cgc1/declarations.hpp>
 #include <assert.h>
+#include <cgc1/declarations.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
 #include <memory>
 #include <vector>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
 namespace cgc1
 {
   namespace details

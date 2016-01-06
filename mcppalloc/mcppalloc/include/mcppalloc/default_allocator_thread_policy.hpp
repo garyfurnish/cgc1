@@ -1,5 +1,6 @@
 #pragma once
 #include "allocator_thread_policy.hpp"
+#include <mcppalloc/mcppalloc_utils/declarations.hpp>
 
 namespace mcppalloc
 {

@@ -53,7 +53,7 @@ namespace mcppalloc
         for (auto &block : m_blocks) {
           // the back one doesn't go in available blocks,
           // we handle it explicitly.
-          if (&block == &last_block()) {
+          if (&block == last_block()) {
             continue;
           }
           if (!block.full()) {
@@ -113,7 +113,7 @@ namespace mcppalloc
             return;
           }
 
-          if (mcppalloc_unlikely(&block == &last_block())) {
+          if (mcppalloc_unlikely(&block == last_block())) {
             ::std::cerr << "ABS CONSISTENCY ERROR c5f0d1d7-d7b3-4572-8c0c-dcb0847fcc47\n";
             ::std::cerr << "Last block in available blocks\n";
             ::std::terminate();
@@ -156,8 +156,11 @@ namespace mcppalloc
         _verify();
         if (m_available_blocks.empty()) {
           if (!m_blocks.empty()) {
-            assert(&last_block());
-            ret = last_block().allocate(sz);
+            if (!last_block()) {
+              // No free blocks, not an error!
+              return ret;
+            }
+            ret = last_block()->allocate(sz);
             _verify();
             return ret;
           }
@@ -167,8 +170,11 @@ namespace mcppalloc
         // no place to put it in available blocks, put it in last block.
         if (lower_bound == m_available_blocks.end()) {
           if (!m_blocks.empty()) {
-            assert(&last_block());
-            ret = last_block().allocate(sz);
+            if (!last_block()) {
+              // No free blocks, not an error!
+              return ret;
+            }
+            ret = last_block()->allocate(sz);
             _verify();
             return ret;
           }
@@ -232,7 +238,7 @@ namespace mcppalloc
         if (it == m_blocks.end())
           return false;
         if (it->destroy(v, last_collapsed_size, prev_last_max_alloc_available)) {
-          if (&*it != &last_block() && !it->full()) {
+          if (&*it != last_block() && !it->full()) {
             // find the block.
             sized_block_ref_t pair2 = ::std::make_pair(prev_last_max_alloc_available, &*it);
             auto ab_it2 = m_available_blocks.lower_bound(pair2);
@@ -245,24 +251,21 @@ namespace mcppalloc
               if (ub - 1 == ab_it2) {
                 *(ub - 1) = pair;
                 // don't move at all, life made easy.
-              }
-              else if (ab_it2 < ub) {
+              } else if (ab_it2 < ub) {
                 // ab_it2 and ub-1 swap places while maintaing ordering of stuff inbetween them.
                 // rotate is optimal over erase/insert.
 
                 ::std::rotate(ab_it2, ab_it2 + 1, ub);
                 (ub - 1)->first = pair.first;
                 _verify();
-              }
-              else {
+              } else {
                 // ub < ab_it2
                 ::std::rotate(ub, ab_it2, ab_it2 + 1);
                 (ub)->first = pair.first;
                 _verify();
               }
               _verify();
-            }
-            else {
+            } else {
             NOT_FOUND:
               _verify();
               const sized_block_ref_t pair = ::std::make_pair(it->max_alloc_available(), &*it);
@@ -313,15 +316,15 @@ namespace mcppalloc
             m_last_block++;
           }
           assert(m_last_block < &*m_blocks.end());
-          assert(m_last_block);
-          auto pair = ::std::make_pair(m_last_block->max_alloc_available(), m_last_block);
-          if (pair.first) {
-            m_available_blocks.insert(pair);
+          if (last_block()) {
+            auto pair = ::std::make_pair(m_last_block->max_alloc_available(), m_last_block);
+            if (pair.first) {
+              m_available_blocks.insert(pair);
+            }
           }
           m_last_block = &*moved_begin;
           _verify();
-        }
-        else {
+        } else {
           m_blocks.emplace_back(::std::move(block));
           m_last_block = &m_blocks.back();
         }
@@ -360,16 +363,14 @@ namespace mcppalloc
         move_func(moved_begin, m_blocks.end(), -static_cast<ptrdiff_t>(sizeof(typename allocator_block_vector_t::value_type)));
         // unlock functional
         unlock_func();
-        if (&last_block() == &*it) {
+        if (last_block() == &*it) {
           if (!m_available_blocks.empty()) {
             auto back_it = m_available_blocks.end() - 1;
             m_last_block = back_it->second;
             m_available_blocks.erase(back_it);
-          }
-          else
+          } else
             m_last_block = nullptr;
-        }
-        else if (&last_block() > &*it) {
+        } else if (last_block() > &*it) {
           m_last_block--;
         }
         _verify();
@@ -444,15 +445,15 @@ namespace mcppalloc
       }
 
       template <typename Allocator_Policy>
-      MCPPALLOC_ALWAYS_INLINE auto allocator_block_set_t<Allocator_Policy>::last_block() noexcept -> allocator_block_type &
+      MCPPALLOC_ALWAYS_INLINE auto allocator_block_set_t<Allocator_Policy>::last_block() noexcept -> allocator_block_type *
       {
-        return *m_last_block;
+        return m_last_block;
       }
       template <typename Allocator_Policy>
       MCPPALLOC_ALWAYS_INLINE auto allocator_block_set_t<Allocator_Policy>::last_block() const noexcept
-          -> const allocator_block_type &
+          -> const allocator_block_type *
       {
-        return *m_last_block;
+        return m_last_block;
       }
       template <typename Allocator_Policy>
       template <typename L, typename Lock_Functional, typename Unlock_Functional, typename Move_Functional>
@@ -467,8 +468,7 @@ namespace mcppalloc
           block.collect(m_num_destroyed_since_free);
           if (block.empty()) {
             num_empty++;
-          }
-          else {
+          } else {
           }
         }
         // update available blocks after update.

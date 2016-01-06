@@ -1,10 +1,11 @@
-#include "internal_declarations.hpp"
-#include "global_kernel_state.hpp"
-#include "thread_local_kernel_state.hpp"
+#include "bitmap_gc_user_data.hpp"
 #include "gc_allocator.hpp"
+#include "global_kernel_state.hpp"
+#include "internal_declarations.hpp"
+#include "thread_local_kernel_state.hpp"
 #include <cgc1/cgc1.hpp>
-#include <cstring>
 #include <cgc1/cgc1_dll.hpp>
+#include <cstring>
 namespace cgc1
 {
   namespace details
@@ -34,13 +35,17 @@ namespace cgc1
     auto _cgc_hidden_packed_marked(uintptr_t loc) -> bool
     {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+      assert(state);
       auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
+      assert(index != ::std::numeric_limits<size_t>::max());
       return state->is_marked(index);
     }
     auto _cgc_hidden_packed_free(uintptr_t loc) -> bool
     {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
+      assert(state);
       auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
+      assert(index != ::std::numeric_limits<size_t>::max());
       return state->is_free(index);
     }
   }
@@ -79,33 +84,6 @@ namespace cgc1
   {
     return cgc_size(v) > 0;
   }
-  inline bool is_bitmap_allocator(void *addr)
-  {
-    if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end())
-      return true;
-    return false;
-  }
-  inline details::gc_user_data_t *bitmap_allocator_user_data(void *addr)
-  {
-    if (!is_bitmap_allocator(addr))
-      return nullptr;
-    const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-    if (state->has_valid_magic_numbers()) {
-      assert(0);
-      return nullptr;
-    }
-    if (state->type_id() != 2) {
-      assert(0);
-      return nullptr;
-    }
-    const auto bin_sz = state->real_entry_size();
-    uint8_t *const start_of_gc_user_data = ::mcppalloc::unsafe_cast<uint8_t>(addr) + bin_sz - sizeof(details::gc_user_data_t);
-    return ::mcppalloc::unsafe_cast<details::gc_user_data_t>(start_of_gc_user_data);
-  }
-  bool is_sparse_allocator(void *addr)
-  {
-    return !is_bitmap_allocator(addr);
-  }
   void *cgc_start(void *addr)
   {
     if (!addr)
@@ -115,8 +93,7 @@ namespace cgc1
       if (state->has_valid_magic_numbers())
         return state->begin() + state->get_index(addr) * state->real_entry_size();
       return nullptr;
-    }
-    else if (is_sparse_allocator(addr)) {
+    } else if (is_sparse_allocator(addr)) {
       details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
       if (!details::g_gks->is_valid_object_state(os)) {
         os = details::g_gks->find_valid_object_state(addr);
@@ -125,8 +102,7 @@ namespace cgc1
         }
       }
       return os->object_start();
-    }
-    else {
+    } else {
       return nullptr;
     }
   }
@@ -184,6 +160,7 @@ namespace cgc1
     if (!details::g_gks) {
       global_kernel_state_param_t param;
       details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
+      details::g_gks->initialize();
     }
     details::g_gks->initialize_current_thread(top_of_stack);
     auto tlks = details::get_tlks();
@@ -222,19 +199,31 @@ namespace cgc1
     if (!addr) {
       if (throws) {
         throw ::std::runtime_error("cgc1: nullptr 2731790e-a3be-4824-9cce-cee54cd06606");
-      }
-      else
+      } else
         return;
     }
-    const auto ba_user_data = bitmap_allocator_user_data(addr);
+    const auto ba_user_data = details::bitmap_allocator_user_data(addr);
     if (ba_user_data) {
-      ba_user_data->set_is_default(false);
-      ba_user_data->set_allow_arbitrary_finalizer_thread(allow_arbitrary_finalizer_thread);
-      ba_user_data->m_finalizer = ::std::move(finalizer);
-    }
-    else if (is_sparse_allocator(addr)) {
+      const auto ba_state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
+      if (mcppalloc_unlikely(!ba_state))
+        throw ::std::runtime_error("cgc1: could not find state to register finalizer: 47af381e-214d-4d4d-85e3-2f7ac93fc20d");
+      if (mcppalloc_unlikely(ba_state->type_id() != 2))
+        throw ::std::runtime_error(
+            "cgc1: tried to finalize wrong type of bitmap allocation: 1bfb19d0-014a-4811-b97e-07fb2720b72a");
+      const size_t index = ba_state->get_index(addr);
+      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
+        throw ::std::runtime_error("cgc1: could not find index to register finalizer: c002eaba-8b43-4710-a6c0-46336101d45f");
+      if (mcppalloc_unlikely(ba_state->num_user_bit_fields() != 2))
+        throw ::std::runtime_error("cgc1: unable to register finalizer: c0d42cd8-23fc-43d3-be6b-daee36fe17be");
+      ba_state->user_bits_ref(details::cs_bitmap_allocation_user_bit_finalizeable).set_bit(index, true);
+      ba_state->user_bits_ref(details::cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread)
+          .set_bit(index, allow_arbitrary_finalizer_thread);
+      ba_user_data->gc_user_data_ref().set_is_default(false);
+      ba_user_data->gc_user_data_ref().set_allow_arbitrary_finalizer_thread(allow_arbitrary_finalizer_thread);
+      ba_user_data->gc_user_data_ref().m_finalizer = ::std::move(finalizer);
+    } else if (is_sparse_allocator(addr)) {
       void *const start = cgc_start(addr);
-      if (!start) {
+      if (mcppalloc_unlikely(!start)) {
         if (throws)
           throw ::std::runtime_error("cgc1: bad sparse address to register finalizer: 44084b93-08b2-4511-9432-0ea986c6f1e5");
         else
@@ -249,8 +238,7 @@ namespace cgc1
         os->set_user_data(ud);
       }
       ud->m_finalizer = ::std::move(finalizer);
-    }
-    else {
+    } else {
       if (throws)
         throw ::std::runtime_error("cgc1: Register finalizer called on bad address: 9f02d33c-dbd1-4f19-92a7-e7d273809590");
       else
@@ -261,11 +249,10 @@ namespace cgc1
   {
     if (!addr)
       return;
-    const auto ba_user_data = bitmap_allocator_user_data(addr);
+    const auto ba_user_data = details::bitmap_allocator_user_data(addr);
     if (ba_user_data) {
       throw ::std::runtime_error("NOT IMPLEMENTED");
-    }
-    else if (is_sparse_allocator(addr)) {
+    } else if (is_sparse_allocator(addr)) {
       if (!addr)
         return;
       void *start = cgc_start(addr);
@@ -280,8 +267,7 @@ namespace cgc1
       }
       ud->set_uncollectable(is_uncollectable);
       set_complex(os, true);
-    }
-    else {
+    } else {
       throw ::std::runtime_error("cgc1: set uncollectable called on bad address.  ");
     }
   }
@@ -292,13 +278,19 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return;
+    const auto ba_user_data = details::bitmap_allocator_user_data(addr);
+    if (ba_user_data) {
+      throw ::std::runtime_error("NOT IMPLEMENTED");
+    }
+    if (!mcppalloc_unlikely(is_sparse_allocator(addr)))
+      ::std::abort();
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     set_atomic(os, is_atomic);
   }
 }
 extern "C" {
-#include <cgc1/gc.h>
 #include "../include/gc/gc_version.h"
+#include <cgc1/gc.h>
 CGC1_DLL_PUBLIC void *GC_realloc(void *old_object, ::std::size_t new_size)
 {
   return cgc1::cgc_realloc(old_object, new_size);
@@ -331,7 +323,7 @@ CGC1_DLL_PUBLIC void GC_gcollect()
 }
 CGC1_DLL_PUBLIC void GC_register_finalizer(void *addr, void (*finalizer)(void *, void *), void *user_data, void *b, void *c)
 {
-  if (b || c) {
+  if (mcppalloc_unlikely(b || c)) {
     ::std::cerr << "arguments to register finalizer must be null 06b40398-36e4-47fc-bc07-78817f612e2c\n";
     ::std::terminate();
   }

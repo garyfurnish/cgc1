@@ -1,16 +1,16 @@
 #pragma once
+#include "gc_allocator.hpp"
+#include "internal_allocator.hpp"
 #include "internal_declarations.hpp"
-#include <mutex>
-#include <vector>
 #include <atomic>
-#include <condition_variable>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <cgc1/allocated_thread.hpp>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
+#include <condition_variable>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include "internal_allocator.hpp"
-#include "gc_allocator.hpp"
+#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <mutex>
+#include <vector>
 namespace cgc1
 {
   namespace details
@@ -125,9 +125,16 @@ namespace cgc1
        *
        * @param addr Address to mark.
        * @param depth Current depth for controlling infinite recursion.
-       * @param ignore_skip_marked Remark even if marked if true.
       **/
-      void _mark_addrs(void *addr, size_t depth, bool ignore_skip_marked = false) REQUIRES(m_mutex);
+      void _mark_addrs(void *addr, size_t depth) REQUIRES(m_mutex);
+      /**
+       * \brief Mark a given address that was allocated by sparse allocator.
+       **/
+      void _mark_addrs_sparse(void *addr, size_t depth) REQUIRES(m_mutex);
+      /**
+       * \brief Mark a given address that was allocated by bitmap allocator.
+       **/
+      void _mark_addrs_bitmap(void *addr, size_t depth) REQUIRES(m_mutex);
       /**
        * \brief Function called at end to mark any addresses that would have caused stack overflows.
        *

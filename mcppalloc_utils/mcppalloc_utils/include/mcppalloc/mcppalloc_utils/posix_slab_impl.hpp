@@ -1,10 +1,10 @@
 #pragma once
 #include "posix_slab.hpp"
 #ifdef MCPPALLOC_POSIX
-#include <sys/mman.h>
 #include <assert.h>
-#include <unistd.h>
 #include <iostream>
+#include <sys/mman.h>
+#include <unistd.h>
 namespace mcppalloc
 {
 #ifdef __APPLE__

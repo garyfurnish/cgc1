@@ -1,6 +1,6 @@
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
 #include <mcppalloc/mcppalloc_utils/security.hpp>
 const size_t mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
 #ifdef __APPLE__
@@ -33,6 +33,8 @@ using namespace ::mcppalloc::literals;
 
 static void bitmap_state_test0()
 {
+  ::mcppalloc::bitmap_allocator::details::bitmap_package_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>
+      *null_package = nullptr;
   using ::mcppalloc::bitmap_allocator::details::c_bitmap_block_size;
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
@@ -49,7 +51,8 @@ static void bitmap_state_test0()
   auto ps = new (ret) ps_type();
   (void)ps;
 
-  constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{1ul, 64ul, expected_entries, 0, 0};
+  constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{1ul, 64ul, expected_entries, 0, 0, nullptr,
+                                                                                  0,   0,    {0, 0, 0}};
   ps->m_internal.m_info = state;
   ps->_compute_size();
   AssertThat(ps->size(), Equals(expected_entries));
@@ -57,7 +60,7 @@ static void bitmap_state_test0()
   auto max_end = ret + packed_size;
   AssertThat(max_end, IsGreaterThanOrEqualTo(ps->end()));
   AssertThat(ps->size(), Equals(expected_entries));
-  ps->initialize();
+  ps->initialize(0, 0, null_package);
   AssertThat(ps->any_free(), IsTrue());
   AssertThat(ps->none_free(), IsFalse());
   AssertThat(ps->first_free(), Equals(0_sz));
@@ -96,14 +99,15 @@ static void bitmap_state_test0()
   for (size_t i = 1; i < 255; ++i) {
     if (i % 2 && (i < 64 || (i >= 200))) {
       AssertThat(ps->is_marked(i), IsTrue());
-    }
-    else {
+    } else {
       AssertThat(ps->is_marked(i), IsFalse());
     }
   }
   {
-    ps->initialize();
+    ps->initialize(0, 0, null_package);
     ps->clear_mark_bits();
+    AssertThat(ps->is_free(0), IsTrue());
+    AssertThat(ps->is_free(1), IsTrue());
     void *ptr = ps->allocate();
     AssertThat(ptr != nullptr, IsTrue());
     AssertThat(ps->is_free(0), IsFalse());
@@ -112,7 +116,7 @@ static void bitmap_state_test0()
     AssertThat(ps->is_free(0), IsTrue());
     AssertThat(ps->is_free(1), IsTrue());
   }
-  ps->initialize();
+  ps->initialize(0, 0, null_package);
   ps->clear_mark_bits();
   ::std::vector<void *> ptrs;
   bool keep_going = true;
@@ -134,8 +138,7 @@ static void bitmap_state_test0()
   for (size_t i = 0; i < ptrs.size(); ++i) {
     if (i % 3) {
       AssertThat(ps->is_free(i), IsTrue());
-    }
-    else {
+    } else {
       AssertThat(ps->is_free(i), IsFalse());
     }
   }
@@ -170,7 +173,8 @@ static void multiple_slab_test0()
   (void)ps;
 
   constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{
-      1ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 128, 0};
+      1ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 128, 0, nullptr,
+      0,   0,          {0, 0, 0}};
   ps->m_internal.m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(),
@@ -198,7 +202,8 @@ static void multiple_slab_test0b()
   (void)ps;
 
   constexpr const mcppalloc::bitmap_allocator::details::bitmap_state_info_t state{
-      2ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 256, 0};
+      2ul, entry_size, expected_entries, sizeof(mcppalloc::bitmap_allocator::details::bitmap_state_info_t) + 256, 0, nullptr,
+      0,   0,          {0, 0, 0}};
   ps->m_internal.m_info = state;
   AssertThat(ps->size(), Equals(expected_entries));
   AssertThat(ps->total_size_bytes(),
@@ -212,8 +217,10 @@ static void multiple_slab_test1()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(2000000, 2000000);
-  allocator_type::package_type package1;
-  allocator_type::package_type package2;
+  // TODO: Commensting this out yields a crash
+  bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
+  allocator_type::package_type package1(0);
+  allocator_type::package_type package2(0);
   package1.insert(::std::move(package2));
   auto info0 = allocator_type::package_type::_get_info(0);
   AssertThat(info0.m_num_blocks, Equals(allocator_type::package_type::cs_total_size / 512 / 32));
@@ -265,6 +272,7 @@ void exhaustive_test()
   using allocator_type =
       ::mcppalloc::bitmap_allocator::bitmap_allocator_t<::mcppalloc::default_allocator_policy_t<::std::allocator<void>>>;
   allocator_type bitmap_allocator(20000000, 20000000);
+  bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
   auto &poa = bitmap_allocator;
 
   auto &ta = poa.initialize_thread();
@@ -281,11 +289,11 @@ void exhaustive_test()
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(v);
       if (mcppalloc_unlikely(state == v)) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 5c9af962-57e6-4bf1-a843-12a239343c27\n";
-        ::std::terminate();
+        ::std::abort();
       }
       if (mcppalloc_unlikely(v_end > state->end())) {
         ::std::cerr << "Consistency error in bitmap exhaustive_test 7caa9401-26f1-4cdc-9849-837b2767fa1e\n";
-        ::std::terminate();
+        ::std::abort();
       }
       if (!ptrs.empty()) {
         void *const prev = ptrs.back();
@@ -294,7 +302,7 @@ void exhaustive_test()
         if (state != prev_state && mcppalloc_unlikely(prev_end >= state)) {
           ::std::cerr << prev << " " << state << " " << prev_end << "\n";
           ::std::cerr << "Consistency error in bitmap_exhaustive_test ad5058b9-85b0-461e-8c91-aca93faf4beb\n";
-          ::std::terminate();
+          ::std::abort();
         }
       }
       ptrs.push_back(v);

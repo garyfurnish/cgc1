@@ -9,6 +9,11 @@ namespace mcppalloc
     using size_type = typename allocator_policy_type::size_type;
     pointer_type m_ptr;
     size_type m_size;
+    template <typename Return_Allocator_Policy>
+    operator block_t<Return_Allocator_Policy>()
+    {
+      return block_t<Return_Allocator_Policy>{m_ptr, m_size};
+    }
   };
 }
 #include "default_allocator_policy.hpp"

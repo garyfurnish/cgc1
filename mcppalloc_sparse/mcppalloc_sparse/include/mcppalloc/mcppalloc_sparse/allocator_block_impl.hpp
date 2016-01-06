@@ -1,10 +1,10 @@
 #pragma once
 #include "allocator_block.hpp"
 #include <assert.h>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/block.hpp>
-#include <mcppalloc/user_data_base.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
+#include <mcppalloc/user_data_base.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -29,8 +29,7 @@ namespace mcppalloc
           ::std::terminate();
         if (maximum_alloc_length == c_infinite_length) {
           m_maximum_alloc_length = maximum_alloc_length;
-        }
-        else {
+        } else {
           m_maximum_alloc_length = object_state_type::needed_size(sizeof(object_state_type), maximum_alloc_length);
         }
         assert(m_minimum_alloc_length <= m_maximum_alloc_length);
@@ -230,8 +229,7 @@ namespace mcppalloc
         if (m_next_alloc_ptr->next_valid()) {
           if (mcppalloc_unlikely(m_next_alloc_ptr->object_size() < original_size))
             return allocation_return_type(block_type{nullptr, 0}, nullptr);
-        }
-        else if (mcppalloc_unlikely(static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size))
+        } else if (mcppalloc_unlikely(static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size))
           return allocation_return_type(block_type{nullptr, 0}, nullptr);
         m_next_alloc_ptr->m_user_data = 0;
         const auto ret_os = m_next_alloc_ptr;
@@ -251,8 +249,7 @@ namespace mcppalloc
           m_next_alloc_ptr = next;
           _verify(next);
           return allocation_return_type(block_type{ret, sz}, ret_os);
-        }
-        else {
+        } else {
           // memory left over would be smaller then minimum allocation.
           // take all the memory.
           m_next_alloc_ptr->set_all(reinterpret_cast<object_state_type *>(end()), true, false);
@@ -309,8 +306,7 @@ namespace mcppalloc
           // so add it to free list.
           m_free_list.insert(state);
           last_collapsed_size = state->object_size();
-        }
-        else {
+        } else {
           // if here the next state is invalid, so this is at tail
           // so just adjust pointer.
           m_next_alloc_ptr = state;
@@ -378,8 +374,7 @@ namespace mcppalloc
               _verify(state);
             }
             did_merge = true;
-          }
-          else {
+          } else {
             // move onto next state since can't merge.
             _verify(state);
             _verify(state->next());

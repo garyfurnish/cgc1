@@ -1,15 +1,15 @@
-#include "../cgc1/src/internal_declarations.hpp"
-#include <cgc1/cgc1.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#include <thread>
-#include <chrono>
-#include <string.h>
-#include <signal.h>
-#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include "../cgc1/src/internal_allocator.hpp"
-#include "../cgc1/src/global_kernel_state.hpp"
-#include "../cgc1/src/internal_stream.hpp"
 #include "../cgc1/include/gc/gc.h"
+#include "../cgc1/src/global_kernel_state.hpp"
+#include "../cgc1/src/internal_allocator.hpp"
+#include "../cgc1/src/internal_declarations.hpp"
+#include "../cgc1/src/internal_stream.hpp"
+#include <cgc1/cgc1.hpp>
+#include <chrono>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <signal.h>
+#include <string.h>
+#include <thread>
 static ::std::vector<size_t> locations;
 static ::mcppalloc::spinlock_t debug_mutex;
 using namespace bandit;
@@ -491,7 +491,7 @@ static void return_to_global_test1()
     auto &ta = gks->gc_allocator().initialize_thread();
     cgc1::cgc_free(ta.allocate(size_to_alloc).m_ptr);
     // get the stats on the last block so that we can test to see if it is freed to global
-    auto &lb = abs.last_block();
+    auto &lb = *abs.last_block();
     begin = lb.begin();
     end = lb.end();
     cgc1::cgc_unregister_thread();
@@ -542,7 +542,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
       ptrs.push_back(ta.allocate(max_sz).m_ptr);
     }
     // get the stats on the last block so that we can test to see if it is freed to global.
-    auto &lb1 = abs.last_block();
+    auto &lb1 = *abs.last_block();
     begin = lb1.begin();
     end = lb1.end();
     tls.destroy(ptrs.back());
@@ -563,7 +563,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
     // there should be a block left, but check before we try to access it.
     if (abs.size()) {
       // get the stats on the last block so that we can test to see if it is freed to global.
-      auto &lb2 = abs.last_block();
+      auto &lb2 = *abs.last_block();
       assert(lb2.valid());
       assert(lb2.empty());
       begin = lb2.begin();
@@ -701,5 +701,24 @@ void gc_bandit_tests()
       return_to_global_test2();
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
     });
+    it("test2,", []() {
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
+      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
+      for (size_t i = 0; i < 1000; ++i) {
+        vec.push_back(i);
+        vec2.push_back(i);
+        vec3.push_back(i);
+        vec4.push_back(i);
+      }
+      for (size_t i = 0; i < 1000; ++i) {
+        AssertThat(vec[i], Equals(i));
+        AssertThat(vec2[i], Equals(i));
+        AssertThat(vec3[i], Equals(i));
+        AssertThat(vec4[i], Equals(i));
+      }
+    });
+
   });
 }

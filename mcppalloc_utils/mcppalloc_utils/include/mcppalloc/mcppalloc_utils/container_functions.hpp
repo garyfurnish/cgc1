@@ -6,13 +6,11 @@ namespace mcppalloc
   {
     if (begin == end)
       return end;
-    const auto ub = ::std::upper_bound(::std::forward<Begin>(begin), ::std::forward<End>(end), ::std::forward<Val>(val),
-                                       ::std::forward<Comparator>(comparator));
+    const auto ub = ::std::upper_bound(begin, ::std::forward<End>(end), val, comparator);
     const auto plb = ub - 1;
     if (ub == begin || comparator(*plb, val)) {
       return ub;
-    }
-    else {
+    } else {
       return plb;
     }
   }
@@ -34,7 +32,7 @@ namespace mcppalloc
    * \brief Insert val into a sorted container if val would be unique.
   **/
   template <typename Container, typename T, typename Compare>
-  bool insert_unique_sorted(Container &c, const T &val, Compare comp)
+  bool insert_unique_sorted(Container &c, T &&val, Compare comp = Container::key_compare())
   {
     // if empty container, just add it!
     if (c.empty()) {
@@ -52,7 +50,7 @@ namespace mcppalloc
       lb++;
     }
     // insert before lb.
-    c.insert(origlb, val);
+    c.insert(origlb, ::std::forward<T>(val));
     return true;
   }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <mcppalloc/user_data_base.hpp>
 namespace cgc1
 {
@@ -11,11 +12,19 @@ namespace cgc1
     {
     public:
       /**
+       * \brief Type of finalizer.
+       **/
+      using finalizer_type = ::std::function<void(void *)>;
+      /**
        * \brief Constructor
        *
        * @param block Block that this allocation belongs to.
        **/
-      gc_user_data_t() = default;
+      gc_user_data_t() noexcept = default;
+      gc_user_data_t(const gc_user_data_t &) = default;
+      gc_user_data_t(gc_user_data_t &&) = default;
+      gc_user_data_t &operator=(const gc_user_data_t &) = default;
+      gc_user_data_t &operator=(gc_user_data_t &&) = default;
 
       auto is_uncollectable() const noexcept -> bool
       {
@@ -40,22 +49,31 @@ namespace cgc1
         m_allow_arbitrary_finalizer_thread = allow;
       }
       /**
+       * \brief Return reference to finalizer.
+       **/
+      auto finalizer_ref() noexcept -> finalizer_type &;
+      /**
+       * \brief Return reference to finalizer.
+       **/
+      auto finalizer_ref() const noexcept -> const finalizer_type &;
+      /**
        * \brief Optional finalizer function to run.
       **/
-      ::std::function<void(void *)> m_finalizer = nullptr;
+      finalizer_type m_finalizer = nullptr;
 
     private:
       /**
        * \brief True if uncollectable, false otherwise.
        *
       **/
-      bool m_uncollectable = false;
+      bool m_uncollectable{false};
       /**
        * \brief Allow arbitrary finalization thread.
        *
        * True if an arbittrary finalization thread can be used, false otherwise.
        **/
-      bool m_allow_arbitrary_finalizer_thread = false;
+      bool m_allow_arbitrary_finalizer_thread{false};
     };
   }
 }
+#include "gc_user_data_impl.hpp"

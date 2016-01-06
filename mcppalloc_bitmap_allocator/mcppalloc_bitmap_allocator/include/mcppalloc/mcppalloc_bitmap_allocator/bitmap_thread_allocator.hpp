@@ -1,7 +1,7 @@
 #pragma once
-#include "declarations.hpp"
-#include "bitmap_state.hpp"
 #include "bitmap_package.hpp"
+#include "bitmap_state.hpp"
+#include "declarations.hpp"
 #include <mcppalloc/block.hpp>
 #include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
 namespace mcppalloc
@@ -61,7 +61,8 @@ namespace mcppalloc
                                      package_type,
                                      ::std::less<type_id_t>,
                                      typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, package_type>>> m_locals;
+                                         ::std::pair<type_id_t, package_type>>>
+            m_locals;
         ::std::atomic<bool> m_force_maintenance;
         rebind_vector_t<void *, internal_allocator_type> m_free_list;
         bitmap_allocator_t<allocator_policy_type> &m_allocator;

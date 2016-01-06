@@ -1,7 +1,7 @@
 #pragma once
-#include <type_traits>
-#include <atomic>
 #include <array>
+#include <atomic>
+#include <type_traits>
 namespace mcppalloc
 {
   namespace bitmap
@@ -14,6 +14,10 @@ namespace mcppalloc
          * \brief Number of quad words in integer block.
          **/
         static constexpr const size_t cs_quad_words = Quads;
+        /**
+         * \brief Mandatory alignment of integer_block_t.
+         **/
+        static constexpr const size_t cs_alignment = 32;
         using value_type = uint64_t;
 
         static_assert(cs_quad_words % 8 == 0, "Number of quad words must be divisible by 8.");
@@ -35,7 +39,7 @@ namespace mcppalloc
         /**
          * \brief Set the ith bit to the value atomically.
          **/
-        void get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept;
+        auto get_bit_atomic(size_t i, ::std::memory_order ordering) const noexcept -> bool;
         /**
          * \brief Return true if any bit is set.
          **/
@@ -67,8 +71,27 @@ namespace mcppalloc
         integer_block_t operator|(const integer_block_t &) const noexcept;
         integer_block_t &operator|=(const integer_block_t &) noexcept;
 
-        integer_block_t operator&(const integer_block_t &) const noexcept;
+        integer_block_t operator&(const integer_block_t &)const noexcept;
         integer_block_t &operator&=(const integer_block_t &) noexcept;
+
+        integer_block_t operator^(const integer_block_t &) const noexcept;
+        integer_block_t &operator^=(const integer_block_t &) noexcept;
+        /**
+       * \brief Call function on all set bits.
+       *
+       * @param offset Offset to add to function when calling.
+       * @param func Function should take an index.
+       **/
+        template <typename Func>
+        void for_some_contiguous_bits_flip(size_t offset, Func &&func);
+        /**
+         * \brief For bits that are set, call function on some of them, flip bits if called.
+         *
+         * @param offset Offset to add to function when calling.
+         * @param func to call, takes a range of indexes.
+         **/
+        template <typename Func>
+        void for_set_bits(size_t offset, size_t limit, Func &&func);
 
         static constexpr size_t size() noexcept;
         static constexpr size_t size_in_bytes() noexcept;

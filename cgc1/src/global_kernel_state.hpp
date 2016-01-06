@@ -1,17 +1,17 @@
 #pragma once
-#include "internal_declarations.hpp"
-#include <atomic>
-#include <condition_variable>
-#include <vector>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <cgc1/cgc_internal_malloc_allocator.hpp>
-#include "internal_allocator.hpp"
-#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include "gc_allocator.hpp"
 #include "gc_thread.hpp"
-#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include "global_kernel_state_param.hpp"
+#include "internal_allocator.hpp"
+#include "internal_declarations.hpp"
+#include <atomic>
+#include <cgc1/cgc_internal_malloc_allocator.hpp>
+#include <condition_variable>
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_sparse/allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <vector>
 
 #include <boost/property_tree/ptree_fwd.hpp>
 namespace cgc1
@@ -28,7 +28,7 @@ namespace cgc1
       using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
       using internal_allocator_policy_type = ::mcppalloc::default_allocator_policy_t<cgc_internal_allocator_allocator_t>;
       using internal_allocator_t = ::mcppalloc::sparse::allocator_t<internal_allocator_policy_type>;
-      using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>;
+      using bitmap_allocator_type = ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_bitmap_allocator_policy_t>;
       using internal_slab_allocator_type = mcppalloc::slab_allocator::details::slab_allocator_t;
       using duration_type = ::std::chrono::duration<double>;
 #ifdef __APPLE__
@@ -46,6 +46,10 @@ namespace cgc1
       global_kernel_state_t &operator=(const global_kernel_state_t &) = delete;
       global_kernel_state_t &operator=(global_kernel_state_t &&) = delete;
       ~global_kernel_state_t();
+      /**
+       * \brief Perform initialization work that can not be performed in constructor.
+       **/
+      void initialize() REQUIRES(!m_mutex, !m_thread_mutex);
       /**
        * \brief Perform shutdown work that must be done before destruction.
       **/
@@ -362,7 +366,8 @@ namespace cgc1
        * Not necesarily a one to one map.
       **/
       ::mcppalloc::rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>,
-                                   cgc_internal_malloc_allocator_t<void>> m_gc_threads;
+                                   cgc_internal_malloc_allocator_t<void>>
+          m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.
        *
@@ -425,6 +430,10 @@ namespace cgc1
        * \brief Saved initialization parameters.
        **/
       const global_kernel_state_param_t m_initialization_parameters;
+      /**
+       * \brief Has initialize been called yet?
+       **/
+      bool m_initialize_called{false};
 
     public:
       ::std::atomic<bool> m_in_destructor{false};

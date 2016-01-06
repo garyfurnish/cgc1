@@ -1,9 +1,9 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <thread>
-#include <new>
 #include <mcppalloc/allocator_thread_policy.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <new>
+#include <thread>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -42,9 +42,9 @@ namespace mcppalloc
         do_maintenance();
         for (auto &&package : m_locals) {
           for (auto &&vec : package.second.m_vectors) {
-            if (mcppalloc_unlikely(!vec.empty())) {
+            if (mcppalloc_unlikely(!vec.m_vector.empty())) {
               ::std::cerr << ::std::this_thread::get_id() << " error: deallocating bitmap_thread_allocator_t with objects left\n";
-              ::std::terminate();
+              ::std::abort();
             }
           }
         }
@@ -87,13 +87,12 @@ namespace mcppalloc
         package.do_maintenance(m_free_list);
 
         for (auto &&vec : package.m_vectors) {
-          for (auto &&it = vec.begin(); it != vec.end();) {
+          for (auto &&it = vec.m_vector.begin(); it != vec.m_vector.end();) {
             auto &&state = *it;
             if (state->all_free()) {
               m_free_list.push_back(state);
-              it = vec.erase(it);
-            }
-            else
+              it = vec.m_vector.erase(it);
+            } else
               ++it;
           }
         }
@@ -101,7 +100,7 @@ namespace mcppalloc
         for (auto &&vec : package.m_vectors) {
           size_t num_potential_moves = 0;
           // move extra in use to global.
-          for (auto &&state : vec) {
+          for (auto &&state : vec.m_vector) {
             const auto pop_count = state->free_popcount();
             if (pop_count > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
               // approximately half free.
@@ -109,11 +108,11 @@ namespace mcppalloc
           }
           if (num_potential_moves > m_max_in_use) {
             auto num_to_be_moved = num_potential_moves - m_max_in_use;
-            auto end = vec.end();
+            auto end = vec.m_vector.end();
             {
               size_t threshold = static_cast<size_t>(num_potential_moves - num_to_be_moved);
               size_t num_found = 0;
-              auto it = vec.begin();
+              auto it = vec.m_vector.begin();
               while (it != end) {
                 auto &state = **it;
                 if (state.free_popcount() > state.size() / 2 || mcppalloc_unlikely(m_in_destructor)) {
@@ -127,14 +126,14 @@ namespace mcppalloc
                 ++it;
               }
             }
-            assert(static_cast<size_t>(vec.end() - end) == num_to_be_moved);
+            assert(static_cast<size_t>(vec.m_vector.end() - end) == num_to_be_moved);
             {
               MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
-              for (auto it = end; it != vec.end(); ++it) {
+              for (auto it = end; it != vec.m_vector.end(); ++it) {
                 m_allocator._u_to_global(id, (*it)->type_id(), *it);
               }
             }
-            vec.resize(vec.size() - num_to_be_moved);
+            vec.m_vector.resize(vec.m_vector.size() - num_to_be_moved);
           }
           // move extra free to global.
 
@@ -151,8 +150,11 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, type_id_t type_id) -> block_type
       {
-        auto &package = m_locals[type_id];
-        return allocate(sz, package);
+        auto package = m_locals.find(type_id);
+        if (package == m_locals.end()) {
+          package = m_locals.insert(::std::make_pair(type_id, package_type(type_id))).first;
+        }
+        return allocate(sz, package->second);
       }
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::allocate(size_t sz, package_type &package) -> block_type
@@ -163,28 +165,30 @@ namespace mcppalloc
       RESTART:
         _check_maintenance();
         const auto id = get_bitmap_size_id(sz);
-        void *v;
-        size_t ret_size;
-        ::std::tie(v, ret_size) = package.allocate(id);
-        if (!v) {
+        block_type ret = package.allocate(id);
+        if (!ret.m_ptr) {
           if (!m_free_list.empty()) {
+            auto &type_info = m_allocator.get_type(package.type_id());
+            // free list not empty
             bitmap_state_t *state = unsafe_cast<bitmap_state_t>(m_free_list.back());
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize();
+            state->initialize(package.type_id(), type_info.num_user_bits(), &package);
             m_free_list.pop_back();
-            v = state->allocate();
+            ret.m_ptr = state->allocate();
+            ret.m_size = state->real_entry_size();
 
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
             state->verify_magic();
-            return block_type{v, state->real_entry_size()};
-          }
-          else {
+            return ret;
+          } else {
+            // free list empty
+            auto &type_info = m_allocator.get_type(package.type_id());
             bitmap_state_t *state = m_allocator._get_memory();
             if (!state) {
-              ::mcppalloc::details::allocation_failure_t failure{attempts};
+              ::mcppalloc::details::allocation_failure_t failure{attempts++};
               auto action = m_allocator.allocator_policy().on_allocation_failure(failure);
               expand = action.m_attempt_expand;
               if (action.m_repeat)
@@ -194,20 +198,20 @@ namespace mcppalloc
             }
             state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize();
+            state->initialize(package.type_id(), type_info.num_user_bits(), &package);
             assert(state->first_free() == 0);
 
-            v = state->allocate();
-            assert(v);
+            ret.m_ptr = state->allocate();
+            ret.m_size = state->real_entry_size();
             package.insert(id, state);
-            m_allocator.allocator_policy().on_allocation(v, state->real_entry_size());
+            m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
             state->verify_magic();
-            return block_type{v, state->real_entry_size()};
+            return ret;
           }
         }
-        assert(ret_size >= sz);
-        m_allocator.allocator_policy().on_allocation(v, ret_size);
-        return block_type{v, ret_size};
+        assert(ret.m_size >= sz);
+        m_allocator.allocator_policy().on_allocation(ret.m_ptr, ret.m_size);
+        return ret;
       }
       template <typename Allocator_Policy>
       auto bitmap_thread_allocator_t<Allocator_Policy>::deallocate(void *v, package_type &package) noexcept -> bool
@@ -217,14 +221,14 @@ namespace mcppalloc
         if (mcppalloc_unlikely(!state->has_valid_magic_numbers())) {
           ::std::cerr
               << "mcppalloc bitmap_thread_allocator state has invalid magic numbers ad761a4e-656e-45a8-abe9-541414679c1f\n";
-          ::std::terminate();
+          ::std::abort();
         }
         state->deallocate(v);
         if (state->all_free()) {
           auto id = get_bitmap_size_id(state->declared_entry_size());
           if (mcppalloc_unlikely(id == ::std::numeric_limits<size_t>::max())) {
             ::std::cerr << "mcppalloc bitmap_thread_allocator consistency error aa16e07a-5f8c-4a97-b809-c944ff4c45b9\n";
-            ::std::terminate();
+            ::std::abort();
           }
           bool success = package.remove(id, state);
           // if it fails it could be anywhere.
@@ -241,8 +245,11 @@ namespace mcppalloc
           return false;
         auto state = get_state(v);
         auto type_id = state->type_id();
-        auto &package = m_locals[type_id];
-        return deallocate(v, package);
+        auto package = m_locals.find(type_id);
+        if (package == m_locals.end()) {
+          return false;
+        }
+        return deallocate(v, package->second);
       }
       template <typename Allocator_Policy>
       void bitmap_thread_allocator_t<Allocator_Policy>::set_force_maintenance()

@@ -1,10 +1,10 @@
 #pragma once
-#include "declarations.hpp"
-#include <type_traits>
-#include <array>
-#include <vector>
-#include <functional>
 #include "cgc1_dll.hpp"
+#include "declarations.hpp"
+#include <array>
+#include <functional>
+#include <type_traits>
+#include <vector>
 namespace cgc1
 {
   /**
@@ -127,10 +127,8 @@ namespace cgc1
    * @param allow_arbitrary_finalizer_thread Allow finalizer to run in an arbitrary background gc thread instead of a user created
    *thread.
   **/
-  extern CGC1_DLL_PUBLIC void cgc_register_finalizer(void *addr,
-                                                     ::std::function<void(void *)> finalizer,
-                                                     bool allow_arbitrary_finalizer_thread = false,
-                                                     bool throws = true);
+  extern CGC1_DLL_PUBLIC void cgc_register_finalizer(
+      void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread = false, bool throws = true);
   /**
    * \brief Set if a given address is uncollectable.
   **/
@@ -184,4 +182,5 @@ namespace cgc1
   }
 }
 #define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())
+#include "cgc_root.hpp"
 #include "gc_allocator.hpp"

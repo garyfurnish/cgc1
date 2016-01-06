@@ -1,6 +1,6 @@
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
 #ifdef _WIN32
 #pragma optimize("", off)
 #endif
@@ -9,8 +9,10 @@ using namespace bandit;
 extern void allocator_block_tests();
 extern void allocator_block_set_tests();
 extern void allocator_tests();
+extern void slab_allocator_bandit_tests();
 
 go_bandit([]() {
+  slab_allocator_bandit_tests();
   describe("Pages", []() {
     it("test1", []() {
       mcppalloc::slab_t page(mcppalloc::slab_t::page_size() * 50,

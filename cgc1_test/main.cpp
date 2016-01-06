@@ -1,16 +1,11 @@
 #include <cgc1/cgc1.hpp>
 #include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#ifdef _WIN32
-#pragma optimize("", off)
-#endif
 
 using namespace bandit;
 extern void gc_bandit_tests();
 extern void gc_bitmap_tests();
-extern void slab_allocator_bandit_tests();
 
 go_bandit([]() {
-  slab_allocator_bandit_tests();
   gc_bitmap_tests();
   gc_bandit_tests();
 });

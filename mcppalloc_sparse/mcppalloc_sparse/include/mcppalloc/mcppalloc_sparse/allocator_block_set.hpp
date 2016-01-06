@@ -1,8 +1,8 @@
 #pragma once
-#include <mcppalloc/object_state.hpp>
 #include "allocator_block.hpp"
-#include <boost/property_tree/ptree_fwd.hpp>
 #include <boost/container/flat_set.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <mcppalloc/object_state.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -30,7 +30,7 @@ namespace mcppalloc
         using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
 
         const struct abrvr_compare_type {
-          constexpr auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
+          auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool
           {
             if (r.first < it.first)
               return true;
@@ -154,11 +154,11 @@ namespace mcppalloc
         /**
          * \brief Return reference to last added block.
         **/
-        auto last_block() noexcept -> allocator_block_type &;
+        auto last_block() noexcept -> allocator_block_type *;
         /**
          * \brief Return reference to last added block.
         **/
-        auto last_block() const noexcept -> const allocator_block_type &;
+        auto last_block() const noexcept -> const allocator_block_type *;
         /**
          * \brief Push all empty block memory ranges onto container t and then remove th
          *

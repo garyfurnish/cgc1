@@ -1,11 +1,12 @@
 #pragma once
-#include "bitmap_thread_allocator.hpp"
 #include "bitmap_package.hpp"
-#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/thread_local_pointer.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include "bitmap_thread_allocator.hpp"
+#include "bitmap_type_info.hpp"
 #include <map>
+#include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
+#include <mcppalloc/mcppalloc_utils/thread_local_pointer.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -76,6 +77,18 @@ namespace mcppalloc
         void to_ptree(::boost::property_tree::ptree &ptree, int level) const REQUIRES(!m_mutex);
 
         using package_type = bitmap_package_t<allocator_policy_type>;
+        /**
+         * \brief Add an allocation type.
+         *
+         * This should not be called after first allocation.
+         **/
+        void add_type(bitmap_type_info_t &&type_info);
+        /**
+         * \brief Get type.
+         *
+         * Throws on error.
+         **/
+        auto get_type(type_id_t type_id) -> const bitmap_type_info_t &;
 
       private:
         /**
@@ -115,7 +128,22 @@ namespace mcppalloc
                                      package_type,
                                      ::std::less<type_id_t>,
                                      typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, package_type>>> m_globals GUARDED_BY(m_mutex);
+                                         ::std::pair<type_id_t, package_type>>>
+            m_globals GUARDED_BY(m_mutex);
+        /**
+         * \brief Type info for various allocation types.
+         *
+         * This should not be modified after first use as it is not thread safe for writing.
+         **/
+        ::boost::container::flat_map<type_id_t,
+                                     bitmap_type_info_t,
+                                     ::std::less<type_id_t>,
+                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
+                                         ::std::pair<type_id_t, bitmap_type_info_t>>>
+            m_types;
+        /**
+         * \brief Type of free list memory list.
+         **/
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Free sections of slab.
@@ -128,7 +156,8 @@ namespace mcppalloc
                                      thread_allocator_unique_ptr_type,
                                      ::std::less<::std::thread::id>,
                                      typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>> m_thread_allocators;
+                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>>
+            m_thread_allocators;
       };
     }
     template <typename Allocator_Policy>

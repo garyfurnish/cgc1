@@ -1,6 +1,6 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -36,12 +36,14 @@ namespace mcppalloc
           MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         }
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
+        m_types.clear();
         m_thread_allocators.clear();
         m_free_globals.clear();
         for (auto &&package_it : m_globals)
           package_it.second.shutdown();
         {
           auto a1 = ::std::move(m_thread_allocators);
+          auto a4 = ::std::move(m_types);
           auto a2 = ::std::move(m_free_globals);
           auto a3 = ::std::move(m_globals);
         }
@@ -114,7 +116,12 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_global(size_t id, type_id_t type, bitmap_state_t *state) noexcept
       {
-        m_globals[type].insert(id, state);
+        auto package = m_globals.find(type);
+        if (package == m_globals.end()) {
+          package = m_globals.insert(::std::make_pair(type, package_type(type))).first;
+        }
+        package->second.insert(id, state);
+        state->set_bitmap_package(&package->second);
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_free(void *v) noexcept
@@ -134,8 +141,22 @@ namespace mcppalloc
         auto it = m_globals.find(type);
         if (mcppalloc_unlikely(it == m_globals.end()))
           return 0;
-        return it->second.m_vectors[id].size();
+        return it->second.m_vectors[id].m_vector.size();
       }
+      template <typename Allocator_Policy>
+      void bitmap_allocator_t<Allocator_Policy>::add_type(bitmap_type_info_t &&type_info)
+      {
+        m_types[type_info.type_id()] = ::std::move(type_info);
+      }
+      template <typename Allocator_Policy>
+      auto bitmap_allocator_t<Allocator_Policy>::get_type(type_id_t type_id) -> const bitmap_type_info_t &
+      {
+        auto it = m_types.find(type_id);
+        if (it == m_types.end())
+          throw ::std::runtime_error("mcppalloc: bitmap_allocator::get_type 8c622768-3fe5-4338-b9a3-1db6b9d2ba98");
+        return it->second;
+      }
+
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::allocator_policy() noexcept -> allocator_thread_policy_type &
       {

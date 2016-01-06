@@ -22,6 +22,12 @@ include_directories(../cgc1/include)
 
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 ENDIF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+
+
+add_executable(cgc1_alloc_benchmark_thread_malloc "main_thread.cpp")
+target_compile_definitions(cgc1_alloc_benchmark_thread_malloc PUBLIC SYSTEM_MALLOC)
+target_link_libraries(cgc1_alloc_benchmark_thread_malloc pthread)
+
 add_executable(cgc1_alloc_benchmark "main.cpp")
 target_include_directories(cgc1_alloc_benchmark PUBLIC "../cgc1/include")
 target_link_libraries(cgc1_alloc_benchmark cgc1)

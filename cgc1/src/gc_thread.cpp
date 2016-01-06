@@ -1,6 +1,6 @@
 #include "gc_thread.hpp"
-#include "thread_local_kernel_state.hpp"
 #include "global_kernel_state.hpp"
+#include "thread_local_kernel_state.hpp"
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -217,83 +217,92 @@ namespace cgc1
       // mark additional stuff.
       _mark_mark_vector();
     }
-    void gc_thread_t::_mark_addrs(void *addr, size_t depth, bool ignore_skip_marked)
+    void gc_thread_t::_mark_addrs_bitmap(void *addr, size_t depth)
+    {
+      void *fast_heap_begin = g_gks->fast_slab_begin();
+      if (depth > 300) {
+        // if recursion depth too big, put it on addresses to mark.
+        m_addresses_to_mark.insert(addr);
+        return;
+      }
+      auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
+      // getting state moves pointer lower, so recheck bounds.
+      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
+        return;
+      if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
+        return;
+      if (state->addr_in_header(addr))
+        return;
+      auto index = state->get_index(addr);
+      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
+        return;
+      if (state->is_marked(index))
+        return;
+      state->set_marked(index);
+      if (state->type_id() != 2) {
+        // atomic, so done.
+        return;
+      }
+      // recurse to pointers.
+      for (void **it = reinterpret_cast<void **>(addr);
+           it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->real_entry_size()); ++it) {
+        _mark_addrs(*it, depth + 1);
+      }
+    }
+
+    void gc_thread_t::_mark_addrs_sparse(void *addr, size_t depth)
     {
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      if (!g_gks->is_valid_object_state(os)) {
+        // This is calling during garbage collection, therefore no mutex is needed.
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
+        os = g_gks->_u_find_valid_object_state(addr);
+        if (!os)
+          return;
+      }
+      assert(is_aligned_properly(os));
+      if (!os->in_use() || os->quasi_freed() || !os->next())
+        return;
+      if (is_marked(os))
+        return;
+
+      // if it is atomic we are done here.
+      if (is_atomic(os)) {
+        set_mark(os);
+        return;
+      }
+      if (depth > 100) {
+        // if recursion depth too big, put it on addresses to mark.
+        m_addresses_to_mark.insert(addr);
+        return;
+      } else {
+        // set it as marked.
+        set_mark(os);
+        // recurse to pointers.
+        for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
+          _mark_addrs(*it, depth + 1);
+        }
+      }
+    }
+    void gc_thread_t::_mark_addrs(void *addr, size_t depth)
+    {
       // Find heap begin and end.
-      void *heap_begin = g_gks->gc_allocator()._u_begin();
-      void *heap_end = g_gks->gc_allocator()._u_current_end();
       void *fast_heap_begin = g_gks->fast_slab_begin();
       void *fast_heap_end = g_gks->fast_slab_end();
-      bool fast_heap = false;
+      if (addr >= fast_heap_begin && addr < fast_heap_end) {
+        _mark_addrs_bitmap(addr, depth);
+        return;
+      }
+      // This is calling during garbage collection, therefore no mutex is needed.
+      MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
+      void *heap_begin = g_gks->gc_allocator()._u_begin();
+      void *heap_end = g_gks->gc_allocator()._u_current_end();
       gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
-      // if outside heap, definitely not valid object state.
-      if (os < heap_begin || os >= heap_end) {
-        if (addr < fast_heap_begin || addr >= fast_heap_end) {
-          return;
-        }
-        else
-          fast_heap = true;
-      }
-
-      // not valid.
-      if (!fast_heap) {
-        if (!g_gks->is_valid_object_state(os)) {
-          // This is calling during garbage collection, therefore no mutex is needed.
-          MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
-          os = g_gks->_u_find_valid_object_state(addr);
-          if (!os)
-            return;
-        }
-        assert(is_aligned_properly(os));
-        if (!os->in_use() || os->quasi_freed() || !os->next())
-          return;
-        if (!ignore_skip_marked && is_marked(os))
-          return;
-
-        // if it is atomic we are done here.
-        if (is_atomic(os)) {
-          set_mark(os);
-          return;
-        }
-        if (depth > 100) {
-          // if recursion depth too big, put it on addresses to mark.
-          m_addresses_to_mark.insert(addr);
-          return;
-        }
-        else {
-          // set it as marked.
-          set_mark(os);
-          // recurse to pointers.
-          for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end());
-               ++it) {
-            _mark_addrs(*it, depth + 1);
-          }
-        }
-      }
-      else {
-        if (depth > 300) {
-          // if recursion depth too big, put it on addresses to mark.
-          m_addresses_to_mark.insert(addr);
-          return;
-        }
-        auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-        // getting state moves pointer lower, so recheck bounds.
-        if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
-          return;
-        if (!state->has_valid_magic_numbers() || state->addr_in_header(addr) || state->is_marked(state->get_index(addr)))
-          return;
-        state->set_marked(state->get_index(addr));
-        if (state->type_id() == 1) {
-          // atomic, so done.
-          return;
-        }
-        // recurse to pointers.
-        for (void **it = reinterpret_cast<void **>(addr);
-             it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->declared_entry_size()); ++it) {
-          _mark_addrs(*it, depth + 1, true);
-        }
+      if (os >= heap_begin && os < heap_end) {
+        _mark_addrs_sparse(addr, depth);
+        return;
       }
     }
     void gc_thread_t::_mark_mark_vector()
@@ -329,25 +338,21 @@ namespace cgc1
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
                 m_to_be_freed.push_back(os_it);
 #endif
-              }
-              else {
+              } else {
                 if (ud->is_uncollectable()) {
                   // if uncollectable don't do anything.
                   // didn't actually free anything, so decrement.
                   --num_freed;
                   continue;
-                }
-                else if (ud->m_finalizer) {
+                } else if (ud->m_finalizer) {
                   // if it has a finalizer, finalize.
                   m_to_be_freed.push_back(os_it);
-                }
-                else {
+                } else {
                   // delete user data if not owned by block.
                   m_to_be_freed.push_back(os_it);
                 }
               }
-            }
-            else {
+            } else {
               // no user data, so delete.
               os_it->set_quasi_freed();
             }
@@ -366,8 +371,7 @@ namespace cgc1
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (ud) {
           if (ud->is_default()) {
-          }
-          else {
+          } else {
             // if it has a finalizer that can run in this thread, finalize.
             if (ud->m_finalizer && ud->allow_arbitrary_finalizer_thread()) {
               ud->m_finalizer(os->object_start());
@@ -378,19 +382,14 @@ namespace cgc1
               special_finalization.emplace_back(os);
               // we do not want to zero memory etc so continue.
               continue;
-            }
-            else {
+            } else {
               // delete user data if not owned by block.
               unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
             }
           }
         }
         assert(os->object_end() < g_gks->gc_allocator().end());
-#ifdef _WIN32
-        SecureZeroMemory(os->object_start(), os->object_size());
-#else
-        ::memset(os->object_start(), 0, os->object_size());
-#endif
+        ::mcppalloc::secure_zero_stream(os->object_start(), os->object_size());
         // add to list of objects to be freed.
         to_be_freed.push_back(::mcppalloc::hide_pointer(os->object_start()));
       }

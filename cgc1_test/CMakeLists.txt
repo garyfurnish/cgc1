@@ -15,6 +15,5 @@ add_executable(cgc1_test
   gc_tests.cpp
   gc_sparse_allocator_tests.cpp
   bitmap_allocator_tests.cpp
-  slab_allocator.cpp
   )
 target_link_libraries(cgc1_test cgc1)

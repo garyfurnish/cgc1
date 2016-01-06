@@ -1,13 +1,13 @@
 #pragma once
+#include "gc_allocator.hpp"
+#include "internal_allocator.hpp"
 #include "internal_declarations.hpp"
-#include <cgc1/declarations.hpp>
+#include <assert.h>
 #include <atomic>
+#include <cgc1/declarations.hpp>
+#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <thread>
 #include <vector>
-#include <assert.h>
-#include "internal_allocator.hpp"
-#include "gc_allocator.hpp"
-#include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 namespace cgc1
 {
   namespace details
@@ -19,7 +19,7 @@ namespace cgc1
     {
     public:
       using bitmap_thread_allocator_type =
-          typename ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_allocator_policy_t>::thread_allocator_type;
+          typename ::mcppalloc::bitmap_allocator::bitmap_allocator_t<gc_bitmap_allocator_policy_t>::thread_allocator_type;
       /**
        * \brief Constructor.
        **/

@@ -1,19 +1,19 @@
-#include "new.hpp"
-#include "internal_declarations.hpp"
-#include <cgc1/declarations.hpp>
-#include <algorithm>
-#include <signal.h>
-#include <cgc1/posix.hpp>
-#include <cgc1/cgc1.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
 #include "global_kernel_state.hpp"
+#include "bitmap_gc_user_data.hpp"
+#include "internal_declarations.hpp"
+#include "new.hpp"
 #include "thread_local_kernel_state.hpp"
+#include <algorithm>
+#include <cgc1/cgc1.hpp>
+#include <cgc1/declarations.hpp>
+#include <cgc1/posix.hpp>
 #include <chrono>
 #include <iostream>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
 #include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
-
+#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <signal.h>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -28,13 +28,13 @@ template <>
 #ifdef __APPLE__
 template <>
 pthread_key_t mcppalloc::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::s_pkey{0};
+    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_pkey{0};
 #else
 template <>
 thread_local mcppalloc::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::pointer_type
+    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::pointer_type
     mcppalloc::thread_local_pointer_t<
-        mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_allocator_policy_t>>::s_tlks =
+        mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_tlks =
         nullptr;
 #endif
 namespace mcppalloc
@@ -44,8 +44,8 @@ namespace mcppalloc
     namespace details
     {
       template <>
-      thread_local_pointer_t<typename bitmap_allocator_t<cgc1::details::gc_allocator_policy_t>::thread_allocator_type>
-          bitmap_allocator_t<cgc1::details::gc_allocator_policy_t>::t_thread_allocator{};
+      thread_local_pointer_t<typename bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::thread_allocator_type>
+          bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::t_thread_allocator{};
     }
   }
 }
@@ -123,6 +123,15 @@ namespace cgc1
       assert(!m_threads.capacity());
       assert(!m_freed_in_last_collection.capacity());
       m_in_destructor = false;
+    }
+    void global_kernel_state_t::initialize()
+    {
+      if (m_initialize_called)
+        throw ::std::runtime_error("CGC1: Already initialized b404159e-e0b9-46f4-9e9c-98aa5a38ac1f");
+      m_initialize_called = true;
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(1, 0));
+      m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(2, 2));
     }
     void global_kernel_state_t::shutdown()
     {
@@ -236,45 +245,50 @@ namespace cgc1
     }
     auto global_kernel_state_t::allocate(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       // check to see if size with user data fits in a bin.
-      /*      const auto size_with_user_data =
-          ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(gc_user_data_t);
+      const auto size_with_user_data =
+          ::mcppalloc::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(bitmap_gc_user_data_t);
 
-            if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
+      if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(size_with_user_data, 2);
+        ret = bitmap_allocator.allocate(size_with_user_data, 2);
+        auto user_data = bitmap_allocator_user_data(ret.m_ptr);
+        *user_data = bitmap_gc_user_data_t();
+      } else {
+        auto &sparse_allocator = *tlks.thread_allocator();
+        ret = sparse_allocator.allocate(sz);
       }
-      else {*/
-      auto &sparse_allocator = *tlks.thread_allocator();
-      return sparse_allocator.allocate(sz);
-      //      }
+      return ret;
     }
     auto global_kernel_state_t::allocate_atomic(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 1);
-      }
-      else {
+        ret = bitmap_allocator.allocate(sz, 1);
+      } else {
         auto &sparse_allocator = *tlks.thread_allocator();
         const auto allocation = sparse_allocator.allocate_detailed(sz);
         ::cgc1::details::set_atomic(get_allocation_object_state(allocation), true);
-        return ::std::get<0>(allocation);
+        ret = ::std::get<0>(allocation);
       }
+      return ret;
     }
     auto global_kernel_state_t::allocate_raw(size_t sz) -> details::gc_allocator_t::block_type
     {
+      details::gc_allocator_t::block_type ret{nullptr, 0};
       auto &tlks = *details::get_tlks();
       if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
         auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-        return bitmap_allocator.allocate(sz, 0);
-      }
-      else {
+        ret = bitmap_allocator.allocate(sz, 0);
+      } else {
         auto &sparse_allocator = *tlks.thread_allocator();
-        return sparse_allocator.allocate(sz);
+        ret = sparse_allocator.allocate(sz);
       }
+      return ret;
     }
 
     auto global_kernel_state_t::allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type
@@ -384,8 +398,7 @@ namespace cgc1
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
         if (mcppalloc_likely(ud)) {
           if (mcppalloc_unlikely(ud->is_default())) {
-          }
-          else {
+          } else {
             // if it has a finalizer that can run in this thread, finalize.
             if (ud->m_finalizer) {
               ud->m_finalizer(os->object_start());
@@ -512,7 +525,52 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
       }
-      _bitmap_allocator()._for_all_state([](auto &&state) { state->free_unmarked(); });
+      cgc_internal_vector_t<gc_sparse_object_state_t *> to_be_finalized;
+      _bitmap_allocator()._for_all_state([](auto &&state) {
+        const size_t alloca_size =
+            state->block_size_in_bytes() + ::mcppalloc::bitmap::dynamic_bitmap_ref_t<false>::bits_type::cs_alignment;
+        const auto to_be_freed_memory = alloca(alloca_size);
+        auto to_be_freed =
+            ::mcppalloc::bitmap::make_dynamic_bitmap_ref_from_alloca(to_be_freed_memory, state->num_blocks(), alloca_size);
+        to_be_freed.clear();
+        state->or_with_to_be_freed(to_be_freed);
+        const auto free_with_finalizer_memory = alloca(alloca_size);
+        auto free_with_finalizer = ::mcppalloc::bitmap::make_dynamic_bitmap_ref_from_alloca(free_with_finalizer_memory,
+                                                                                            state->num_blocks(), alloca_size);
+        free_with_finalizer.deep_copy(to_be_freed);
+        free_with_finalizer &= state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable);
+        for (size_t i = 0; i < state->size(); ++i) {
+          if (!free_with_finalizer.get_bit(i))
+            continue;
+          const auto object = state->get_object(i);
+          if (state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).get_bit(i)) {
+            const auto ud = bitmap_allocator_user_data(object);
+            if (mcppalloc_unlikely(!ud))
+              continue;
+            state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).set_bit(i, false);
+            state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread).set_bit(i, false);
+            auto finalizer = ::std::move(ud->gc_user_data_ref().m_finalizer);
+            try {
+              finalizer(object);
+            } catch (::std::exception &e) {
+              ::std::cerr << "CGC1: Finalizer exception: " << e.what();
+            } catch (...) {
+              ::std::cerr << "CGC1: Finalizer threw unknown exception: 872ed1cd-be5c-4e65-baed-9e44de0a1dc8";
+              ::std::abort();
+            }
+            ::mcppalloc::secure_zero_stream(object, state->real_entry_size());
+          }
+        }
+
+        to_be_freed &= free_with_finalizer.negate();
+        to_be_freed.for_some_contiguous_bits_flip(state->size(), [state](size_t begin, size_t end) {
+          ::mcppalloc::secure_zero_stream(state->get_object(begin), state->real_entry_size() * (end - begin));
+        });
+        to_be_freed.for_set_bits(state->size(), [state](size_t i) {
+          ::mcppalloc::secure_zero_stream(state->get_object(i), state->real_entry_size());
+        });
+        state->free_unmarked();
+      });
       // wait for sweeping to finish.
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->wait_until_sweep_finished();
@@ -533,7 +591,7 @@ namespace cgc1
       m_start_world_condition_mutex.lock();
       m_collect_finished = true;
       // make sure everything is committed
-      ::std::atomic_thread_fence(::std::memory_order_seq_cst);
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       _u_resume_threads();
       m_start_world_condition_mutex.unlock();
       m_collect = false;
@@ -599,8 +657,7 @@ namespace cgc1
         set_tlks(tlks);
         // make sure gc kernel is initialized.
         _u_initialize();
-      }
-      else
+      } else
         ::std::terminate();
       // set very top of stack.
       tlks->set_top_of_stack(top_of_stack);
@@ -645,12 +702,13 @@ namespace cgc1
       details::initialize_thread_suspension();
 #endif
       m_gc_allocator.initialize(::mcppalloc::pow2(33), ::mcppalloc::pow2(36));
-      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
+      const size_t num_gc_threads = 1;
       // sanity check bad stl implementations.
-      if (mcppalloc_unlikely(!num_gc_threads)) {
+      /*      if (mcppalloc_unlikely(!num_gc_threads)) {
         ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
         ::std::terminate();
-      }
+        }*/
       // add gc threads
       for (size_t i = 0; i < num_gc_threads; ++i)
         m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
@@ -739,15 +797,13 @@ namespace cgc1
             // success suspending thread.
             state->set_in_signal_handler(true);
             break;
-          }
-          else if (ret < 0) {
+          } else if (ret < 0) {
             // give everything else a chance to go.
             m_mutex.unlock();
             m_gc_allocator._mutex().unlock();
             m_cgc_allocator._mutex().unlock();
             ::std::lock(m_mutex, m_gc_allocator._mutex(), m_cgc_allocator._mutex());
-          }
-          else {
+          } else {
             ::std::cerr << "Suspend thread failed\n";
             ::std::terminate();
           }
@@ -807,7 +863,14 @@ namespace cgc1
     {
     }
 #endif
-    auto gc_allocator_thread_policy_t::on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
+    auto gc_sparse_allocator_thread_policy_t::on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
+        -> ::mcppalloc::details::allocation_failure_action_t
+    {
+      g_gks->gc_allocator().initialize_thread()._do_maintenance();
+      g_gks->force_collect();
+      return ::mcppalloc::details::allocation_failure_action_t{false, failure.m_failures < 5};
+    }
+    auto gc_bitmap_allocator_thread_policy_t::on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
         -> ::mcppalloc::details::allocation_failure_action_t
     {
       g_gks->gc_allocator().initialize_thread()._do_maintenance();

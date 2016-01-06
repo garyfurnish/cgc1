@@ -1,9 +1,9 @@
 #pragma once
 #include "declarations.hpp"
-#include <mutex>
-#include <thread>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
+#include <thread>
 // This file provides wrapped stl mutex functionality that interacts with
 // clang's static analyzer to provide thread safety checks.
 #include "clang_concurrency.hpp"
@@ -378,8 +378,7 @@ namespace mcppalloc
       if (m_lock1 && m_lock2) {
         m_lock1->unlock();
         m_lock2->unlock();
-      }
-      else {
+      } else {
         ::std::terminate();
       }
     }

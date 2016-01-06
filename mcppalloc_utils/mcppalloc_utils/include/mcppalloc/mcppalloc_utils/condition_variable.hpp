@@ -1,6 +1,6 @@
 #pragma once
-#include <list>
 #include "concurrency.hpp"
+#include <list>
 namespace cgc1
 {
   /**
