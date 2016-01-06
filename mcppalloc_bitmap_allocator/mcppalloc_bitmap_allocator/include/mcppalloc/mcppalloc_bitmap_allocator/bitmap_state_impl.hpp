@@ -7,6 +7,7 @@ namespace mcppalloc
   {
     namespace details
     {
+
       inline bitmap_state_t *get_state(void *v)
       {
         uintptr_t vi = reinterpret_cast<uintptr_t>(v);
@@ -29,13 +30,24 @@ namespace mcppalloc
       {
         return m_internal.m_info.m_header_size;
       }
+      template<typename Allocator_Policy>
+      void bitmap_state_t::set_bitmap_package(bitmap_package_t<Allocator_Policy>* package) noexcept
+      {
+	m_internal.m_info.m_package=package;
+      }
+      
+      inline auto bitmap_state_t::bitmap_package() const noexcept -> void*
+      {
+	return m_internal.m_info.m_package;
+      }
       inline void bitmap_state_t::initialize_consts() noexcept
       {
         assert(this);
         m_internal.m_pre_magic_number = cs_magic_number_pre;
         m_internal.m_post_magic_number = cs_magic_number_0;
       }
-      inline void bitmap_state_t::initialize(type_id_t type_id, uint8_t user_bit_fields) noexcept
+      template<typename Allocator_Policy>
+      inline void bitmap_state_t::initialize(type_id_t type_id, uint8_t user_bit_fields, bitmap_package_t<Allocator_Policy>* package) noexcept
       {
         initialize_consts();
         m_internal.m_info.m_type_id = type_id;
@@ -43,6 +55,7 @@ namespace mcppalloc
         _compute_size();
         free_bits_ref().fill(::std::numeric_limits<uint64_t>::max());
         m_internal.m_info.m_cached_first_free = 0;
+	m_internal.m_info.m_package = package;
         for (size_t i = 0; i < num_user_bit_fields(); ++i)
           clear_user_bits(i);
       }

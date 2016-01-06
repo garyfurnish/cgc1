@@ -42,7 +42,7 @@ namespace mcppalloc
         do_maintenance();
         for (auto &&package : m_locals) {
           for (auto &&vec : package.second.m_vectors) {
-            if (mcppalloc_unlikely(!vec.empty())) {
+            if (mcppalloc_unlikely(!vec.m_vector.empty())) {
               ::std::cerr << ::std::this_thread::get_id() << " error: deallocating bitmap_thread_allocator_t with objects left\n";
               ::std::abort();
             }
@@ -87,11 +87,11 @@ namespace mcppalloc
         package.do_maintenance(m_free_list);
 
         for (auto &&vec : package.m_vectors) {
-          for (auto &&it = vec.begin(); it != vec.end();) {
+          for (auto &&it = vec.m_vector.begin(); it != vec.m_vector.end();) {
             auto &&state = *it;
             if (state->all_free()) {
               m_free_list.push_back(state);
-              it = vec.erase(it);
+              it = vec.m_vector.erase(it);
             } else
               ++it;
           }
@@ -100,7 +100,7 @@ namespace mcppalloc
         for (auto &&vec : package.m_vectors) {
           size_t num_potential_moves = 0;
           // move extra in use to global.
-          for (auto &&state : vec) {
+          for (auto &&state : vec.m_vector) {
             const auto pop_count = state->free_popcount();
             if (pop_count > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
               // approximately half free.
@@ -108,11 +108,11 @@ namespace mcppalloc
           }
           if (num_potential_moves > m_max_in_use) {
             auto num_to_be_moved = num_potential_moves - m_max_in_use;
-            auto end = vec.end();
+            auto end = vec.m_vector.end();
             {
               size_t threshold = static_cast<size_t>(num_potential_moves - num_to_be_moved);
               size_t num_found = 0;
-              auto it = vec.begin();
+              auto it = vec.m_vector.begin();
               while (it != end) {
                 auto &state = **it;
                 if (state.free_popcount() > state.size() / 2 || mcppalloc_unlikely(m_in_destructor)) {
@@ -126,14 +126,14 @@ namespace mcppalloc
                 ++it;
               }
             }
-            assert(static_cast<size_t>(vec.end() - end) == num_to_be_moved);
+            assert(static_cast<size_t>(vec.m_vector.end() - end) == num_to_be_moved);
             {
               MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_allocator._mutex());
-              for (auto it = end; it != vec.end(); ++it) {
+              for (auto it = end; it != vec.m_vector.end(); ++it) {
                 m_allocator._u_to_global(id, (*it)->type_id(), *it);
               }
             }
-            vec.resize(vec.size() - num_to_be_moved);
+            vec.m_vector.resize(vec.m_vector.size() - num_to_be_moved);
           }
           // move extra free to global.
 
@@ -174,7 +174,7 @@ namespace mcppalloc
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id(), type_info.num_user_bits());
+            state->initialize(package.type_id(), type_info.num_user_bits(),&package);
             m_free_list.pop_back();
             ret.m_ptr = state->allocate();
             ret.m_size = state->real_entry_size();
@@ -198,7 +198,7 @@ namespace mcppalloc
             }
             state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id(), type_info.num_user_bits());
+            state->initialize(package.type_id(), type_info.num_user_bits(),&package);
             assert(state->first_free() == 0);
 
             ret.m_ptr = state->allocate();

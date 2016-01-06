@@ -16,7 +16,6 @@ namespace mcppalloc
        * \brief Return the id for an object of a given size.
        **/
       extern size_t get_bitmap_size_id(size_t sz);
-
       /**
        * \brief Collection of packed object states of various sizes.
        **/
@@ -36,11 +35,17 @@ namespace mcppalloc
          * \brief Type of vector holding states of a given id.
          **/
         using vector_type = rebind_vector_t<bitmap_state_t *, internal_allocator_type>;
+	struct vector_entry_type
+	{
+	  vector_type m_vector;
+	  size_t m_times_since_full_search;
+	};
+
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Type of id indexed array.
          **/
-        using array_type = ::std::array<vector_type, cs_num_vectors>;
+        using array_type = ::std::array<vector_entry_type, cs_num_vectors>;
 
         bitmap_package_t(type_id_t type_id);
         /**

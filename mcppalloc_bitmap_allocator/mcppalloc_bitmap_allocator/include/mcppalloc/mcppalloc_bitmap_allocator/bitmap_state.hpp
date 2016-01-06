@@ -2,21 +2,25 @@
 #include "declarations.hpp"
 #include <mcppalloc/mcppalloc_bitmap/dynamic_bitmap_ref.hpp>
 #include <mcppalloc/mcppalloc_bitmap/integer_block.hpp>
+#include <mcppalloc/default_allocator_policy.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
   {
     namespace details
     {
+      template <typename Allocator_Policy>
+      class bitmap_package_t;
 
       using type_id_t = uint32_t;
       static constexpr const size_t c_bitmap_alignment = 32;
       struct alignas(size_t) bitmap_state_info_t {
-        size_t m_num_blocks;        // 8
-        size_t m_data_entry_sz;     // 16
+        uint32_t m_num_blocks;        // 8
+        uint32_t m_data_entry_sz;     // 16
         size_t m_size;              // 24
         size_t m_header_size;       // 32
         size_t m_cached_first_free; // 40
+	void* m_package;
         type_id_t m_type_id;        // 44
         uint8_t m_num_user_bit_fields;
         uint8_t m_pad2[3];
@@ -44,10 +48,29 @@ namespace mcppalloc
         static const constexpr size_t cs_magic_number_0 = 0xa58d0aebb1fae1d9;
 
         using bits_array_type = bitmap::details::integer_block_t<8>;
-
+	/**
+	 * \brief Return the requested (declared) entry size.
+	 **/
         auto declared_entry_size() const noexcept -> size_t;
+	/**
+	 * Return the actual entry size as opposed to the declared entry size.
+	 *
+	 * This can be larger than declared entry size because of alignment, etc.
+	 **/
         auto real_entry_size() const noexcept -> size_t;
+	/**
+	 * \brief Return the size of the header for this state, including bitfields.
+	 **/
         auto header_size() const noexcept -> size_t;
+	/**
+	 * \brief Set the bitmap package that owns this state.
+	 **/
+	template<typename Allocator_Policy>
+	  void set_bitmap_package(bitmap_package_t<Allocator_Policy>* policy) noexcept;
+	/**
+	 * \brief Return the bitmap package that owns this state.
+	 **/
+	auto bitmap_package() const noexcept -> void*;
         /**
          * \brief Initialize part of state that all blocks share.
          **/
@@ -56,7 +79,11 @@ namespace mcppalloc
          * \brief Initialize part of state that is argument specific.
          * @param type_id Type of state.
          **/
-        void initialize(type_id_t type_id, uint8_t user_bit_fields) noexcept;
+	template<typename Allocator_Policy>
+	  void initialize(type_id_t type_id, uint8_t user_bit_fields, bitmap_package_t<Allocator_Policy>* package=nullptr) noexcept;
+	/**
+	 * \brief Clear all mark bits.
+	 **/
         void clear_mark_bits() noexcept;
         void clear_user_bits(size_t index) noexcept;
 

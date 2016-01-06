@@ -121,6 +121,7 @@ namespace mcppalloc
           package = m_globals.insert(::std::make_pair(type, package_type(type))).first;
         }
         package->second.insert(id, state);
+	state->set_bitmap_package(&package->second);
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_free(void *v) noexcept
@@ -140,7 +141,7 @@ namespace mcppalloc
         auto it = m_globals.find(type);
         if (mcppalloc_unlikely(it == m_globals.end()))
           return 0;
-        return it->second.m_vectors[id].size();
+        return it->second.m_vectors[id].m_vector.size();
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::add_type(bitmap_type_info_t &&type_info)
