@@ -121,7 +121,7 @@ namespace mcppalloc
           package = m_globals.insert(::std::make_pair(type, package_type(type))).first;
         }
         package->second.insert(id, state);
-	state->set_bitmap_package(&package->second);
+        state->set_bitmap_package(&package->second);
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::_u_to_free(void *v) noexcept

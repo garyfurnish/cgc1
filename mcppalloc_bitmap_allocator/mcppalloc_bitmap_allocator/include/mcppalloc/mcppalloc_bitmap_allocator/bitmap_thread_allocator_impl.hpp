@@ -174,7 +174,7 @@ namespace mcppalloc
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id(), type_info.num_user_bits(),&package);
+            state->initialize(package.type_id(), type_info.num_user_bits(), &package);
             m_free_list.pop_back();
             ret.m_ptr = state->allocate();
             ret.m_size = state->real_entry_size();
@@ -198,7 +198,7 @@ namespace mcppalloc
             }
             state->verify_magic();
             state->m_internal.m_info = package_type::_get_info(id);
-            state->initialize(package.type_id(), type_info.num_user_bits(),&package);
+            state->initialize(package.type_id(), type_info.num_user_bits(), &package);
             assert(state->first_free() == 0);
 
             ret.m_ptr = state->allocate();

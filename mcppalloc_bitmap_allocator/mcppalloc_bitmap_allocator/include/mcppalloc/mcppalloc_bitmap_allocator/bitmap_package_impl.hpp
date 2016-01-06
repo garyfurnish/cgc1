@@ -43,30 +43,26 @@ namespace mcppalloc
       auto bitmap_package_t<Allocator_Policy>::allocate(size_t id) noexcept -> block_type
       {
         block_type ret{nullptr, 0};
-	auto &entry = m_vectors[id];
+        auto &entry = m_vectors[id];
         auto &vec = entry.m_vector;
-	while(!vec.empty())
-	  {
-	    auto &packed = *vec.back();
+        while (!vec.empty()) {
+          auto &packed = *vec.back();
           packed.verify_magic();
           ret.m_ptr = packed.allocate();
           if (ret.m_ptr) {
             ret.m_size = packed.real_entry_size();
             return ret;
+          } else {
+            entry.m_full_vector.push_back(&packed);
+            vec.pop_back();
           }
-	  else
-	    {
-	      entry.m_full_vector.push_back(&packed);
-	      vec.pop_back();
-	    }
         }
-	entry.m_times_since_full_search++;
-	if(entry.m_times_since_full_search==50)
-	  {
-	    vec.insert(vec.end(),entry.m_full_vector.begin(),entry.m_full_vector.end());
-	    entry.m_full_vector.clear();
-	    entry.m_times_since_full_search=0;
-	  }
+        entry.m_times_since_full_search++;
+        if (entry.m_times_since_full_search == 50) {
+          vec.insert(vec.end(), entry.m_full_vector.begin(), entry.m_full_vector.end());
+          entry.m_full_vector.clear();
+          entry.m_times_since_full_search = 0;
+        }
         return ret;
       }
       template <typename Allocator_Policy>
@@ -90,8 +86,15 @@ namespace mcppalloc
       {
         using namespace mcppalloc::literals;
         bitmap_state_t state;
-        state.m_internal.m_info =
-	  bitmap_state_info_t{static_cast<uint32_t>(cs_total_size / ((1 + id) << 5) / 512), (1u << (5 + id)), 0, 0, 0, nullptr, type_id, 0, {0, 0, 0}};
+        state.m_internal.m_info = bitmap_state_info_t{static_cast<uint32_t>(cs_total_size / ((1 + id) << 5) / 512),
+                                                      (1u << (5 + id)),
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      nullptr,
+                                                      type_id,
+                                                      0,
+                                                      {0, 0, 0}};
         state._compute_size();
         return state.m_internal.m_info;
       }
@@ -101,7 +104,9 @@ namespace mcppalloc
         auto begin = ::boost::make_zip_iterator(::boost::make_tuple(m_vectors.begin(), state.m_vectors.begin()));
         auto end = ::boost::make_zip_iterator(::boost::make_tuple(m_vectors.end(), state.m_vectors.end()));
         for (auto entry : ::boost::make_iterator_range(begin, end)) {
-          entry.template get<0>().m_vector.insert(entry.template get<0>().m_vector.end(), entry.template get<1>().m_vector.begin(), entry.template get<1>().m_vector.end());
+          entry.template get<0>().m_vector.insert(entry.template get<0>().m_vector.end(),
+                                                  entry.template get<1>().m_vector.begin(),
+                                                  entry.template get<1>().m_vector.end());
           entry.template get<1>().m_vector.clear();
         }
       }
@@ -115,7 +120,7 @@ namespace mcppalloc
       {
         assert(id < m_vectors.size());
         auto &entry = m_vectors[id];
-	auto&vec = entry.m_vector;
+        auto &vec = entry.m_vector;
         auto it = ::std::find(vec.begin(), vec.end(), state);
         if (it == vec.end())
           return false;
@@ -126,10 +131,10 @@ namespace mcppalloc
       void bitmap_package_t<Allocator_Policy>::do_maintenance(free_list_type &free_list) noexcept
       {
         for (auto &&entry : m_vectors) {
-	  auto&& vec = entry.m_vector;
-	  entry.m_times_since_full_search=0;
-	  vec.insert(vec.end(),entry.m_full_vector.begin(),entry.m_full_vector.end());
-	  entry.m_full_vector.clear();
+          auto &&vec = entry.m_vector;
+          entry.m_times_since_full_search = 0;
+          vec.insert(vec.end(), entry.m_full_vector.begin(), entry.m_full_vector.end());
+          entry.m_full_vector.clear();
           // move out any free vectors.
           auto it = ::std::partition(vec.begin(), vec.end(), [](auto &&obj) { return !obj->all_free(); });
           size_t num_to_move = static_cast<size_t>(vec.end() - it);
@@ -142,8 +147,8 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_package_t<Allocator_Policy>::shutdown()
       {
-        for (auto && entry : m_vectors) {
-	  auto && vec = entry.m_vector;
+        for (auto &&entry : m_vectors) {
+          auto &&vec = entry.m_vector;
           vec.clear();
           auto a1 = ::std::move(vec);
           (void)a1;
@@ -154,15 +159,14 @@ namespace mcppalloc
       void bitmap_package_t<Allocator_Policy>::for_all(Predicate &&predicate)
       {
         for (auto &&entry : m_vectors) {
-	  auto&& vec = entry.m_vector;
+          auto &&vec = entry.m_vector;
           for (auto &&state : vec) {
             predicate(state);
           }
-	  auto &&full_vec = entry.m_full_vector;
-	  for (auto &&state : full_vec) {
+          auto &&full_vec = entry.m_full_vector;
+          for (auto &&state : full_vec) {
             predicate(state);
           }
-
         }
       }
     }

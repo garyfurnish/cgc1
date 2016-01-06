@@ -35,12 +35,11 @@ namespace mcppalloc
          * \brief Type of vector holding states of a given id.
          **/
         using vector_type = rebind_vector_t<bitmap_state_t *, internal_allocator_type>;
-	struct vector_entry_type
-	{
-	  vector_type m_vector;
-	  vector_type m_full_vector;
-	  size_t m_times_since_full_search{0};
-	};
+        struct vector_entry_type {
+          vector_type m_vector;
+          vector_type m_full_vector;
+          size_t m_times_since_full_search{0};
+        };
 
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
         /**
