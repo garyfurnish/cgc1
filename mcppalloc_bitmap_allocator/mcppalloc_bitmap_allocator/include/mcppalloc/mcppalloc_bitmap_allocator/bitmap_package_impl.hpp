@@ -122,9 +122,15 @@ namespace mcppalloc
         auto &entry = m_vectors[id];
         auto &vec = entry.m_vector;
         auto it = ::std::find(vec.begin(), vec.end(), state);
-        if (it == vec.end())
-          return false;
-        vec.erase(it);
+        if (it == vec.end()) {
+          auto fit = ::std::find(entry.m_full_vector.begin(), entry.m_full_vector.end(), state);
+          if (fit == vec.end())
+            return false;
+          else
+            entry.m_full_vector.erase(fit);
+        } else {
+          vec.erase(it);
+        }
         return true;
       }
       template <typename Allocator_Policy>

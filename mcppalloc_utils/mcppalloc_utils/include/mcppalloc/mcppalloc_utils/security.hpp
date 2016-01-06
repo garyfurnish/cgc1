@@ -46,7 +46,6 @@ namespace mcppalloc
     if (!(reinterpret_cast<size_t>(s) % 16)) {
       while (n >= sizeof(__m128i)) {
         _mm_stream_si128(p_m128++, zero);
-        *p_m128++ = zero;
         n -= sizeof(__m128i);
       }
     }
@@ -88,7 +87,7 @@ namespace mcppalloc
 #elif defined(__SSE2__)
     const __m128i zero = _mm_setzero_si128();
     volatile __m128i *p_m128 = reinterpret_cast<volatile __m128i *>(s);
-    if (!s % 16) {
+    if (!(reinterpret_cast<size_t>(s) % 16)) {
       while (n >= sizeof(__m128i)) {
         *p_m128++ = zero;
         n -= sizeof(__m128i);
