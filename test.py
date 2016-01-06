@@ -14,6 +14,7 @@ with open("settings.json") as settings_file:
     build_location = os.path.abspath(build_location)
 
 def run_test(location):
+    printing_system(location+"/mcppalloc_utils/mcppalloc_utils_test/mcppalloc_utils_test")
     printing_system(location+"/mcppalloc_sparse/mcppalloc_sparse_test/mcppalloc_sparse_test")
     printing_system(location+"/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/mcppalloc_bitmap_allocator_test")
     printing_system(location+"/cgc1_test/cgc1_test")

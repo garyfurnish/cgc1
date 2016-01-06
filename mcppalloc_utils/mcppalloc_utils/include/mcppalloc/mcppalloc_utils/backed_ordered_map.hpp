@@ -7,7 +7,7 @@ namespace mcppalloc
   namespace containers
   {
     template <typename K, typename V, typename Less = ::std::less<K>>
-    class backed_ordered_map
+    class backed_ordered_multimap
     {
     public:
       using backing_pointer_type = void *;
@@ -20,14 +20,14 @@ namespace mcppalloc
       using size_type = size_t;
       using difference_type = ptrdiff_t;
 
-      backed_ordered_map();
+      backed_ordered_multimap();
       template <typename KC = key_compare>
-      backed_ordered_map(backing_pointer_type v, size_t capacity, KC &&kc = key_compare());
-      backed_ordered_map(const backed_ordered_map &) = delete;
-      backed_ordered_map(backed_ordered_map &&);
-      backed_ordered_map &operator=(const backed_ordered_map &) = delete;
-      backed_ordered_map &operator=(backed_ordered_map &&);
-      ~backed_ordered_map();
+      backed_ordered_multimap(backing_pointer_type v, size_t capacity, KC &&kc = key_compare());
+      backed_ordered_multimap(const backed_ordered_multimap &) = delete;
+      backed_ordered_multimap(backed_ordered_multimap &&);
+      backed_ordered_multimap &operator=(const backed_ordered_multimap &) = delete;
+      backed_ordered_multimap &operator=(backed_ordered_multimap &&);
+      ~backed_ordered_multimap();
 
       auto size() noexcept -> size_type;
       auto capacity() noexcept -> size_type;
@@ -85,8 +85,7 @@ namespace mcppalloc
       auto at(const key_type &) const -> const mapped_type &;
 
       /**
-       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with
-       *key equivalent to the key of x.
+       * \brief Inserts a new value_type move constructed from the pair.
        *
        * Complexity: Logarithmic search time plus linear insertion to the elements with bigger keys than x.
        * Note: If an element it's inserted it might invalidate elements.
@@ -95,8 +94,7 @@ namespace mcppalloc
        **/
       auto insert(const value_type &) -> std::pair<iterator, bool>;
       /**
-       * \brief Inserts a new value_type move constructed from the pair if and only if there is no element in the container with
-       *key equivalent to the key of x.
+       * \brief Inserts a new value_type move constructed from the pair.
        *
        * Complexity: Logarithmic search time plus linear insertion to the elements with bigger keys than x.
        * Note: If an element it's inserted it might invalidate elements.
@@ -111,6 +109,23 @@ namespace mcppalloc
        * @return Returns the number of erased elements.
       **/
       auto erase(const key_type &) -> size_type;
+      /**
+       * \brief Erases the element pointed to by p.
+       *
+       * Complexity: Linear to the elements with keys bigger than p
+       * Note: Invalidates elements with keys not less than the erased element.
+       * @return An iterator pointing to the element immediately following q prior to the element being erased. If no such element
+       *exists, returns end().
+      **/
+      auto erase(const_iterator it) -> iterator;
+      /**
+       * \brief Erases all the elements in the range [first, last).
+       *
+       *Complexity: size()*N where N is the distance from first to last.
+       *Complexity: Logarithmic search time plus erasure time linear to the elements with bigger keys.
+       * @return Returns last.
+       **/
+      auto erase(const_iterator begin, const_iterator end) -> iterator;
       /**
        * \brief erase(a.begin(),a.end()).
        *

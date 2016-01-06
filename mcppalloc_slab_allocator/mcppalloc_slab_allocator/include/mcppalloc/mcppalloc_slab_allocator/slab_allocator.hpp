@@ -138,7 +138,7 @@ namespace mcppalloc
          * \brief Current position of end object state (invalid).
          **/
         slab_allocator_object_t *m_end;
-        containers::backed_ordered_map<size_t, void *> free_map;
+        containers::backed_ordered_multimap<size_t, void *> free_map;
       };
       constexpr size_t slab_allocator_t::alignment() noexcept
       {
