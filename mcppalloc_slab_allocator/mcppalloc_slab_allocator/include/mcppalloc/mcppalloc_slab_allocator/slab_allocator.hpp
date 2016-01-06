@@ -2,6 +2,7 @@
 #include "slab_allocator_dll.hpp"
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/mcppalloc_utils/alignment.hpp>
+#include <mcppalloc/mcppalloc_utils/backed_ordered_map.hpp>
 #include <mcppalloc/mcppalloc_utils/concurrency.hpp>
 #include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
 #include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
@@ -137,6 +138,7 @@ namespace mcppalloc
          * \brief Current position of end object state (invalid).
          **/
         slab_allocator_object_t *m_end;
+        containers::backed_ordered_map<size_t, void *> free_map;
       };
       constexpr size_t slab_allocator_t::alignment() noexcept
       {

@@ -1,1 +1,2 @@
 add_subdirectory(mcppalloc_utils)
+add_subdirectory(mcppalloc_utils_test)
