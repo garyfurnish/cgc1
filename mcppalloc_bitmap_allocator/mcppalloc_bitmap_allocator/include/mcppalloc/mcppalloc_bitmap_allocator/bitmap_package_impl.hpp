@@ -45,16 +45,28 @@ namespace mcppalloc
         block_type ret{nullptr, 0};
 	auto &entry = m_vectors[id];
         auto &vec = entry.m_vector;
-        auto range = ::boost::make_iterator_range(vec.rbegin(), vec.rend());
-        for (auto &&it = range.begin(); it != range.end(); ++it) {
-          auto &packed = **it;
+	while(!vec.empty())
+	  {
+	    auto &packed = *vec.back();
           packed.verify_magic();
           ret.m_ptr = packed.allocate();
           if (ret.m_ptr) {
             ret.m_size = packed.real_entry_size();
             return ret;
           }
+	  else
+	    {
+	      entry.m_full_vector.push_back(&packed);
+	      vec.pop_back();
+	    }
         }
+	entry.m_times_since_full_search++;
+	if(entry.m_times_since_full_search==50)
+	  {
+	    vec.insert(vec.end(),entry.m_full_vector.begin(),entry.m_full_vector.end());
+	    entry.m_full_vector.clear();
+	    entry.m_times_since_full_search=0;
+	  }
         return ret;
       }
       template <typename Allocator_Policy>
@@ -115,6 +127,9 @@ namespace mcppalloc
       {
         for (auto &&entry : m_vectors) {
 	  auto&& vec = entry.m_vector;
+	  entry.m_times_since_full_search=0;
+	  vec.insert(vec.end(),entry.m_full_vector.begin(),entry.m_full_vector.end());
+	  entry.m_full_vector.clear();
           // move out any free vectors.
           auto it = ::std::partition(vec.begin(), vec.end(), [](auto &&obj) { return !obj->all_free(); });
           size_t num_to_move = static_cast<size_t>(vec.end() - it);
@@ -143,6 +158,11 @@ namespace mcppalloc
           for (auto &&state : vec) {
             predicate(state);
           }
+	  auto &&full_vec = entry.m_full_vector;
+	  for (auto &&state : full_vec) {
+            predicate(state);
+          }
+
         }
       }
     }

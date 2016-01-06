@@ -38,7 +38,8 @@ namespace mcppalloc
 	struct vector_entry_type
 	{
 	  vector_type m_vector;
-	  size_t m_times_since_full_search;
+	  vector_type m_full_vector;
+	  size_t m_times_since_full_search{0};
 	};
 
         using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
