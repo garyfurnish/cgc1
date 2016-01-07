@@ -227,6 +227,20 @@ static void packed_allocator_test()
   AssertThat(is_finalized.load(), IsTrue());
   locations.clear();
 }
+static void gc_repeat_alloc_test()
+{
+  ::std::vector<void *> v;
+  for (size_t i = 0; i < 1000000; ++i) {
+    v.push_back(::cgc1::cgc_malloc(64));
+    v.push_back(::cgc1::cgc_malloc(65));
+    v.push_back(::cgc1::cgc_malloc(128));
+    v.push_back(::cgc1::cgc_malloc(33));
+  }
+  ::std::sort(v.begin(), v.end());
+  AssertThat(::std::adjacent_find(v.begin(), v.end()), Equals(v.end()));
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+}
 
 void gc_bitmap_tests()
 {
@@ -234,5 +248,6 @@ void gc_bitmap_tests()
     it("packed_root_test", []() { packed_root_test(); });
     it("packed_linked_list_test", []() { packed_linked_list_test(); });
     it("packed_allocator_test", []() { packed_allocator_test(); });
+    it("gc_repeat_alloc_test", []() { gc_repeat_alloc_test(); });
   });
 }

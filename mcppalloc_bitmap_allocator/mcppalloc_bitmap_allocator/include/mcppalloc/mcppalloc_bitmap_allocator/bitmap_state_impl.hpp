@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/security.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -215,6 +216,7 @@ namespace mcppalloc
         size_t byte_diff = static_cast<size_t>(v - begin());
         if (mcppalloc_unlikely(byte_diff % real_entry_size()))
           return false;
+        secure_zero_stream(v, real_entry_size());
         auto i = byte_diff / real_entry_size();
         set_free(i, true);
         for (size_t j = 0; j < num_user_bit_fields(); ++j)
