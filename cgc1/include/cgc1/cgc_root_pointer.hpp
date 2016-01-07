@@ -3,23 +3,23 @@
 namespace cgc1
 {
   template <typename T>
-  class CGC1_DLL_PUBLIC cgc_root_pointer
+  class CGC1_DLL_PUBLIC cgc_root_pointer_t
   {
   public:
     using pointer_type = T *;
     using const_pointer_type = const T *;
     using reference_type = T &;
     using const_reference_type = const T &;
-    cgc_root_pointer() : m_root(m_t)
+    cgc_root_pointer_t() : m_root(m_t)
     {
     }
-    cgc_root_pointer(T *t) : m_t(t), m_root(m_t)
+    cgc_root_pointer_t(T *t) : m_t(t), m_root(m_t)
     {
     }
-    cgc_root_pointer(const cgc_root_pointer<T> &) noexcept = delete;
-    cgc_root_pointer(cgc_root_pointer<T> &&) noexcept = default;
-    cgc_root_pointer &operator=(const cgc_root_pointer<T> &) noexcept = delete;
-    cgc_root_pointer &operator=(cgc_root_pointer<T> &&) noexcept = default;
+    cgc_root_pointer_t(const cgc_root_pointer_t<T> &) noexcept = delete;
+    cgc_root_pointer_t(cgc_root_pointer_t<T> &&) noexcept = default;
+    cgc_root_pointer_t &operator=(const cgc_root_pointer_t<T> &) noexcept = delete;
+    cgc_root_pointer_t &operator=(cgc_root_pointer_t<T> &&) noexcept = default;
     auto operator*() noexcept -> reference_type
     {
       return *m_t;
@@ -63,6 +63,6 @@ namespace cgc1
 
   private:
     pointer_type m_t{nullptr};
-    cgc_root m_root;
+    cgc_root_t m_root;
   };
 }

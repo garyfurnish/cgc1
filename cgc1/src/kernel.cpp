@@ -127,10 +127,17 @@ namespace cgc1
   }
   void cgc_add_root(void **v)
   {
+    if (!details::g_gks) {
+      global_kernel_state_param_t param;
+      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
+      details::g_gks->initialize();
+    }
     details::g_gks->add_root(v);
   }
   void cgc_remove_root(void **v)
   {
+    if (!details::g_gks)
+      return;
     details::g_gks->remove_root(v);
   }
   size_t cgc_heap_size()

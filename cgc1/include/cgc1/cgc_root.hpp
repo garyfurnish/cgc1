@@ -2,25 +2,25 @@
 #include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
 namespace cgc1
 {
-  class CGC1_DLL_PUBLIC cgc_root
+  class CGC1_DLL_PUBLIC cgc_root_t
   {
   public:
     template <typename T>
-    cgc_root(T *&ptr) : m_root(mcppalloc::unsafe_cast<void *>(&ptr))
+    cgc_root_t(T *&ptr) : m_root(mcppalloc::unsafe_cast<void *>(&ptr))
     {
       cgc_add_root(m_root);
     }
-    ~cgc_root()
+    ~cgc_root_t()
     {
       if (m_root)
         cgc_remove_root(m_root);
     }
-    cgc_root(const cgc_root &) = delete;
-    cgc_root(cgc_root &&cgc_root) noexcept : m_root(::std::move(cgc_root.m_root))
+    cgc_root_t(const cgc_root_t &) = delete;
+    cgc_root_t(cgc_root_t &&cgc_root_t) noexcept : m_root(::std::move(cgc_root_t.m_root))
     {
     }
-    cgc_root &operator=(const cgc_root &) = delete;
-    cgc_root &operator=(cgc_root &&rhs) noexcept
+    cgc_root_t &operator=(const cgc_root_t &) = delete;
+    cgc_root_t &operator=(cgc_root_t &&rhs) noexcept
     {
       m_root = rhs.m_root;
       rhs.m_root = m_root;

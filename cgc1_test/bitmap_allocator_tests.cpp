@@ -144,7 +144,7 @@ static void packed_allocator_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
-  cgc1::cgc_root_pointer<uint8_t> tmp;
+  cgc1::cgc_root_pointer_t<uint8_t> tmp;
   const size_t allocation_size = sizeof(size_t) * 10;
   ::std::atomic<bool> is_finalized{false};
   auto test_thread = [&is_finalized, &keep_going, &debug_mutex, &locations, &tmp, allocation_size]() {
