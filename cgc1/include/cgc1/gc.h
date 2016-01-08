@@ -82,10 +82,10 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#define GC_INIT() GC_init(mcppalloc_builtin_current_stack())
-#define GC_MALLOC(sz) GC_malloc(sz)
-#define GC_MALLOC_ATOMIC(sz) GC_malloc_atomic(sz)
-#define GC_MALLOC_UNCOLLECTABLE(sz) GC_malloc_uncollectable(sz)
+#define GC_INIT() (GC_init(mcppalloc_builtin_current_stack()))
+#define GC_MALLOC(sz) (GC_malloc(sz))
+#define GC_MALLOC_ATOMIC(sz) (GC_malloc_atomic(sz))
+#define GC_MALLOC_UNCOLLECTABLE(sz) (GC_malloc_uncollectable(sz))
 #define GC_FREE(p) GC_free(p)
 #define GC_REALLOC(old, sz) GC_realloc(old, sz)
 #define GC_NEW(t)               ((t*)GC_MALLOC(sizeof(t)))
