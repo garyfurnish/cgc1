@@ -144,14 +144,13 @@ static void packed_allocator_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
-  void *tmp{nullptr};
-  cgc1::cgc_root root(tmp);
+  cgc1::cgc_root_pointer_t<uint8_t> tmp;
   const size_t allocation_size = sizeof(size_t) * 10;
   ::std::atomic<bool> is_finalized{false};
   auto test_thread = [&is_finalized, &keep_going, &debug_mutex, &locations, &tmp, allocation_size]() {
     CGC1_INITIALIZE_THREAD();
 
-    tmp = cgc1::cgc_malloc(allocation_size);
+    tmp = reinterpret_cast<uint8_t *>(cgc1::cgc_malloc(allocation_size));
     ::mcppalloc::bitmap_allocator::details::get_state(tmp)->verify_magic();
     if (!mcppalloc::is_zero(tmp, allocation_size)) {
       ::std::cerr << "c3c1b941-f503-4730-b1bf-fd72861348e1\n";
@@ -170,10 +169,6 @@ static void packed_allocator_test()
     void *tmp2 = cgc1::cgc_malloc(100);
     (void)tmp2;
     if (!mcppalloc::is_unique_seeded_random(tmp, allocation_size)) {
-      ::std::cerr << __FILE__ << " " << __LINE__ << " " << tmp << " " << tmp2 << "\n";
-      ::std::cerr << __FILE__ << " " << __LINE__ << " " << mcppalloc::is_unique_seeded_random_failure_loc(tmp, allocation_size)
-                  << ::std::endl;
-      assert(0);
       ::std::abort();
     }
     locations.push_back(::mcppalloc::hide_pointer(tmp));
@@ -183,7 +178,7 @@ static void packed_allocator_test()
     (void)tmp3;
     while (keep_going) {
       ::std::stringstream ss;
-      ss << tmp << ::std::endl;
+      ss << *tmp << ::std::endl;
     }
     cgc1::cgc_unregister_thread();
   };
@@ -213,8 +208,8 @@ static void packed_allocator_test()
     ::std::abort();
   }
   ::cgc1::clean_stack(0, 0, 0, 0, 0);
-  root.clear();
-  ::mcppalloc::secure_zero_pointer(tmp);
+  tmp.clear_root();
+  ::mcppalloc::secure_zero_pointer(*&tmp);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   for (auto &&loc : locations) {
@@ -227,6 +222,20 @@ static void packed_allocator_test()
   AssertThat(is_finalized.load(), IsTrue());
   locations.clear();
 }
+static void gc_repeat_alloc_test()
+{
+  ::std::vector<void *> v;
+  for (size_t i = 0; i < 1000000; ++i) {
+    v.push_back(::cgc1::cgc_malloc(64));
+    v.push_back(::cgc1::cgc_malloc(65));
+    v.push_back(::cgc1::cgc_malloc(128));
+    v.push_back(::cgc1::cgc_malloc(33));
+  }
+  ::std::sort(v.begin(), v.end());
+  AssertThat(::std::adjacent_find(v.begin(), v.end()), Equals(v.end()));
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+}
 
 void gc_bitmap_tests()
 {
@@ -234,5 +243,6 @@ void gc_bitmap_tests()
     it("packed_root_test", []() { packed_root_test(); });
     it("packed_linked_list_test", []() { packed_linked_list_test(); });
     it("packed_allocator_test", []() { packed_allocator_test(); });
+    it("gc_repeat_alloc_test", []() { gc_repeat_alloc_test(); });
   });
 }

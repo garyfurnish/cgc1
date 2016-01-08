@@ -127,10 +127,17 @@ namespace cgc1
   }
   void cgc_add_root(void **v)
   {
+    if (!details::g_gks) {
+      global_kernel_state_param_t param;
+      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
+      details::g_gks->initialize();
+    }
     details::g_gks->add_root(v);
   }
   void cgc_remove_root(void **v)
   {
+    if (!details::g_gks)
+      return;
     details::g_gks->remove_root(v);
   }
   size_t cgc_heap_size()
@@ -287,27 +294,35 @@ namespace cgc1
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     set_atomic(os, is_atomic);
   }
+  void *cgc_malloc_atomic(::std::size_t size_in_bytes)
+  {
+    return ::cgc1::details::g_gks->allocate_atomic(size_in_bytes).m_ptr;
+  }
+  void *cgc_malloc_uncollectable(::std::size_t size_in_bytes)
+  {
+    auto ret = ::cgc1::details::g_gks->allocate_sparse(size_in_bytes).m_ptr;
+    cgc1::cgc_set_uncollectable(ret, true);
+    return ret;
+  }
 }
 extern "C" {
 #include "../include/gc/gc_version.h"
 #include <cgc1/gc.h>
 CGC1_DLL_PUBLIC void *GC_realloc(void *old_object, ::std::size_t new_size)
 {
-  return cgc1::cgc_realloc(old_object, new_size);
+  return ::cgc1::cgc_realloc(old_object, new_size);
 }
 CGC1_DLL_PUBLIC void *GC_malloc(::std::size_t size_in_bytes)
 {
-  return cgc1::cgc_malloc(size_in_bytes);
+  return ::cgc1::cgc_malloc(size_in_bytes);
 }
 CGC1_DLL_PUBLIC void *GC_malloc_atomic(::std::size_t size_in_bytes)
 {
-  return ::cgc1::details::g_gks->allocate_atomic(size_in_bytes).m_ptr;
+  return ::cgc1::cgc_malloc_atomic(size_in_bytes);
 }
 CGC1_DLL_PUBLIC void *GC_malloc_uncollectable(::std::size_t size_in_bytes)
 {
-  auto ret = ::cgc1::details::g_gks->allocate_sparse(size_in_bytes).m_ptr;
-  cgc1::cgc_set_uncollectable(ret, true);
-  return ret;
+  return ::cgc1::cgc_malloc_uncollectable(size_in_bytes);
 }
 CGC1_DLL_PUBLIC void GC_free(void *object_addr)
 {

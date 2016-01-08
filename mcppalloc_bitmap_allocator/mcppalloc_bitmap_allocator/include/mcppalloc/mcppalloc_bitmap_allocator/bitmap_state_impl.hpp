@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcppalloc/mcppalloc_utils/security.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -109,6 +110,7 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::set_free(size_t i, bool val) noexcept
       {
+        free_bits_ref().set_bit(i, val);
         if (val)
           m_internal.m_info.m_cached_first_free = ::std::min(i, m_internal.m_info.m_cached_first_free);
         else if (i == m_internal.m_info.m_cached_first_free) {
@@ -122,7 +124,6 @@ namespace mcppalloc
             _compute_first_free();
           }
         }
-        free_bits_ref().set_bit(i, val);
       }
       inline void bitmap_state_t::set_marked(size_t i) noexcept
       {
@@ -215,6 +216,7 @@ namespace mcppalloc
         size_t byte_diff = static_cast<size_t>(v - begin());
         if (mcppalloc_unlikely(byte_diff % real_entry_size()))
           return false;
+        secure_zero_stream(v, real_entry_size());
         auto i = byte_diff / real_entry_size();
         set_free(i, true);
         for (size_t j = 0; j < num_user_bit_fields(); ++j)
