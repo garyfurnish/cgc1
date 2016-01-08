@@ -692,6 +692,9 @@ namespace cgc1
       ::std::unique_ptr<details::thread_local_kernel_state_t, cgc_internal_malloc_deleter_t> tlks_deleter(tlks);
       // do this to make any changes to state globally visible.
       ::std::atomic_thread_fence(::std::memory_order_release);
+      /*#ifndef _WIN32
+      details::stop_thread_suspension();
+      #endif*/
     }
     void global_kernel_state_t::_u_initialize()
     {

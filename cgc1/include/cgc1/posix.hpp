@@ -40,6 +40,10 @@ namespace cgc1
      * \brief Initialize gc handling using USR1.
     **/
     void initialize_thread_suspension();
+    /**
+     * \brief Stop handling gc with USR1.
+     **/
+    void stop_thread_suspension();
   }
 }
 #endif

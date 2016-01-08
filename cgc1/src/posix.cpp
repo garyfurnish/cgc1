@@ -18,6 +18,10 @@ namespace cgc1
     {
       register_signal_handler(SIGUSR1, suspension);
     }
+    void stop_thread_suspension()
+    {
+      register_signal_handler(SIGUSR1, signal_handler_function_t());
+    }
     static ::std::function<void(int)> s_signal_handlers[SIGUNUSED];
   }
   bool register_signal_handler(int signum, const signal_handler_function_t &handler)

@@ -57,7 +57,7 @@ namespace cgc1
     }
 
   private:
-    pointer_type m_t{nullptr};
+    pointer_type m_t;
     cgc_root_t m_root;
   };
   template <typename T>
@@ -120,7 +120,7 @@ namespace cgc1
     }
 
   private:
-    pointer_type m_t{nullptr};
+    pointer_type m_t;
     cgc_root_t m_root;
   };
 

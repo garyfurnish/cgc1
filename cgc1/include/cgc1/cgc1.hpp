@@ -24,6 +24,8 @@ namespace cgc1
    * Guaranteed to be 16 byte aligned.
   **/
   extern CGC1_DLL_PUBLIC uintptr_t cgc_hidden_malloc(size_t sz);
+  extern void *cgc_malloc_atomic(::std::size_t size_in_bytes);
+  extern void *cgc_malloc_uncollectable(::std::size_t size_in_bytes);
   /**
    * \brief Realloc sz bytes.
    *

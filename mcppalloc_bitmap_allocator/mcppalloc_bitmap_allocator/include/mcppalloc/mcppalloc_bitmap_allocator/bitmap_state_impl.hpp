@@ -110,6 +110,7 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::set_free(size_t i, bool val) noexcept
       {
+        free_bits_ref().set_bit(i, val);
         if (val)
           m_internal.m_info.m_cached_first_free = ::std::min(i, m_internal.m_info.m_cached_first_free);
         else if (i == m_internal.m_info.m_cached_first_free) {
@@ -123,7 +124,6 @@ namespace mcppalloc
             _compute_first_free();
           }
         }
-        free_bits_ref().set_bit(i, val);
       }
       inline void bitmap_state_t::set_marked(size_t i) noexcept
       {
