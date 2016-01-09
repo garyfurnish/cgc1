@@ -10,7 +10,23 @@ namespace cgc1
 {
   namespace details
   {
-    unique_ptr_malloc_t<global_kernel_state_t> g_gks;
+    global_kernel_state_t *g_gks{nullptr};
+    static auto &get_gks()
+    {
+      static unique_ptr_malloc_t<global_kernel_state_t> gks;
+      return gks;
+    }
+    void check_initialized()
+    {
+      if (!details::g_gks) {
+        global_kernel_state_param_t param;
+        get_gks() = make_unique_malloc<details::global_kernel_state_t>(param);
+        g_gks = get_gks().get();
+        get_gks()->initialize();
+      }
+      if (!details::g_gks)
+        g_gks = get_gks().get();
+    }
     void thread_gc_handler(int)
     {
       g_gks->_collect_current_thread();
@@ -127,11 +143,7 @@ namespace cgc1
   }
   void cgc_add_root(void **v)
   {
-    if (!details::g_gks) {
-      global_kernel_state_param_t param;
-      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
-      details::g_gks->initialize();
-    }
+    details::check_initialized();
     details::g_gks->add_root(v);
   }
   void cgc_remove_root(void **v)
@@ -164,11 +176,7 @@ namespace cgc1
   }
   void cgc_register_thread(void *top_of_stack)
   {
-    if (!details::g_gks) {
-      global_kernel_state_param_t param;
-      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
-      details::g_gks->initialize();
-    }
+    details::check_initialized();
     details::g_gks->initialize_current_thread(top_of_stack);
     auto tlks = details::get_tlks();
     tlks->set_thread_allocator(&::cgc1::details::g_gks->gc_allocator().initialize_thread());

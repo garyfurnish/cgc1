@@ -58,7 +58,7 @@ namespace cgc1
     {
       static global_kernel_state_t *gks = nullptr;
       if (mcppalloc_likely(g_gks))
-        gks = g_gks.get();
+        gks = g_gks;
       else {
         if (mcppalloc_unlikely(!gks->m_in_destructor))
           ::std::terminate();

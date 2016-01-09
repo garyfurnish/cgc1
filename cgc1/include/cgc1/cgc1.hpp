@@ -97,21 +97,6 @@ namespace cgc1
   **/
   extern CGC1_DLL_PUBLIC bool cgc_is_enabled();
   /**
-   * \brief Make a cgc pointer for type T.
-  **/
-  template <typename T, typename... Ts>
-  void make_cgc(Ts &&... ts);
-  /**
-   * \brief Make an array of cgc pointers for type T.
-  **/
-  template <typename T, size_t N>
-  void make_cgc_array(std::array<T, N> &array);
-  /**
-   * \brief For a random-access container c, with value type T*, set all elements to a new T.
-  **/
-  template <typename Container>
-  void make_cgc_many(Container &c);
-  /**
    * \brief Return a vector of num new T's.
   **/
   template <typename T>

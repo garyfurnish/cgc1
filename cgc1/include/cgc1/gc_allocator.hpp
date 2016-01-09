@@ -56,6 +56,12 @@ namespace cgc1
     {
       new (p) T(val);
     }
+    template <typename... Args>
+    void construct(pointer p, Args &&... args)
+    {
+      new (p) T(::std::forward<Args>(args)...);
+    }
+
     void destroy(pointer p)
     {
       p->~T();
@@ -69,4 +75,23 @@ namespace cgc1
       return false;
     }
   };
+  template <typename T, typename... Args>
+  auto make_cgc_unique(Args &&... args)
+  {
+    T *t{nullptr};
+    try {
+      t = reinterpret_cast<T *>(cgc_malloc(sizeof(T)));
+      gc_allocator_t<T>().construct(t, ::std::forward<Args>(args)...);
+    } catch (...) {
+      cgc_free(t);
+      throw;
+    }
+    static const auto deleter = [](void *lt) { cgc_free(lt); };
+    return ::std::unique_ptr<T, decltype(deleter)>(t, deleter);
+  }
+  template <typename T, typename... Args>
+  T *make_cgc(Args &&... args)
+  {
+    return make_cgc_unique<T>(::std::forward<Args>(args)...).release();
+  }
 }

@@ -440,7 +440,7 @@ namespace cgc1
 
     private:
     };
-    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
+    extern global_kernel_state_t *g_gks;
     extern auto _real_gks() -> global_kernel_state_t *;
   }
 }
