@@ -84,6 +84,14 @@ namespace mcppalloc
         auto ttla = get_ttla();
         if (ttla)
           return *ttla;
+        // static initialization could have caused this to spuriously fail, so check that.
+        {
+          const auto existing = m_thread_allocators.find(::std::this_thread::get_id());
+          if (existing != m_thread_allocators.end()) {
+            ttla = existing->second.get();
+            return *ttla;
+          }
+        }
         // one doesn't already exist.
         // create a thread allocator.
         thread_allocator_unique_ptr_type ta = make_unique_allocator<thread_allocator_type, internal_allocator_type>(*this);

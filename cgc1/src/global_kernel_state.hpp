@@ -141,6 +141,10 @@ namespace cgc1
       **/
       void remove_root(void **) REQUIRES(!m_mutex);
       /**
+       * \brief Return true if has the given root, false otherwise.
+       **/
+      bool has_root(void **r) REQUIRES(!m_mutex);
+      /**
        * \brief Wait for finalization of the last collection to finish.
       **/
       void wait_for_finalization(bool do_local_finalization = true) REQUIRES(!m_mutex, !m_thread_mutex);

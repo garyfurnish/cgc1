@@ -1,18 +1,9 @@
 #pragma once
 #include "gc_user_data.hpp"
 #include "global_kernel_state.hpp"
+#include <cgc1/cgc1.hpp>
 namespace cgc1
 {
-  inline bool is_bitmap_allocator(void *addr) noexcept
-  {
-    if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end())
-      return true;
-    return false;
-  }
-  inline bool is_sparse_allocator(void *addr) noexcept
-  {
-    return !is_bitmap_allocator(addr);
-  }
   namespace details
   {
     /**
@@ -58,10 +49,19 @@ namespace cgc1
       {
         m_atomic = atomic;
       }
+      auto abort_on_collect() const noexcept -> bool
+      {
+        return m_abort_on_collect;
+      }
+      void set_abort_on_collect(bool abort_on_collect) noexcept
+      {
+        m_abort_on_collect = abort_on_collect;
+      }
 
     private:
       gc_user_data_t m_gc_user_data;
       bool m_atomic{false};
+      bool m_abort_on_collect{false};
     };
 
     inline details::bitmap_gc_user_data_t *bitmap_allocator_user_data(void *addr)

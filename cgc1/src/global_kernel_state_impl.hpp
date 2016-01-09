@@ -58,11 +58,11 @@ namespace cgc1
     }
     inline auto global_kernel_state_t::slow_slab_begin() const noexcept -> uint8_t *
     {
-      return m_slab_allocator.begin();
+      return m_gc_allocator.begin();
     }
     inline auto global_kernel_state_t::slow_slab_end() const noexcept -> uint8_t *
     {
-      return m_slab_allocator.end();
+      return m_gc_allocator.end();
     }
     inline auto global_kernel_state_t::fast_slab_begin() const noexcept -> uint8_t *
     {

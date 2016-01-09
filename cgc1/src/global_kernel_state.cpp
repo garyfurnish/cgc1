@@ -324,6 +324,16 @@ namespace cgc1
       if (it != m_roots.end())
         m_roots.erase(it);
     }
+    bool global_kernel_state_t::has_root(void **r)
+    {
+      wait_for_collection();
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
+      // find root and erase.
+      auto it = find(m_roots.begin(), m_roots.end(), r);
+      if (it != m_roots.end())
+        return true;
+      return false;
+    }
     size_t global_kernel_state_t::num_collections() const
     {
       return m_num_collections;
@@ -525,6 +535,7 @@ namespace cgc1
       for (auto &gc_thread : m_gc_threads) {
         gc_thread->start_sweep();
       }
+      ::std::atomic_thread_fence(::std::memory_order_acq_rel);
       cgc_internal_vector_t<gc_sparse_object_state_t *> to_be_finalized;
       _bitmap_allocator()._for_all_state([](auto &&state) {
         const size_t alloca_size =
@@ -547,6 +558,11 @@ namespace cgc1
             const auto ud = bitmap_allocator_user_data(object);
             if (mcppalloc_unlikely(!ud))
               continue;
+            if (ud->abort_on_collect()) {
+
+              ::std::cerr << __FILE__ << " " << __LINE__ << " " << state->is_marked(i) << ::std::endl;
+              ::std::abort();
+            }
             state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).set_bit(i, false);
             state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread).set_bit(i, false);
             auto finalizer = ::std::move(ud->gc_user_data_ref().m_finalizer);

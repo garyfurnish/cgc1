@@ -61,6 +61,10 @@ namespace cgc1
   **/
   extern CGC1_DLL_PUBLIC void cgc_remove_root(void **v);
   /**
+   * \brief Return true if pointer is root, false otherwise.
+   **/
+  extern CGC1_DLL_PUBLIC bool cgc_has_root(void **v);
+  /**
    * \brief Add a root to scan.
   **/
   template <typename T>
@@ -149,6 +153,10 @@ namespace cgc1
    * \brief Wait for finalization to finsih.
    **/
   extern CGC1_DLL_PUBLIC void cgc_wait_finalization(bool do_local_finalization = true);
+  /**
+   * \brief Set if program should abort if this object is collected.
+   **/
+  extern CGC1_DLL_PUBLIC void cgc_set_abort_on_collect(void *v, bool abort_on_collect);
   namespace debug
   {
     /**
@@ -166,6 +174,12 @@ namespace cgc1
      * This is not considered a stable API.
      **/
     auto _cgc_hidden_packed_free(uintptr_t loc) -> bool;
+  }
+  namespace details
+  {
+    extern int _is_bitmap_addr_markable(void *addr, bool do_mark = false, bool force_mark = false);
+    extern bool is_bitmap_allocator(void *addr) noexcept;
+    extern bool is_sparse_allocator(void *addr) noexcept;
   }
 }
 #define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())

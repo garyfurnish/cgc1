@@ -101,23 +101,28 @@ namespace cgc1
         m_do_clear = false;
         // Clear marks.
         _clear_marks();
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         m_clear_done = true;
         m_done_clearing.notify_all();
         // wait to start marking
         m_start_mark.wait(m_mutex, [this]() -> bool { return m_do_mark; });
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         m_do_mark = false;
         _mark();
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         m_mark_done = true;
         m_done_mark.notify_all();
         // wait to start sweeping
         m_start_sweep.wait(m_mutex, [this]() -> bool { return m_do_sweep; });
         m_do_sweep = false;
         _sweep();
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         m_sweep_done = true;
         m_done_sweep.notify_all();
         // wait for all threads to resume.
         m_all_threads_resumed.wait(m_mutex, [this]() -> bool { return m_do_all_threads_resumed; });
         m_do_all_threads_resumed = false;
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         _finalize();
         m_finalization_done = true;
         m_done_finalization.notify_all();
@@ -208,8 +213,9 @@ namespace cgc1
         handle_thread(thread);
       }
       // mark everything from stack.
-      for (auto root : m_stack_roots)
+      for (auto root : m_stack_roots) {
         _mark_addrs(*unsafe_reference_cast<void **>(root), 0);
+      }
       // mark all roots.
       for (auto it = m_root_begin; it != m_root_end; ++it) {
         _mark_addrs(**it, 0);
@@ -217,35 +223,50 @@ namespace cgc1
       // mark additional stuff.
       _mark_mark_vector();
     }
+    int _is_bitmap_addr_markable(void *addr, bool do_mark, bool force_mark)
+    {
+      void *const fast_heap_begin = g_gks->fast_slab_begin();
+      void *const fast_heap_end = g_gks->fast_slab_end();
+      const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
+      if (mcppalloc_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
+        return 1;
+      // getting state moves pointer lower, so recheck bounds.
+      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
+        return 2;
+      if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
+        return 3;
+      if (state->addr_in_header(addr))
+        return 4;
+      auto index = state->get_index(addr);
+      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
+        return 5;
+      if (state->is_marked(index) && !force_mark)
+        return 6;
+      if (do_mark)
+        state->set_marked(index);
+      if (state->type_id() != 2) {
+        // atomic, so done.
+        return 7;
+      }
+      return 0;
+    }
     void gc_thread_t::_mark_addrs_bitmap(void *addr, size_t depth)
     {
-      void *fast_heap_begin = g_gks->fast_slab_begin();
       if (depth > 300) {
         // if recursion depth too big, put it on addresses to mark.
         m_addresses_to_mark.insert(addr);
         return;
       }
-      auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-      // getting state moves pointer lower, so recheck bounds.
-      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
-        return;
-      if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
-        return;
-      if (state->addr_in_header(addr))
-        return;
-      auto index = state->get_index(addr);
-      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
-        return;
-      if (state->is_marked(index))
-        return;
-      state->set_marked(index);
-      if (state->type_id() != 2) {
-        // atomic, so done.
+      auto is_markable = _is_bitmap_addr_markable(addr, true, false);
+      if (is_markable) {
         return;
       }
+      const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
+      const auto index = state->get_index(addr);
+      const auto start = state->get_object(index);
       // recurse to pointers.
-      for (void **it = reinterpret_cast<void **>(addr);
-           it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(addr) + state->real_entry_size()); ++it) {
+      for (void **it = reinterpret_cast<void **>(start);
+           it != reinterpret_cast<void **>(reinterpret_cast<uint8_t *>(start) + state->real_entry_size()); ++it) {
         _mark_addrs(*it, depth + 1);
       }
     }

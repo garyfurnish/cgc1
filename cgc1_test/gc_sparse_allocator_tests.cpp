@@ -232,6 +232,7 @@ static MCPPALLOC_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50).m_ptr;
   old_memory = ::mcppalloc::hide_pointer(memory);
+  AssertThat(::cgc1::details::is_sparse_allocator(memory), IsTrue());
   cgc1::cgc_set_uncollectable(memory, true);
   ::mcppalloc::secure_zero_pointer(memory);
 }
@@ -260,7 +261,7 @@ static void uncollectable_test()
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
   cgc1::cgc_set_uncollectable(nullptr, true);
-  cgc1::cgc_set_uncollectable(&old_memory, true);
+  AssertThrows(::std::runtime_error, cgc1::cgc_set_uncollectable(&old_memory, true));
 }
 
 static void linked_list_test_setup()
