@@ -10,7 +10,23 @@ namespace cgc1
 {
   namespace details
   {
-    unique_ptr_malloc_t<global_kernel_state_t> g_gks;
+    global_kernel_state_t *g_gks{nullptr};
+    static auto &get_gks()
+    {
+      static unique_ptr_malloc_t<global_kernel_state_t> gks;
+      return gks;
+    }
+    void check_initialized()
+    {
+      if (!details::g_gks) {
+        global_kernel_state_param_t param;
+        get_gks() = make_unique_malloc<details::global_kernel_state_t>(param);
+        g_gks = get_gks().get();
+        get_gks()->initialize();
+      }
+      if (!details::g_gks)
+        g_gks = get_gks().get();
+    }
     void thread_gc_handler(int)
     {
       g_gks->_collect_current_thread();
@@ -24,6 +40,16 @@ namespace cgc1
     __declspec(thread) thread_local_kernel_state_t *t_tlks;
 #endif
 #endif
+    bool is_bitmap_allocator(void *addr) noexcept
+    {
+      if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end())
+        return true;
+      return false;
+    }
+    bool is_sparse_allocator(void *addr) noexcept
+    {
+      return (addr >= details::g_gks->slow_slab_begin() && addr < details::g_gks->slow_slab_end());
+    }
   }
   namespace debug
   {
@@ -88,12 +114,12 @@ namespace cgc1
   {
     if (!addr)
       return nullptr;
-    if (is_bitmap_allocator(addr)) {
+    if (details::is_bitmap_allocator(addr)) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers())
         return state->begin() + state->get_index(addr) * state->real_entry_size();
       return nullptr;
-    } else if (is_sparse_allocator(addr)) {
+    } else if (details::is_sparse_allocator(addr)) {
       details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
       if (!details::g_gks->is_valid_object_state(os)) {
         os = details::g_gks->find_valid_object_state(addr);
@@ -127,11 +153,7 @@ namespace cgc1
   }
   void cgc_add_root(void **v)
   {
-    if (!details::g_gks) {
-      global_kernel_state_param_t param;
-      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
-      details::g_gks->initialize();
-    }
+    details::check_initialized();
     details::g_gks->add_root(v);
   }
   void cgc_remove_root(void **v)
@@ -139,6 +161,10 @@ namespace cgc1
     if (!details::g_gks)
       return;
     details::g_gks->remove_root(v);
+  }
+  bool cgc_has_root(void **v)
+  {
+    return details::g_gks->has_root(v);
   }
   size_t cgc_heap_size()
   {
@@ -164,11 +190,7 @@ namespace cgc1
   }
   void cgc_register_thread(void *top_of_stack)
   {
-    if (!details::g_gks) {
-      global_kernel_state_param_t param;
-      details::g_gks = make_unique_malloc<details::global_kernel_state_t>(param);
-      details::g_gks->initialize();
-    }
+    details::check_initialized();
     details::g_gks->initialize_current_thread(top_of_stack);
     auto tlks = details::get_tlks();
     tlks->set_thread_allocator(&::cgc1::details::g_gks->gc_allocator().initialize_thread());
@@ -228,7 +250,7 @@ namespace cgc1
       ba_user_data->gc_user_data_ref().set_is_default(false);
       ba_user_data->gc_user_data_ref().set_allow_arbitrary_finalizer_thread(allow_arbitrary_finalizer_thread);
       ba_user_data->gc_user_data_ref().m_finalizer = ::std::move(finalizer);
-    } else if (is_sparse_allocator(addr)) {
+    } else if (details::is_sparse_allocator(addr)) {
       void *const start = cgc_start(addr);
       if (mcppalloc_unlikely(!start)) {
         if (throws)
@@ -252,14 +274,29 @@ namespace cgc1
         return;
     }
   }
-  void cgc_set_uncollectable(void *addr, bool is_uncollectable)
+  CGC1_DLL_PUBLIC void cgc_set_abort_on_collect(void *addr, bool abort_on_collect)
+  {
+    const auto ba_user_data = details::bitmap_allocator_user_data(addr);
+    if (!ba_user_data) {
+      if (details::is_sparse_allocator(addr)) {
+        throw ::std::runtime_error("cgc1: abort on collect not implemented for sparse allocator");
+      } else if (details::is_bitmap_allocator(addr)) {
+        throw ::std::runtime_error("cgc1: abort on collect not implemented for bitmap allocator");
+      } else {
+        throw ::std::runtime_error("cgc1: abort on collect not implemented for unknown allocator");
+      }
+    } else {
+      ba_user_data->set_abort_on_collect(abort_on_collect);
+    }
+  }
+  void cgc_set_uncollectable(void *const addr, const bool is_uncollectable)
   {
     if (!addr)
       return;
     const auto ba_user_data = details::bitmap_allocator_user_data(addr);
     if (ba_user_data) {
-      throw ::std::runtime_error("NOT IMPLEMENTED");
-    } else if (is_sparse_allocator(addr)) {
+      throw ::std::runtime_error("cgc1: set uncollectable: NOT IMPLEMENTED");
+    } else if (details::is_sparse_allocator(addr)) {
       if (!addr)
         return;
       void *start = cgc_start(addr);
@@ -275,7 +312,7 @@ namespace cgc1
       ud->set_uncollectable(is_uncollectable);
       set_complex(os, true);
     } else {
-      throw ::std::runtime_error("cgc1: set uncollectable called on bad address.  ");
+      throw ::std::runtime_error("cgc1: set uncollectable called on bad address. 3d503975-2d36-4c20-b426-a7c9727508f3");
     }
   }
   void cgc_set_atomic(void *addr, bool is_atomic)
@@ -289,7 +326,7 @@ namespace cgc1
     if (ba_user_data) {
       throw ::std::runtime_error("NOT IMPLEMENTED");
     }
-    if (!mcppalloc_unlikely(is_sparse_allocator(addr)))
+    if (!mcppalloc_unlikely(details::is_sparse_allocator(addr)))
       ::std::abort();
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     set_atomic(os, is_atomic);

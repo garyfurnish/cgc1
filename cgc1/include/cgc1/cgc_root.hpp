@@ -16,14 +16,15 @@ namespace cgc1
         cgc_remove_root(m_root);
     }
     cgc_root_t(const cgc_root_t &) = delete;
-    cgc_root_t(cgc_root_t &&cgc_root_t) noexcept : m_root(::std::move(cgc_root_t.m_root))
+    cgc_root_t(cgc_root_t &&cgc_root) noexcept : m_root(::std::move(cgc_root.m_root))
     {
+      cgc_root.m_root = nullptr;
     }
     cgc_root_t &operator=(const cgc_root_t &) = delete;
     cgc_root_t &operator=(cgc_root_t &&rhs) noexcept
     {
       m_root = rhs.m_root;
-      rhs.m_root = m_root;
+      rhs.m_root = nullptr;
       return *this;
     }
     auto root() const noexcept -> void *

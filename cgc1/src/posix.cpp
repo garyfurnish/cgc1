@@ -1,5 +1,6 @@
 #include <cgc1/posix.hpp>
 #ifdef MCPPALLOC_POSIX
+#include <array>
 #include <iostream>
 #include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
 #include <pthread.h>
@@ -20,28 +21,38 @@ namespace cgc1
     }
     void stop_thread_suspension()
     {
-      register_signal_handler(SIGUSR1, signal_handler_function_t());
     }
-    static ::std::function<void(int)> s_signal_handlers[SIGUNUSED];
+    using function_array_type = ::std::array<::std::function<void(int)>, SIGUNUSED>;
+    static function_array_type &signal_handler_functions()
+    {
+      static function_array_type s_signal_handlers;
+      return s_signal_handlers;
+    }
   }
-  bool register_signal_handler(int signum, const signal_handler_function_t &handler)
+  bool register_signal_handler(int isignum, const signal_handler_function_t &handler)
   {
+    if (isignum < 0)
+      ::std::abort();
+    auto signum = static_cast<size_t>(isignum);
     if (signum >= SIGUNUSED) {
       return false;
     }
     if (handler) {
-      details::s_signal_handlers[signum] = handler;
-      signal(signum, [](int lsignum) { details::s_signal_handlers[lsignum](lsignum); });
+      details::signal_handler_functions()[signum] = handler;
+      signal(isignum, [](int lsignum) { details::signal_handler_functions()[static_cast<size_t>(lsignum)](lsignum); });
     } else {
-      signal(signum, SIG_IGN);
-      details::s_signal_handlers[signum] = handler;
+      signal(isignum, SIG_IGN);
+      details::signal_handler_functions()[signum] = handler;
     }
     return true;
   }
-  void set_default_signal_handler(int signum)
+  void set_default_signal_handler(int isignum)
   {
-    signal(signum, SIG_DFL);
-    details::s_signal_handlers[signum] = nullptr;
+    if (isignum < 0)
+      ::std::abort();
+    auto signum = static_cast<size_t>(isignum);
+    signal(isignum, SIG_DFL);
+    details::signal_handler_functions()[signum] = nullptr;
   }
   int pthread_kill(::std::thread &thread, int sig)
   {

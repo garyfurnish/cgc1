@@ -15,7 +15,9 @@ namespace cgc1
     {
     }
     cgc_root_pointer_t(const cgc_root_pointer_t &p) noexcept = delete;
-    cgc_root_pointer_t(cgc_root_pointer_t &&) noexcept = default;
+    cgc_root_pointer_t(cgc_root_pointer_t &&p) noexcept : m_t(p.m_t), m_root(m_t)
+    {
+    }
     cgc_root_pointer_t &operator=(pointer_type ptr) noexcept
     {
       m_t = ptr;
@@ -26,7 +28,11 @@ namespace cgc1
       m_t = rhs.m_t;
       return *this;
     }
-    cgc_root_pointer_t &operator=(cgc_root_pointer_t &&) noexcept = default;
+    cgc_root_pointer_t &operator=(cgc_root_pointer_t &&rhs) noexcept
+    {
+      m_t = ::std::move(rhs.m_t);
+      return *this;
+    }
     auto operator*() const noexcept -> reference_type
     {
       return *m_t;
@@ -73,7 +79,9 @@ namespace cgc1
     {
     }
     cgc_root_pointer_converting_t(const cgc_root_pointer_converting_t &p) noexcept = delete;
-    cgc_root_pointer_converting_t(cgc_root_pointer_converting_t &&) noexcept = default;
+    cgc_root_pointer_converting_t(cgc_root_pointer_converting_t &&p) noexcept : m_t(p.m_t), m_root(m_t)
+    {
+    }
     cgc_root_pointer_converting_t &operator=(pointer_type ptr) noexcept
     {
       m_t = ptr;
@@ -84,7 +92,12 @@ namespace cgc1
       m_t = rhs.m_t;
       return *this;
     }
-    cgc_root_pointer_converting_t &operator=(cgc_root_pointer_converting_t &&) noexcept = default;
+    cgc_root_pointer_converting_t &operator=(cgc_root_pointer_converting_t &&rhs) noexcept
+    {
+      m_t = ::std::move(rhs.m_t);
+      return *this;
+    }
+
     auto operator*() const noexcept -> reference_type
     {
       return *m_t;

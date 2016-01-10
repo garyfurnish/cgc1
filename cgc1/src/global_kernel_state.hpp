@@ -141,6 +141,10 @@ namespace cgc1
       **/
       void remove_root(void **) REQUIRES(!m_mutex);
       /**
+       * \brief Return true if has the given root, false otherwise.
+       **/
+      bool has_root(void **r) REQUIRES(!m_mutex);
+      /**
        * \brief Wait for finalization of the last collection to finish.
       **/
       void wait_for_finalization(bool do_local_finalization = true) REQUIRES(!m_mutex, !m_thread_mutex);
@@ -440,7 +444,7 @@ namespace cgc1
 
     private:
     };
-    extern unique_ptr_malloc_t<global_kernel_state_t> g_gks;
+    extern global_kernel_state_t *g_gks;
     extern auto _real_gks() -> global_kernel_state_t *;
   }
 }
