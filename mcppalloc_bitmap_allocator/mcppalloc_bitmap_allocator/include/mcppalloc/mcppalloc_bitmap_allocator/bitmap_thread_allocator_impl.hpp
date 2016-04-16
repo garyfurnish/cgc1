@@ -12,13 +12,9 @@ namespace mcppalloc
     {
       template <typename Allocator_Policy>
       bitmap_thread_allocator_t<Allocator_Policy>::bitmap_thread_allocator_t(bitmap_thread_allocator_t &&ta) noexcept
-          : m_locals(::std::move(ta.m_locals)),
-            m_force_maintenance(ta.force_maintenance.load()),
-            m_free_list(::std::move(ta.m_free_list)),
-            m_allocator(ta.m_allocator),
-            m_popcount_max(::std::move(ta.m_popcount_max)),
-            m_max_in_use(::std::move(ta.m_max_in_use)),
-            m_max_free(::std::move(ta.m_max_free))
+          : m_locals(::std::move(ta.m_locals)), m_force_maintenance(ta.force_maintenance.load()),
+            m_free_list(::std::move(ta.m_free_list)), m_allocator(ta.m_allocator), m_popcount_max(::std::move(ta.m_popcount_max)),
+            m_max_in_use(::std::move(ta.m_max_in_use)), m_max_free(::std::move(ta.m_max_free))
       {
       }
       template <typename Allocator_Policy>

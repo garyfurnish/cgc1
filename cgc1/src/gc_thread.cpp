@@ -22,13 +22,12 @@ namespace cgc1
       m_finalization_done = true;
       // start thread.
       using thread_type = decltype(m_thread);
-      m_thread = thread_type(thread_type::allocator{},
-                             [this]() -> void * {
-                               _run();
-                               // make sure to destroy internal allocator if used.
-                               _real_gks()->_internal_allocator().destroy_thread();
-                               return nullptr;
-                             });
+      m_thread = thread_type(thread_type::allocator{}, [this]() -> void * {
+        _run();
+        // make sure to destroy internal allocator if used.
+        _real_gks()->_internal_allocator().destroy_thread();
+        return nullptr;
+      });
     }
     gc_thread_t::~gc_thread_t()
     {

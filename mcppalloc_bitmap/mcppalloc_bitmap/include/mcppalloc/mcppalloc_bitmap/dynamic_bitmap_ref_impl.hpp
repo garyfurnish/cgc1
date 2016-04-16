@@ -7,8 +7,8 @@ namespace mcppalloc
   namespace bitmap
   {
     template <bool is_const>
-    inline dynamic_bitmap_ref_t<is_const>::dynamic_bitmap_ref_t(bits_array_type array, size_t sz) noexcept : m_array(array),
-                                                                                                             m_size(sz)
+    inline dynamic_bitmap_ref_t<is_const>::dynamic_bitmap_ref_t(bits_array_type array, size_t sz) noexcept
+        : m_array(array), m_size(sz)
     {
     }
     template <bool is_const>

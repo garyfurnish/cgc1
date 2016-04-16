@@ -118,8 +118,10 @@ namespace cgc1
    * @param allow_arbitrary_finalizer_thread Allow finalizer to run in an arbitrary background gc thread instead of a user created
    *thread.
   **/
-  extern CGC1_DLL_PUBLIC void cgc_register_finalizer(
-      void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread = false, bool throws = true);
+  extern CGC1_DLL_PUBLIC void cgc_register_finalizer(void *addr,
+                                                     ::std::function<void(void *)> finalizer,
+                                                     bool allow_arbitrary_finalizer_thread = false,
+                                                     bool throws = true);
   /**
    * \brief Set if a given address is uncollectable.
   **/

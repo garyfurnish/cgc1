@@ -17,8 +17,7 @@ namespace mcppalloc
                                                                                      size_t length,
                                                                                      size_t minimum_alloc_length,
                                                                                      size_t maximum_alloc_length) noexcept
-          : m_next_alloc_ptr(reinterpret_cast<object_state_type *>(start)),
-            m_end(reinterpret_cast<uint8_t *>(start) + length),
+          : m_next_alloc_ptr(reinterpret_cast<object_state_type *>(start)), m_end(reinterpret_cast<uint8_t *>(start) + length),
             m_minimum_alloc_length(object_state_type::needed_size(sizeof(object_state_type), minimum_alloc_length)),
             m_start(reinterpret_cast<uint8_t *>(start))
       {
@@ -43,12 +42,9 @@ namespace mcppalloc
       }
       template <typename Allocator_Policy>
       MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(allocator_block_t &&block) noexcept
-          : m_free_list(::std::move(block.m_free_list)),
-            m_next_alloc_ptr(::std::move(block.m_next_alloc_ptr)),
-            m_end(::std::move(block.m_end)),
-            m_minimum_alloc_length(::std::move(block.m_minimum_alloc_length)),
-            m_start(::std::move(block.m_start)),
-            m_default_user_data(::std::move(block.m_default_user_data)),
+          : m_free_list(::std::move(block.m_free_list)), m_next_alloc_ptr(::std::move(block.m_next_alloc_ptr)),
+            m_end(::std::move(block.m_end)), m_minimum_alloc_length(::std::move(block.m_minimum_alloc_length)),
+            m_start(::std::move(block.m_start)), m_default_user_data(::std::move(block.m_default_user_data)),
             m_last_max_alloc_available(::std::move(block.m_last_max_alloc_available)),
             m_maximum_alloc_length(::std::move(block.m_maximum_alloc_length))
       {
