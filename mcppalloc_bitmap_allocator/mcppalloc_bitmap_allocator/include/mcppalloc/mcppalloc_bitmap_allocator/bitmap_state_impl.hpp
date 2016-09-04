@@ -43,7 +43,6 @@ namespace mcppalloc
       }
       inline void bitmap_state_t::initialize_consts() noexcept
       {
-        assert(this);
         m_internal.m_pre_magic_number = cs_magic_number_pre;
         m_internal.m_post_magic_number = cs_magic_number_0;
       }

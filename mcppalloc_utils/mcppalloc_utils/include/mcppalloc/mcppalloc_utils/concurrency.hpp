@@ -2,6 +2,7 @@
 #include "declarations.hpp"
 #include <atomic>
 #include <condition_variable>
+#include <immintrin.h>
 #include <mutex>
 #include <thread>
 // This file provides wrapped stl mutex functionality that interacts with

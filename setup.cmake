@@ -6,10 +6,10 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 IF(${CMAKE_CXX_COMPILER} MATCHES ".*clang\\+\\+")
 #LINUX CLANG
-add_compile_options(-Weverything -Wthread-safety -Wno-padded -Wno-c++98-compat-pedantic -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof -Wno-weak-vtables -Wno-weak-template-vtables -Wno-missing-prototypes -Wno-reserved-id-macro -fcolor-diagnostics)
+add_compile_options(-Weverything -Wthread-safety -Wno-padded -Wno-c++98-compat-pedantic -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof -Wno-weak-vtables -Wno-weak-template-vtables -Wno-missing-prototypes -Wno-reserved-id-macro -fcolor-diagnostics -Wno-undefined-var-template)
 #LINUX GCC
 ELSE(${CMAKE_CXX_COMPILER} MATCHES ".*clang\\+\\+")
-add_compile_options(-Wno-attributes -Wno-unused-local-typedefs -Wno-unused-variable -Wno-unused-parameter -Wlogical-op -Wnoexcept -Wstrict-null-sentinel -Wtrampolines -Wvector-operation-performance)
+add_compile_options(-Wno-attributes -Wno-unused-local-typedefs -Wno-unused-variable -Wno-unused-parameter -Wlogical-op -Wnoexcept -Wstrict-null-sentinel -Wtrampolines -Wvector-operation-performance -Wno-terminate)
 
 ENDIF(${CMAKE_CXX_COMPILER} MATCHES ".*clang\\+\\+")
 #LINUX CLANG OR GCC
