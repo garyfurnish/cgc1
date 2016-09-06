@@ -1,4 +1,4 @@
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
 #ifdef _WIN32
 #pragma optimize("", off)
 #endif

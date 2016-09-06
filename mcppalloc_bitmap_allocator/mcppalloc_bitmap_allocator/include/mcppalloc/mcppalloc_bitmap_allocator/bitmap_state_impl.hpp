@@ -1,7 +1,7 @@
 #pragma once
 #include <atomic>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/security.hpp>
+#include <mcpputil/mcpputil/security.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -148,7 +148,7 @@ namespace mcppalloc
       {
         auto blocks = m_internal.m_info.m_num_blocks;
         auto unaligned = sizeof(*this) + sizeof(bits_array_type) * blocks * num_bit_arrays();
-        m_internal.m_info.m_header_size = align(unaligned, cs_header_alignment);
+        m_internal.m_info.m_header_size = mcpputil::align(unaligned, cs_header_alignment);
 
         auto hdr_sz = header_size();
         auto data_sz = c_bitmap_block_size - slab_allocator::details::slab_allocator_t::cs_header_sz - hdr_sz;
@@ -195,8 +195,8 @@ namespace mcppalloc
         // this awful code is because for a conservative gc
         // we could set free before memory_address is live.
         // this can go wrong because we could mark while it is still free.
-        if (mcppalloc_unlikely(is_free(i))) {
-          if (mcppalloc_likely(retries < 15)) {
+        if (mcpputil_unlikely(is_free(i))) {
+          if (mcpputil_likely(retries < 15)) {
             goto RESTART;
           } else {
             ::std::cerr << "mcppalloc: bitmap_state terminating due to allocation failure 0b3fb7a6-7270-45e3-a1cf-da341de0ccfb\n";
@@ -213,9 +213,9 @@ namespace mcppalloc
         if (v < begin() || v > end())
           return false;
         size_t byte_diff = static_cast<size_t>(v - begin());
-        if (mcppalloc_unlikely(byte_diff % real_entry_size()))
+        if (mcpputil_unlikely(byte_diff % real_entry_size()))
           return false;
-        secure_zero_stream(v, real_entry_size());
+        mcpputil::secure_zero_stream(v, real_entry_size());
         auto i = byte_diff / real_entry_size();
         set_free(i, true);
         for (size_t j = 0; j < num_user_bit_fields(); ++j)
@@ -249,11 +249,11 @@ namespace mcppalloc
       }
       inline auto bitmap_state_t::free_bits() noexcept -> bits_array_type *
       {
-        return unsafe_cast<bits_array_type>(this + 1);
+        return mcpputil::unsafe_cast<bits_array_type>(this + 1);
       }
       inline auto bitmap_state_t::free_bits() const noexcept -> const bits_array_type *
       {
-        return unsafe_cast<bits_array_type>(this + 1);
+        return mcpputil::unsafe_cast<bits_array_type>(this + 1);
       }
 
       inline auto bitmap_state_t::mark_bits() noexcept -> bits_array_type *
@@ -300,13 +300,13 @@ namespace mcppalloc
 
       inline auto bitmap_state_t::user_bits_checked(size_t i) noexcept -> bits_array_type *
       {
-        if (mcppalloc_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
           throw ::std::out_of_range("mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242");
         return user_bits(i);
       }
       inline auto bitmap_state_t::user_bits_checked(size_t i) const noexcept -> const bits_array_type *
       {
-        if (mcppalloc_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
           throw ::std::out_of_range("mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605");
         return user_bits(i);
       }
@@ -314,19 +314,19 @@ namespace mcppalloc
       inline auto bitmap_state_t::get_index(void *v) const noexcept -> size_t
       {
         auto diff = reinterpret_cast<const uint8_t *>(v) - begin();
-        if (mcppalloc_unlikely(diff < 0)) {
+        if (mcpputil_unlikely(diff < 0)) {
           assert(0);
           return ::std::numeric_limits<size_t>::max();
         }
         const auto index = static_cast<size_t>(diff) / real_entry_size();
-        if (mcppalloc_unlikely(index >= size())) {
+        if (mcpputil_unlikely(index >= size())) {
           return ::std::numeric_limits<size_t>::max();
         }
         return index;
       }
       inline auto bitmap_state_t::get_object(size_t i) noexcept -> void *
       {
-        if (mcppalloc_unlikely(i >= size())) {
+        if (mcpputil_unlikely(i >= size())) {
           throw ::std::runtime_error("mcppalloc: bitmap_state get object failed");
         }
         return reinterpret_cast<void *>(begin() + i * real_entry_size());
@@ -338,7 +338,7 @@ namespace mcppalloc
       inline void bitmap_state_t::verify_magic() const
       {
 #ifdef _DEBUG
-        if (mcppalloc_unlikely(!has_valid_magic_numbers())) {
+        if (mcpputil_unlikely(!has_valid_magic_numbers())) {
           ::std::cerr << "mcppalloc: bitmap_state: invalid magic numbers 027e8d50-8555-4e7f-93a7-4d048b506436\n";
           ::std::abort();
         }

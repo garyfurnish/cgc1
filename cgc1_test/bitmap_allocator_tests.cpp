@@ -3,12 +3,12 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
 
 using namespace bandit;
 // alias
 static auto &gks = ::cgc1::details::g_gks;
-using namespace ::mcppalloc::literals;
+using namespace ::mcpputil::literals;
 
 /**
  * \brief Setup for root test.
@@ -19,10 +19,10 @@ static MCPPALLOC_NO_INLINE void packed_root_test__setup(void *&memory, size_t &o
   auto &poa = gks->_bitmap_allocator();
   auto &ta = poa.initialize_thread();
   memory = ta.allocate(memory_sz).m_ptr;
-  AssertThat(::mcppalloc::is_zero(memory, memory_sz), IsTrue());
-  mcppalloc::put_unique_seeded_random(memory, memory_sz);
+  AssertThat(::mcpputil::is_zero(memory, memory_sz), IsTrue());
+  mcpputil::put_unique_seeded_random(memory, memory_sz);
   // hide a pointer away for comparison testing.
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
   AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
   AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
@@ -49,13 +49,13 @@ static void packed_root_test()
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that the we zero the memory so the pointer doesn't linger.
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
   const auto num_collections = cgc1::debug::num_gc_collections();
   // force collection.
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  index = state->get_index(::mcppalloc::unhide_pointer(old_memory));
-  AssertThat(::mcppalloc::is_zero(::mcppalloc::unhide_pointer(old_memory), memory_sz), IsTrue());
+  index = state->get_index(::mcpputil::unhide_pointer(old_memory));
+  AssertThat(::mcpputil::is_zero(::mcpputil::unhide_pointer(old_memory), memory_sz), IsTrue());
   AssertThat(state->is_marked(index), IsFalse());
   AssertThat(state->is_free(index), IsTrue());
   // verify that we did perform a collection.
@@ -65,7 +65,7 @@ static void packed_root_test()
 static void packed_linked_list_test()
 {
   ::std::vector<uintptr_t> locations;
-  ::mcppalloc::mutex_t debug_mutex;
+  ::mcpputil::mutex_t debug_mutex;
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
@@ -82,15 +82,15 @@ static void packed_linked_list_test()
       void **bar = tmp;
       for (int i = 0; i < 0; ++i) {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        locations.push_back(::mcppalloc::hide_pointer(bar));
-        ::mcppalloc::secure_zero(bar, 100);
+        locations.push_back(::mcpputil::hide_pointer(bar));
+        ::mcpputil::secure_zero(bar, 100);
         *bar = ta.allocate(100).m_ptr;
         bar = reinterpret_cast<void **>(*bar);
       }
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        // locations.push_back(::mcppalloc::hide_pointer(bar));
-        locations.push_back(::mcppalloc::hide_pointer(tmp));
+        // locations.push_back(::mcpputil::hide_pointer(bar));
+        locations.push_back(::mcpputil::hide_pointer(tmp));
       }
     }
     while (keep_going) {
@@ -108,10 +108,10 @@ static void packed_linked_list_test()
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
     for (auto &&loc : locations) {
       if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
-        ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
+        ::std::cerr << "pointer not marked " << ::mcpputil::unhide_pointer(loc) << ::std::endl;
         ::std::abort();
       }
-      if (mcppalloc_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc))) {
+      if (mcpputil_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc))) {
         ::std::cerr << "097af1d8-8bfd-433e-b46d-88c6b0dc7dce";
         ::std::abort();
       }
@@ -121,12 +121,12 @@ static void packed_linked_list_test()
   keep_going = false;
   t1.join();
   cgc1::cgc_remove_root(reinterpret_cast<void **>(&tmp));
-  ::mcppalloc::secure_zero(&tmp, sizeof(tmp));
+  ::mcpputil::secure_zero(&tmp, sizeof(tmp));
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   for (auto &&loc : locations) {
-    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
-    auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
+    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcpputil::unhide_pointer(loc));
+    auto index = state->get_index(::mcpputil::unhide_pointer(loc));
     AssertThat(state->has_valid_magic_numbers(), IsTrue());
     AssertThat(state->is_marked(index), IsFalse());
     AssertThat(state->is_free(index), IsTrue());
@@ -135,12 +135,12 @@ static void packed_linked_list_test()
 }
 static MCPPALLOC_NO_INLINE bool is_unique_seeded_random(void *v, size_t sz)
 {
-  return ::mcppalloc::is_unique_seeded_random(v, sz);
+  return ::mcpputil::is_unique_seeded_random(v, sz);
 }
 static void packed_allocator_test()
 {
   ::std::vector<uintptr_t> locations;
-  ::mcppalloc::mutex_t debug_mutex;
+  ::mcpputil::mutex_t debug_mutex;
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   std::atomic<bool> keep_going{true};
@@ -152,28 +152,28 @@ static void packed_allocator_test()
 
     tmp = reinterpret_cast<uint8_t *>(cgc1::cgc_malloc(allocation_size));
     ::mcppalloc::bitmap_allocator::details::get_state(tmp)->verify_magic();
-    if (!mcppalloc::is_zero(tmp, allocation_size)) {
+    if (!mcpputil::is_zero(tmp, allocation_size)) {
       ::std::cerr << "c3c1b941-f503-4730-b1bf-fd72861348e1\n";
       assert(0);
       ::std::abort();
     }
-    mcppalloc::put_unique_seeded_random(tmp, allocation_size);
+    mcpputil::put_unique_seeded_random(tmp, allocation_size);
     auto finalizer = [&is_finalized](void *) { is_finalized = true; };
     cgc1::cgc_register_finalizer(tmp, finalizer);
-    assert(mcppalloc::is_unique_seeded_random(tmp, allocation_size));
-    if (!mcppalloc::is_unique_seeded_random(tmp, allocation_size)) {
+    assert(mcpputil::is_unique_seeded_random(tmp, allocation_size));
+    if (!mcpputil::is_unique_seeded_random(tmp, allocation_size)) {
       ::std::cerr << "eb5d2cda-f75a-4e04-8e0c-eb302b536e01\n";
       assert(0);
       ::std::abort();
     }
     void *tmp2 = cgc1::cgc_malloc(100);
     (void)tmp2;
-    if (!mcppalloc::is_unique_seeded_random(tmp, allocation_size)) {
+    if (!mcpputil::is_unique_seeded_random(tmp, allocation_size)) {
       ::std::abort();
     }
-    locations.push_back(::mcppalloc::hide_pointer(tmp));
+    locations.push_back(::mcpputil::hide_pointer(tmp));
 
-    ::mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(locations.back()))->verify_magic();
+    ::mcppalloc::bitmap_allocator::details::get_state(::mcpputil::unhide_pointer(locations.back()))->verify_magic();
     void *tmp3 = cgc1::cgc_malloc(500);
     (void)tmp3;
     while (keep_going) {
@@ -191,10 +191,10 @@ static void packed_allocator_test()
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
     for (auto &&loc : locations) {
       if (!cgc1::debug::_cgc_hidden_packed_marked(loc)) {
-        ::std::cerr << "pointer not marked " << ::mcppalloc::unhide_pointer(loc) << ::std::endl;
+        ::std::cerr << "pointer not marked " << ::mcpputil::unhide_pointer(loc) << ::std::endl;
         ::std::abort();
       }
-      if (mcppalloc_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc))) {
+      if (mcpputil_unlikely(cgc1::debug::_cgc_hidden_packed_free(loc))) {
         ::std::cerr << "8c6bda38-3d6b-4632-9b5a-1f20dde0b222\n";
         ::std::abort();
       }
@@ -209,12 +209,12 @@ static void packed_allocator_test()
   }
   ::cgc1::clean_stack(0, 0, 0, 0, 0);
   tmp.clear_root();
-  ::mcppalloc::secure_zero_pointer(*&tmp);
+  ::mcpputil::secure_zero_pointer(*&tmp);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   for (auto &&loc : locations) {
-    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcppalloc::unhide_pointer(loc));
-    auto index = state->get_index(::mcppalloc::unhide_pointer(loc));
+    auto state = mcppalloc::bitmap_allocator::details::get_state(::mcpputil::unhide_pointer(loc));
+    auto index = state->get_index(::mcpputil::unhide_pointer(loc));
     AssertThat(state->has_valid_magic_numbers(), IsTrue());
     AssertThat(state->is_marked(index), IsFalse());
     AssertThat(state->is_free(index), IsTrue());

@@ -180,7 +180,7 @@ namespace cgc1
     return ::std::unique_ptr<T, cgc_internal_malloc_deleter_t>(ptr);
   }
 }
-namespace mcppalloc
+namespace mcpputil
 {
   /**
    * Tag for dispatch of getting deleter.

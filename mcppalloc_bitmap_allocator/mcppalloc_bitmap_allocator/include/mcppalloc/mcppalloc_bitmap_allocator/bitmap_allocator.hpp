@@ -4,9 +4,9 @@
 #include "bitmap_type_info.hpp"
 #include <map>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
-#include <mcppalloc/mcppalloc_utils/thread_local_pointer.hpp>
+#include <mcpputil/mcpputil/container.hpp>
+#include <mcpputil/mcpputil/make_unique.hpp>
+#include <mcpputil/mcpputil/thread_local_pointer.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -18,7 +18,7 @@ namespace mcppalloc
       class bitmap_allocator_t
       {
       public:
-        using mutex_type = mutex_t;
+        using mutex_type = mcpputil::mutex_t;
         using allocator_policy_type = Allocator_Policy;
         using allocator_thread_policy_type = typename Allocator_Policy::thread_policy_type;
         using thread_allocator_type = bitmap_thread_allocator_t<allocator_policy_type>;
@@ -102,13 +102,13 @@ namespace mcppalloc
         /**
          * \brief Per thread thread allocator variable.
          **/
-        static thread_local_pointer_t<thread_allocator_type> t_thread_allocator;
+        static mcpputil::thread_local_pointer_t<thread_allocator_type> t_thread_allocator;
         /**
          * \brief Type of unique ptr for thread allocator.
          **/
-        using thread_allocator_unique_ptr_type =
-            typename ::std::unique_ptr<thread_allocator_type,
-                                       typename cgc_allocator_deleter_t<thread_allocator_type, internal_allocator_type>::type>;
+        using thread_allocator_unique_ptr_type = typename ::std::unique_ptr<
+            thread_allocator_type,
+            typename mcpputil::cgc_allocator_deleter_t<thread_allocator_type, internal_allocator_type>::type>;
         /**
          * \brief Mutex for allocator.
          **/
@@ -144,7 +144,7 @@ namespace mcppalloc
         /**
          * \brief Type of free list memory list.
          **/
-        using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
+        using free_list_type = mcpputil::rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Free sections of slab.
          **/

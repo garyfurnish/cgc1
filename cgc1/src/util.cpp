@@ -1,6 +1,6 @@
 #include <atomic>
 #include <cgc1/declarations.hpp>
-#include <mcppalloc/mcppalloc_utils/security.hpp>
+#include <mcpputil/mcpputil/security.hpp>
 namespace cgc1
 {
   template <size_t bytes>
@@ -46,7 +46,7 @@ namespace cgc1
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
     // zero the stack.
     int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
-    ::mcppalloc::secure_zero(array, bytes);
+    ::mcpputil::secure_zero(array, bytes);
     assert(*array == 0);
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
   }

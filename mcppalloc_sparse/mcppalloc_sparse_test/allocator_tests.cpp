@@ -1,14 +1,14 @@
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#include <mcppalloc/mcppalloc_utils/literals.hpp>
-#include <mcppalloc/mcppalloc_utils/memory_range.hpp>
+#include <mcpputil/mcpputil/aligned_allocator.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
+#include <mcpputil/mcpputil/literals.hpp>
+#include <mcpputil/mcpputil/memory_range.hpp>
 using namespace ::bandit;
-using namespace ::mcppalloc::literals;
+using namespace ::mcpputil::literals;
 void allocator_tests()
 {
   describe("allocator", []() {
-    using policy = ::mcppalloc::default_allocator_policy_t<::mcppalloc::default_aligned_allocator_t>;
+    using policy = ::mcppalloc::default_allocator_policy_t<::mcpputil::default_aligned_allocator_t>;
     using allocator_type = ::mcppalloc::sparse::allocator_t<policy>;
     using ta_type = allocator_type::thread_allocator_type;
     it("test1", []() {
@@ -34,25 +34,25 @@ void allocator_tests()
       ::std::unique_ptr<allocator_type> allocator(new allocator_type());
       AssertThat(allocator->initialize(200000, 100000000), IsTrue());
       // test worst free list.
-      ::mcppalloc::system_memory_range_t memory1 = allocator->get_memory(10000, false);
+      ::mcpputil::system_memory_range_t memory1 = allocator->get_memory(10000, false);
       auto memory2 = allocator->get_memory(20000, false);
       auto memory3 = allocator->get_memory(10000, false);
-      AssertThat(::mcppalloc::size(memory1), Equals(10000_sz));
-      AssertThat(::mcppalloc::size(memory2), Equals(20000_sz));
-      AssertThat(::mcppalloc::size(memory3), Equals(10000_sz));
+      AssertThat(::mcpputil::size(memory1), Equals(10000_sz));
+      AssertThat(::mcpputil::size(memory2), Equals(20000_sz));
+      AssertThat(::mcpputil::size(memory3), Equals(10000_sz));
       AssertThat(memory1.begin() != nullptr, IsTrue());
       allocator->release_memory(memory1);
       allocator->release_memory(memory2);
       AssertThat(allocator->_d_free_list(), HasLength(2));
       auto memory2_new = allocator->get_memory(10000, false);
-      AssertThat(::mcppalloc::size(memory2_new), Equals(10000_sz));
+      AssertThat(::mcpputil::size(memory2_new), Equals(10000_sz));
       AssertThat(memory2_new.begin(), Equals(memory1.begin()));
       AssertThat(reinterpret_cast<int *>(memory2_new.end()), Equals(reinterpret_cast<int *>(memory1.begin() + 10000)));
       auto memory4 = allocator->get_memory(10000, false);
       AssertThat(memory4.begin(), Equals(memory2_new.end()));
       AssertThat(memory4.end(), Equals(memory2.begin() + 10000));
       auto memory5 = allocator->get_memory(10000, false);
-      AssertThat(memory5, Equals(mcppalloc::system_memory_range_t(memory2.begin() + 10000, memory2.end())));
+      AssertThat(memory5, Equals(mcpputil::system_memory_range_t(memory2.begin() + 10000, memory2.end())));
       AssertThat(allocator->_d_free_list(), HasLength(0));
       allocator->release_memory(memory3);
       allocator->release_memory(memory2_new);

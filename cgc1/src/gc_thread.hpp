@@ -7,8 +7,8 @@
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
 #include <condition_variable>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <mcpputil/mcpputil/boost/container/flat_set.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
 #include <mutex>
 #include <vector>
 namespace cgc1
@@ -152,7 +152,7 @@ namespace cgc1
       /**
        * \brief Mutex for condition variables and protection.
       **/
-      ::mcppalloc::mutex_t m_mutex;
+      ::mcpputil::mutex_t m_mutex;
       /**
        * \brief Vector of threads whose stack this thread is responsible for.
       **/

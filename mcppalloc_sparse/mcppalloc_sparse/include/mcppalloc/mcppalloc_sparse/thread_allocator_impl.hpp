@@ -1,6 +1,6 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/json_parser.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
 
 namespace mcppalloc
 {
@@ -82,7 +82,7 @@ namespace mcppalloc
           return 0;
         sz = sz >> 4;
         // This is guarenteed to be positive.
-        size_t id = static_cast<size_t>(64 - mcppalloc_builtin_clz1(sz));
+        size_t id = static_cast<size_t>(64 - mcpputil_builtin_clz1(sz));
         // cap num bins.
         id = ::std::min(id, c_bins - 1);
         return id;
@@ -91,7 +91,7 @@ namespace mcppalloc
       void thread_allocator_t<Global_Allocator, Allocator_Thread_Policy>::fill_multiples_with_default_values()
       {
         // we want minimums to be page size compatible.
-        size_t min_size = slab_t::page_size();
+        size_t min_size = mcpputil::slab_t::page_size();
         if (min_size <= 4096 * 4)
           min_size = 4096 * 4;
         if (min_size > 4096 * 128)
@@ -190,7 +190,7 @@ namespace mcppalloc
         // do this if we exceed the destroy threshold or externally forced.
         bool should_force_free = m_force_free_empty_blocks.load(::std::memory_order_relaxed);
 
-        if (mcppalloc_unlikely(should_force_free)) {
+        if (mcpputil_unlikely(should_force_free)) {
           _do_free_empty_blocks();
         }
       }
@@ -236,8 +236,8 @@ namespace mcppalloc
         _check_do_free_empty_blocks();
         // find allocation set for allocation size.
         size_t id = find_block_set_id(sz);
-        if (mcppalloc_unlikely(sz < c_alignment))
-          sz = c_alignment;
+        if (mcpputil_unlikely(sz < ::mcpputil::c_alignment))
+          sz = ::mcpputil::c_alignment;
         // try allocation.
         allocation_return_type ret = m_allocators[id].allocate(sz);
         // if successful returned.
@@ -248,7 +248,7 @@ namespace mcppalloc
         size_t attempts = 1;
         bool success;
         bool try_expand = true;
-        while (mcppalloc_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+        while (mcpputil_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
           auto action = m_allocator.thread_policy().on_allocation_failure({attempts});
           if (!action.m_repeat) {
             break;
@@ -261,7 +261,7 @@ namespace mcppalloc
           ::std::terminate();
         }
         ret = m_allocators[id].allocate(sz);
-        if (mcppalloc_unlikely(!allocation_valid(ret))) // should be impossible.
+        if (mcpputil_unlikely(!allocation_valid(ret))) // should be impossible.
         {
           ::std::cerr << "mcppalloc: Allocation failed in an impossible fashion.  6bfbf787-3443-47c5-8726-e49d7836315a\n";
           ::std::terminate();
@@ -297,7 +297,7 @@ namespace mcppalloc
             m_allocator._u_get_unregistered_allocator_block(*this, memory_request, m_allocators[id].allocator_min_size(),
                                                             m_allocators[id].allocator_max_size(), sz, block, try_expand);
 
-        if (mcppalloc_unlikely(!success)) {
+        if (mcpputil_unlikely(!success)) {
           return false;
         }
         // gcreate and grab the empty block.

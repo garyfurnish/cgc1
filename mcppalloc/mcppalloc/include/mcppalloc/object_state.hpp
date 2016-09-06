@@ -2,7 +2,7 @@
 #include "allocator_policy.hpp"
 #include "declarations.hpp"
 #include "default_allocator_policy.hpp"
-#include <mcppalloc/mcppalloc_utils/alignment.hpp>
+#include <mcpputil/mcpputil/alignment.hpp>
 namespace mcppalloc
 {
   namespace details
@@ -35,7 +35,7 @@ namespace mcppalloc
        **/
       static constexpr size_type needed_size(size_type header_sz, size_type sz, size_type alignment = cs_alignment)
       {
-        return align(header_sz, alignment) + align(sz, alignment);
+        return mcpputil::align(header_sz, alignment) + mcpputil::align(sz, alignment);
       }
       /**
        * \brief Return the address of the object_state from the allocated object memory.

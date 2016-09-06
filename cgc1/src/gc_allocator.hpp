@@ -2,7 +2,7 @@
 #include "gc_user_data.hpp"
 #include "internal_allocator.hpp"
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/security.hpp>
+#include <mcpputil/mcpputil/security.hpp>
 namespace cgc1
 {
   namespace details
@@ -16,21 +16,21 @@ namespace cgc1
     struct gc_sparse_allocator_thread_policy_t : public ::mcppalloc::details::allocator_thread_policy_tag_t {
       void on_allocation(void *addr, size_t sz)
       {
-        ::mcppalloc::secure_zero(addr, sz);
+        ::mcpputil::secure_zero(addr, sz);
       }
-      ::mcppalloc::do_nothing_t on_create_allocator_block;
-      ::mcppalloc::do_nothing_t on_destroy_allocator_block;
-      ::mcppalloc::do_nothing_t on_creation;
+      ::mcpputil::do_nothing_t on_create_allocator_block;
+      ::mcpputil::do_nothing_t on_destroy_allocator_block;
+      ::mcpputil::do_nothing_t on_creation;
       auto on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
           -> ::mcppalloc::details::allocation_failure_action_t;
 
       using allocator_block_user_data_type = gc_user_data_t;
     };
     struct gc_bitmap_allocator_thread_policy_t : public ::mcppalloc::details::allocator_thread_policy_tag_t {
-      ::mcppalloc::do_nothing_t on_allocation;
-      ::mcppalloc::do_nothing_t on_create_allocator_block;
-      ::mcppalloc::do_nothing_t on_destroy_allocator_block;
-      ::mcppalloc::do_nothing_t on_creation;
+      ::mcpputil::do_nothing_t on_allocation;
+      ::mcpputil::do_nothing_t on_create_allocator_block;
+      ::mcpputil::do_nothing_t on_destroy_allocator_block;
+      ::mcpputil::do_nothing_t on_creation;
       auto on_allocation_failure(const ::mcppalloc::details::allocation_failure_t &failure)
           -> ::mcppalloc::details::allocation_failure_action_t;
 

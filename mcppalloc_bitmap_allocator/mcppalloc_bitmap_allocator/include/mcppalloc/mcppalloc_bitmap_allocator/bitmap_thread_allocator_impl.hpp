@@ -1,7 +1,7 @@
 #pragma once
 #include <mcppalloc/allocator_thread_policy.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
 #include <new>
 #include <thread>
 namespace mcppalloc
@@ -38,13 +38,13 @@ namespace mcppalloc
         do_maintenance();
         for (auto &&package : m_locals) {
           for (auto &&vec : package.second.m_vectors) {
-            if (mcppalloc_unlikely(!vec.m_vector.empty())) {
+            if (mcpputil_unlikely(!vec.m_vector.empty())) {
               ::std::cerr << ::std::this_thread::get_id() << " error: deallocating bitmap_thread_allocator_t with objects left\n";
               ::std::abort();
             }
           }
         }
-        if (mcppalloc_unlikely(!m_free_list.empty())) {
+        if (mcpputil_unlikely(!m_free_list.empty())) {
           ::std::cerr << ::std::this_thread::get_id()
                       << " error deallocating bitmap_thread_allocator_t with free list nonempty\n";
         }
@@ -98,7 +98,7 @@ namespace mcppalloc
           // move extra in use to global.
           for (auto &&state : vec.m_vector) {
             const auto pop_count = state->free_popcount();
-            if (pop_count > state->size() / 2 || mcppalloc_unlikely(m_in_destructor))
+            if (pop_count > state->size() / 2 || mcpputil_unlikely(m_in_destructor))
               // approximately half free.
               num_potential_moves++;
           }
@@ -111,7 +111,7 @@ namespace mcppalloc
               auto it = vec.m_vector.begin();
               while (it != end) {
                 auto &state = **it;
-                if (state.free_popcount() > state.size() / 2 || mcppalloc_unlikely(m_in_destructor)) {
+                if (state.free_popcount() > state.size() / 2 || mcpputil_unlikely(m_in_destructor)) {
                   num_found++;
                   if (num_found > threshold) {
                     --end;
@@ -166,7 +166,7 @@ namespace mcppalloc
           if (!m_free_list.empty()) {
             auto &type_info = m_allocator.get_type(package.type_id());
             // free list not empty
-            bitmap_state_t *state = unsafe_cast<bitmap_state_t>(m_free_list.back());
+            bitmap_state_t *state = mcpputil::unsafe_cast<bitmap_state_t>(m_free_list.back());
             state->verify_magic();
             assert(state);
             state->m_internal.m_info = package_type::_get_info(id);
@@ -214,7 +214,7 @@ namespace mcppalloc
       {
         bitmap_state_t *state = get_state(v);
         state->verify_magic();
-        if (mcppalloc_unlikely(!state->has_valid_magic_numbers())) {
+        if (mcpputil_unlikely(!state->has_valid_magic_numbers())) {
           ::std::cerr
               << "mcppalloc bitmap_thread_allocator state has invalid magic numbers ad761a4e-656e-45a8-abe9-541414679c1f\n";
           ::std::abort();
@@ -222,7 +222,7 @@ namespace mcppalloc
         state->deallocate(v);
         if (state->all_free()) {
           auto id = get_bitmap_size_id(state->declared_entry_size());
-          if (mcppalloc_unlikely(id == ::std::numeric_limits<size_t>::max())) {
+          if (mcpputil_unlikely(id == ::std::numeric_limits<size_t>::max())) {
             ::std::cerr << "mcppalloc bitmap_thread_allocator consistency error aa16e07a-5f8c-4a97-b809-c944ff4c45b9\n";
             ::std::abort();
           }
@@ -255,7 +255,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void bitmap_thread_allocator_t<Allocator_Policy>::_check_maintenance()
       {
-        if (mcppalloc_unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
+        if (mcpputil_unlikely(m_force_maintenance.load(::std::memory_order_relaxed)))
           do_maintenance();
       }
       template <typename Allocator_Policy>

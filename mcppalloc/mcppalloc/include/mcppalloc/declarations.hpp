@@ -1,5 +1,5 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/declarations.hpp>
+#include <mcpputil/mcpputil/declarations.hpp>
 namespace mcppalloc
 {
   // type for representing infinite length.

@@ -1,6 +1,6 @@
 #pragma once
 #include "integer_block.hpp"
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <numeric>
 namespace mcppalloc
 {
@@ -32,7 +32,7 @@ namespace mcppalloc
       {
         auto pos = i / 64;
         auto sub_pos = i - (pos * 64);
-        auto &bits = unsafe_reference_cast<::std::atomic<uint64_t>>(m_array[pos]);
+        auto &bits = mcpputil::unsafe_reference_cast<::std::atomic<uint64_t>>(m_array[pos]);
         bool success = false;
         while (!success) {
           auto cur = bits.load(::std::memory_order_relaxed);
@@ -52,7 +52,7 @@ namespace mcppalloc
       {
         auto pos = i / 64;
         auto sub_pos = i - (pos * 64);
-        auto &bits = unsafe_reference_cast<::std::atomic<uint64_t>>(m_array[pos]);
+        auto &bits = mcpputil::unsafe_reference_cast<::std::atomic<uint64_t>>(m_array[pos]);
         return (bits.load(ordering) & (1ll << sub_pos)) > sub_pos;
       }
       template <size_t Quads>

@@ -11,7 +11,7 @@ namespace cgc1
 {
   namespace details
   {
-    using ::mcppalloc::unsafe_reference_cast;
+    using ::mcpputil::unsafe_reference_cast;
     gc_thread_t::gc_thread_t()
     {
       // tell thread to run.
@@ -43,9 +43,9 @@ namespace cgc1
       // wait for thread to terminate.
       m_thread.join();
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
-      ::mcppalloc::clear_capacity(m_addresses_to_mark);
-      ::mcppalloc::clear_capacity(m_stack_roots);
-      ::mcppalloc::clear_capacity(m_watched_threads);
+      ::mcpputil::clear_capacity(m_addresses_to_mark);
+      ::mcpputil::clear_capacity(m_stack_roots);
+      ::mcpputil::clear_capacity(m_watched_threads);
     }
     void gc_thread_t::reset()
     {
@@ -73,7 +73,7 @@ namespace cgc1
     void gc_thread_t::add_thread(::std::thread::id id)
     {
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
-      ::mcppalloc::insert_unique_sorted(m_watched_threads, id, ::std::less<::std::thread::id>());
+      ::mcpputil::insert_unique_sorted(m_watched_threads, id, ::std::less<::std::thread::id>());
     }
     void gc_thread_t::set_allocator_blocks(gc_allocator_t::this_allocator_block_handle_t *begin,
                                            gc_allocator_t::this_allocator_block_handle_t *end)
@@ -196,9 +196,9 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
         block->_verify(begin);
-        auto end = make_next_iterator(block->current_end());
+        auto end = mcpputil::make_next_iterator(block->current_end());
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() != nullptr);
           clear_mark(&*os_it);
@@ -227,17 +227,17 @@ namespace cgc1
       void *const fast_heap_begin = g_gks->fast_slab_begin();
       void *const fast_heap_end = g_gks->fast_slab_end();
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-      if (mcppalloc_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
+      if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
         return 1;
       // getting state moves pointer lower, so recheck bounds.
       if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
         return 2;
-      if (mcppalloc_unlikely(!state->has_valid_magic_numbers()))
+      if (mcpputil_unlikely(!state->has_valid_magic_numbers()))
         return 3;
       if (state->addr_in_header(addr))
         return 4;
       auto index = state->get_index(addr);
-      if (mcppalloc_unlikely(index == ::std::numeric_limits<size_t>::max()))
+      if (mcpputil_unlikely(index == ::std::numeric_limits<size_t>::max()))
         return 5;
       if (state->is_marked(index) && !force_mark)
         return 6;
@@ -343,8 +343,8 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
-        auto end = make_next_iterator(block->current_end());
+        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto end = mcpputil::make_next_iterator(block->current_end());
         // iterate through all objects.
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() == end || os_it->next_valid());
@@ -409,9 +409,9 @@ namespace cgc1
           }
         }
         assert(os->object_end() < g_gks->gc_allocator().end());
-        ::mcppalloc::secure_zero_stream(os->object_start(), os->object_size());
+        ::mcpputil::secure_zero_stream(os->object_start(), os->object_size());
         // add to list of objects to be freed.
-        to_be_freed.push_back(::mcppalloc::hide_pointer(os->object_start()));
+        to_be_freed.push_back(::mcpputil::hide_pointer(os->object_start()));
       }
       // notify kernel that the memory was freed.
       g_gks->_add_freed_in_last_collection(to_be_freed);

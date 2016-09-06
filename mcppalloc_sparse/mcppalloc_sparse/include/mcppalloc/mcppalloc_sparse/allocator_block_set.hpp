@@ -25,9 +25,9 @@ namespace mcppalloc
         using allocator = typename Allocator_Policy::internal_allocator_type;
         using allocator_block_type = allocator_block_t<allocator_policy_type>;
         using allocation_return_type = typename allocator_block_type::allocation_return_type;
-        using allocator_block_vector_t = rebind_vector_t<allocator_block_type, allocator>;
+        using allocator_block_vector_t = mcpputil::rebind_vector_t<allocator_block_type, allocator>;
         using sized_block_ref_t = typename ::std::pair<size_t, allocator_block_type *>;
-        using allocator_block_reference_vector_t = rebind_vector_t<sized_block_ref_t, allocator>;
+        using allocator_block_reference_vector_t = mcpputil::rebind_vector_t<sized_block_ref_t, allocator>;
 
         const struct abrvr_compare_type {
           auto operator()(const sized_block_ref_t &r, const sized_block_ref_t &it) const -> bool

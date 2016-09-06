@@ -1,7 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <cgc1/declarations.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
+#include <mcpputil/mcpputil/make_unique.hpp>
 #include <memory>
 #include <vector>
 namespace cgc1
@@ -220,7 +220,7 @@ namespace cgc1
     }
   };
 }
-namespace mcppalloc
+namespace mcpputil
 {
   template <typename T>
   struct cgc_allocator_deleter_t<T, ::cgc1::cgc_internal_allocator_t<void>> {
@@ -258,13 +258,13 @@ namespace cgc1
     details::internal_slab_deallocate(p);
   }
   static_assert(::std::is_same<cgc_internal_deleter_t,
-                               ::mcppalloc::cgc_allocator_deleter_t<int, cgc_internal_allocator_t<void>>::type>::value,
+                               ::mcpputil::cgc_allocator_deleter_t<int, cgc_internal_allocator_t<void>>::type>::value,
                 "Error with internal deleter");
   static_assert(::std::is_same<cgc_internal_slab_deleter_t,
-                               ::mcppalloc::cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
+                               ::mcpputil::cgc_allocator_deleter_t<int, cgc_internal_slab_allocator_t<void>>::type>::value,
                 "Error with internal deleter");
 }
-#include <mcppalloc/mcppalloc_utils/condition_variable.hpp>
+#include <mcpputil/mcpputil/condition_variable.hpp>
 namespace cgc1
 {
   using condition_variable_any_t = internal_condition_variable_t<cgc_internal_allocator_t<void>>;

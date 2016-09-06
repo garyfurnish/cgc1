@@ -69,7 +69,7 @@ namespace cgc1
       if (!is_bitmap_allocator(addr))
         return nullptr;
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-      if (mcppalloc_unlikely(!state->has_valid_magic_numbers())) {
+      if (mcpputil_unlikely(!state->has_valid_magic_numbers())) {
         assert(0);
         return nullptr;
       }
@@ -78,8 +78,8 @@ namespace cgc1
       }
       const auto bin_sz = state->real_entry_size();
       uint8_t *const start_of_gc_user_data =
-          ::mcppalloc::unsafe_cast<uint8_t>(addr) + bin_sz - sizeof(details::bitmap_gc_user_data_t);
-      return ::mcppalloc::unsafe_cast<details::bitmap_gc_user_data_t>(start_of_gc_user_data);
+          ::mcpputil::unsafe_cast<uint8_t>(addr) + bin_sz - sizeof(details::bitmap_gc_user_data_t);
+      return ::mcpputil::unsafe_cast<details::bitmap_gc_user_data_t>(start_of_gc_user_data);
     }
   }
 }

@@ -10,7 +10,7 @@
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
 #include <vector>
 
 #include <boost/property_tree/ptree_fwd.hpp>
@@ -32,9 +32,9 @@ namespace cgc1
       using internal_slab_allocator_type = mcppalloc::slab_allocator::details::slab_allocator_t;
       using duration_type = ::std::chrono::duration<double>;
 #ifdef __APPLE__
-      using mutex_type = ::mcppalloc::spinlock_t;
+      using mutex_type = ::mcpputil::spinlock_t;
 #else
-      using mutex_type = ::mcppalloc::mutex_t;
+      using mutex_type = ::mcpputil::mutex_t;
 #endif
       /**
        * \brief Constructor
@@ -319,7 +319,7 @@ namespace cgc1
        * \brief Mutex for resuming world.
        *
        **/
-      mutable ::mcppalloc::mutex_t m_start_world_condition_mutex;
+      mutable ::mcpputil::mutex_t m_start_world_condition_mutex;
       /**
        * Number of paused threads in a collect cycle.
       **/
@@ -353,11 +353,11 @@ namespace cgc1
       /**
        * \brief This mutex is locked when mutexes are unavailable.
        **/
-      mutable ::mcppalloc::mutex_t m_allocators_unavailable_mutex;
+      mutable ::mcpputil::mutex_t m_allocators_unavailable_mutex;
       /**
        * \brief Vector of pointers to roots.
        **/
-      ::mcppalloc::rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
+      ::mcpputil::rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
       /**
        * \brief Vector of all threads registered with the kernel.
        *
@@ -369,8 +369,8 @@ namespace cgc1
        *
        * Not necesarily a one to one map.
       **/
-      ::mcppalloc::rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>,
-                                   cgc_internal_malloc_allocator_t<void>>
+      ::mcpputil::rebind_vector_t<::std::unique_ptr<gc_thread_t, cgc_internal_malloc_deleter_t>,
+                                  cgc_internal_malloc_allocator_t<void>>
           m_gc_threads;
       /**
        * \brief List of pointers freed in last collection.

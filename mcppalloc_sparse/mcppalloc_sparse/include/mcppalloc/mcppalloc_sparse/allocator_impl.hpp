@@ -3,7 +3,7 @@
 #error "IDL must be zero"
 #endif
 #include <iostream>
-#include <mcppalloc/mcppalloc_utils/container_functions.hpp>
+#include <mcpputil/mcpputil/container_functions.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -62,7 +62,7 @@ namespace mcppalloc
         m_initial_gc_heap_size = initial_gc_heap_size;
         m_minimum_expansion_size = m_initial_gc_heap_size;
         // try to allocate at a location that has room for expansion.
-        if (!m_slab.allocate(m_initial_gc_heap_size, slab_t::find_hole(max_heap_size)))
+        if (!m_slab.allocate(m_initial_gc_heap_size, mcpputil::slab_t::find_hole(max_heap_size)))
           return false;
         // setup current end point (nothing used yet).
         m_current_end = m_slab.begin();
@@ -70,40 +70,40 @@ namespace mcppalloc
         return true;
       }
       template <typename Allocator_Policy>
-      auto allocator_t<Allocator_Policy>::get_memory(size_t sz, bool try_expand) -> system_memory_range_t
+      auto allocator_t<Allocator_Policy>::get_memory(size_t sz, bool try_expand) -> mcpputil::system_memory_range_t
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _u_get_memory(sz, try_expand);
       }
 
       template <typename Allocator_Policy>
-      auto allocator_t<Allocator_Policy>::_u_get_memory(size_t sz, bool try_expand) -> system_memory_range_t
+      auto allocator_t<Allocator_Policy>::_u_get_memory(size_t sz, bool try_expand) -> mcpputil::system_memory_range_t
       {
         _ud_verify();
-        sz = align(sz, c_alignment);
+        sz = mcpputil::align(sz, mcpputil::c_alignment);
         // do worst fit memory vector lookup
         typename memory_pair_vector_t::iterator worst = m_free_list.end();
         auto find_pair = memory_pair_t(nullptr, reinterpret_cast<uint8_t *>(sz));
-        worst =
-            last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair, system_memory_range_t::size_comparator());
+        worst = last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair,
+                                        mcpputil::system_memory_range_t::size_comparator());
         if (worst != m_free_list.end()) {
           // subdivide
-          system_memory_range_t ret = *worst;
+          mcpputil::system_memory_range_t ret = *worst;
           m_free_list.erase(worst);
           // calculate part not used.
-          system_memory_range_t free_pair(ret.begin() + sz, ret.end());
+          mcpputil::system_memory_range_t free_pair(ret.begin() + sz, ret.end());
           ret.set_end(free_pair.begin());
           if (!free_pair.empty()) {
-            auto ub =
-                ::std::upper_bound(m_free_list.begin(), m_free_list.end(), free_pair, system_memory_range_t::size_comparator());
+            auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), free_pair,
+                                         mcpputil::system_memory_range_t::size_comparator());
             if (m_current_end == free_pair.end())
               m_current_end = free_pair.begin();
             else {
               m_free_list.emplace(ub, free_pair);
             }
           }
-          assert(reinterpret_cast<uintptr_t>(ret.begin()) % c_alignment == 0);
-          assert(reinterpret_cast<uintptr_t>(ret.end()) % c_alignment == 0);
+          assert(reinterpret_cast<uintptr_t>(ret.begin()) % mcpputil::c_alignment == 0);
+          assert(reinterpret_cast<uintptr_t>(ret.end()) % mcpputil::c_alignment == 0);
           return memory_pair_t(ret.begin(), ret.end());
         }
         // no space available in free list.
@@ -118,21 +118,21 @@ namespace mcppalloc
           auto ret = ::std::make_pair(m_current_end, new_end);
           assert(new_end <= m_slab.end());
           m_current_end = new_end;
-          assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
-          assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
+          assert(reinterpret_cast<uintptr_t>(ret.first) % mcpputil::c_alignment == 0);
+          assert(reinterpret_cast<uintptr_t>(ret.second) % mcpputil::c_alignment == 0);
           return ret;
         }
         // we need to expand the heap.
         assert(m_current_end <= m_slab.end());
         size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
         if (expansion_size > max_heap_size())
-          return system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::make_nullptr();
         if (!try_expand)
-          return system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::make_nullptr();
         if (!m_slab.expand(expansion_size)) {
           ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
           // unable to expand heap so return error condition.
-          return system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::make_nullptr();
         }
         // recalculate used end.
         uint8_t *new_end = m_current_end + sz;
@@ -141,8 +141,8 @@ namespace mcppalloc
         auto ret = ::std::make_pair(m_current_end, new_end);
         m_current_end = new_end;
         _ud_verify();
-        assert(reinterpret_cast<uintptr_t>(ret.first) % c_alignment == 0);
-        assert(reinterpret_cast<uintptr_t>(ret.second) % c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.first) % mcpputil::c_alignment == 0);
+        assert(reinterpret_cast<uintptr_t>(ret.second) % mcpputil::c_alignment == 0);
         return ret;
       }
       template <typename Allocator_Policy>
@@ -366,7 +366,7 @@ namespace mcppalloc
         // while block handle is not default constructable, we can move away from it.
         // thus we can use rotate to create an empty location to modify.
         // this is the optimal solution for moving in this fashion.
-        if (mcppalloc_likely(ub > lb)) {
+        if (mcpputil_likely(ub > lb)) {
           ::std::rotate(lb, lb + static_cast<ptrdiff_t>(contiguous), ub);
           for (size_t i = contiguous; i > 0; --i) {
             auto ub_offset = static_cast<ptrdiff_t>(i);
@@ -471,7 +471,8 @@ namespace mcppalloc
           assert(m_current_end <= m_slab.end());
           return;
         } else {
-          auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), pair, system_memory_range_t::size_comparator());
+          auto ub = ::std::upper_bound(m_free_list.begin(), m_free_list.end(), pair,
+                                       mcpputil::system_memory_range_t::size_comparator());
           m_free_list.insert(ub, pair);
         }
         _ud_verify();
@@ -573,7 +574,7 @@ namespace mcppalloc
             m_free_list.pop_back();
           }
         }
-        ::std::sort(m_free_list.begin(), m_free_list.end(), system_memory_range_t::size_comparator());
+        ::std::sort(m_free_list.begin(), m_free_list.end(), mcpputil::system_memory_range_t::size_comparator());
         _ud_verify();
       }
       template <typename Allocator_Policy>
@@ -598,7 +599,7 @@ namespace mcppalloc
           return *it->second;
         // one doesn't already exist.
         // create a thread allocator.
-        thread_allocator_unique_ptr_t ta = make_unique_allocator<this_thread_allocator_t, allocator>(*this);
+        thread_allocator_unique_ptr_t ta = mcpputil::make_unique_allocator<this_thread_allocator_t, allocator>(*this);
         // get a reference to thread allocator.
         auto &ret = *ta.get();
         // put the thread allocator in the thread allocator list.

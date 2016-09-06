@@ -1,5 +1,5 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/alignment.hpp>
+#include <mcpputil/mcpputil/alignment.hpp>
 namespace mcppalloc
 {
   namespace details
@@ -7,14 +7,14 @@ namespace mcppalloc
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE bool is_aligned_properly(const object_state_t<Allocator_Policy> *os) noexcept
     {
-      return os == align(os, object_state_t<Allocator_Policy>::cs_alignment);
+      return os == mcpputil::align(os, object_state_t<Allocator_Policy>::cs_alignment);
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE object_state_t<Allocator_Policy> *
     object_state_t<Allocator_Policy>::from_object_start(void *v, size_type alignment) noexcept
     {
-      return reinterpret_cast<object_state_t<Allocator_Policy> *>(reinterpret_cast<uint8_t *>(v) -
-                                                                  align(sizeof(object_state_t<Allocator_Policy>), alignment));
+      return reinterpret_cast<object_state_t<Allocator_Policy> *>(
+          reinterpret_cast<uint8_t *>(v) - mcpputil::align(sizeof(object_state_t<Allocator_Policy>), alignment));
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::set_all(object_state_t<Allocator_Policy> *next,
@@ -31,9 +31,9 @@ namespace mcppalloc
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::verify_magic() noexcept
     {
 #ifdef _DEBUG
-      if (mcppalloc[_unlikely(m_pre_magic != cs_pre_magic)) {
+      if (mcpputil_unlikely(m_pre_magic != cs_pre_magic)) {
         ::std::terminate();
-      } else if (mcppalloc_unlikely(m_post_magic != cs_post_magic)) {
+      } else if (mcpputil_unlikely(m_post_magic != cs_post_magic)) {
         ::std::terminate();
       }
 #endif
@@ -44,7 +44,7 @@ namespace mcppalloc
     {
       size_type ptr = static_cast<size_type>(m_next);
       size_type iv = static_cast<size_type>(v);
-      m_next = (ptr & size_inverse(1)) | (iv & 1);
+      m_next = (ptr & mcpputil::size_inverse(1)) | (iv & 1);
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE bool object_state_t<Allocator_Policy>::not_available() const noexcept
@@ -77,7 +77,7 @@ namespace mcppalloc
     {
       size_type ptr = static_cast<size_type>(m_next);
       size_type iv = static_cast<size_type>(v) << 1;
-      m_next = (ptr & size_inverse(2)) | (iv & 2);
+      m_next = (ptr & mcpputil::size_inverse(2)) | (iv & 2);
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE bool object_state_t<Allocator_Policy>::next_valid() const noexcept
@@ -87,7 +87,7 @@ namespace mcppalloc
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE object_state_t<Allocator_Policy> *object_state_t<Allocator_Policy>::next() const noexcept
     {
-      return reinterpret_cast<object_state_t<Allocator_Policy> *>(m_next & size_inverse(7));
+      return reinterpret_cast<object_state_t<Allocator_Policy> *>(m_next & mcpputil::size_inverse(7));
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::set_next(object_state_t<Allocator_Policy> *state) noexcept
@@ -100,7 +100,7 @@ namespace mcppalloc
     MCPPALLOC_ALWAYS_INLINE uint8_t *object_state_t<Allocator_Policy>::object_start(size_type alignment) const noexcept
     {
       return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) +
-                                   align(sizeof(object_state_t<Allocator_Policy>), alignment));
+                                   mcpputil::align(sizeof(object_state_t<Allocator_Policy>), alignment));
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE auto object_state_t<Allocator_Policy>::object_size(size_type alignment) const noexcept -> size_type
@@ -112,7 +112,8 @@ namespace mcppalloc
     MCPPALLOC_ALWAYS_INLINE uint8_t *object_state_t<Allocator_Policy>::object_end(size_type alignment) const noexcept
     {
       return const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(this) +
-                                   align(sizeof(object_state_t<Allocator_Policy>), cs_alignment) + object_size(alignment));
+                                   mcpputil::align(sizeof(object_state_t<Allocator_Policy>), cs_alignment) +
+                                   object_size(alignment));
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE user_data_base_t *object_state_t<Allocator_Policy>::user_data() const noexcept
@@ -122,7 +123,7 @@ namespace mcppalloc
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::set_user_data(void *user_data) noexcept
     {
-      assert(user_data == align_pow2(user_data, 3));
+      assert(user_data == mcpputil::align_pow2(user_data, 3));
       m_user_data = reinterpret_cast<size_type>(user_data) | user_flags();
     }
     template <typename Allocator_Policy>

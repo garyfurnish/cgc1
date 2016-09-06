@@ -117,7 +117,7 @@ namespace cgc1
       if (!static_cast<uint8_t *>(m_stack_ptr) || !static_cast<uint8_t *>(m_top_of_stack))
         ::std::terminate();
       uint8_t **unaligned = reinterpret_cast<uint8_t **>(m_stack_ptr.load());
-      uint8_t **stack_ptr = ::mcppalloc::align_pow2(unaligned, 3);
+      uint8_t **stack_ptr = ::mcpputil::align_pow2(unaligned, 3);
       assert(unaligned == stack_ptr);
       // crawl stack looking for addresses between ibegin and iend.
       for (uint8_t **v = stack_ptr; v != reinterpret_cast<uint8_t **>(m_top_of_stack); ++v) {

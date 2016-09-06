@@ -3,12 +3,12 @@
 #include "allocator_block_set.hpp"
 #include "thread_allocator.hpp"
 #include <map>
-#include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <mcppalloc/mcppalloc_utils/memory_range.hpp>
-#include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
-#include <mcppalloc/mcppalloc_utils/win32_slab.hpp>
 #include <mcppalloc/object_state.hpp>
+#include <mcpputil/mcpputil/boost/container/flat_map.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
+#include <mcpputil/mcpputil/memory_range.hpp>
+#include <mcpputil/mcpputil/posix_slab.hpp>
+#include <mcpputil/mcpputil/win32_slab.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -25,7 +25,7 @@ namespace mcppalloc
       struct memory_pair_size_comparator_t {
         bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
         {
-          return system_memory_range_t(a).size() < system_memory_range_t(b).size();
+          return mcpputil::system_memory_range_t(a).size() < mcpputil::system_memory_range_t(b).size();
         }
       };
       /**
@@ -54,7 +54,7 @@ namespace mcppalloc
         using const_iterator = const uint8_t *;
         using difference_type = ::std::ptrdiff_t;
         using size_type = size_t;
-        using mutex_type = mutex_t;
+        using mutex_type = mcpputil::mutex_t;
         using allocator_policy_type = Allocator_Policy;
         using this_type = allocator_t<allocator_policy_type>;
         using block_type = block_t<allocator_policy_type>;
@@ -80,7 +80,8 @@ namespace mcppalloc
          * This uses the control allocator for control memory.
         **/
         using memory_pair_vector_t =
-            typename ::std::vector<system_memory_range_t, typename allocator::template rebind<system_memory_range_t>::other>;
+            typename ::std::vector<mcpputil::system_memory_range_t,
+                                   typename allocator::template rebind<mcpputil::system_memory_range_t>::other>;
         /**
          * \brief Type of thread allocator used by this allocator.
          *
@@ -138,7 +139,7 @@ namespace mcppalloc
          * @param try_expand Attempt to expand underlying slab if necessary
          * @return (nullptr,nullptr) on error.
         **/
-        system_memory_range_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
+        mcpputil::system_memory_range_t get_memory(size_t sz, bool try_expand) REQUIRES(!m_mutex);
 
         /**
          * \brief Get an interval of memory.
@@ -148,7 +149,7 @@ namespace mcppalloc
          * @param try_expand Try to expand underlying slab if true.
          * @return (nullptr,nullptr) on error.
         **/
-        system_memory_range_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
+        mcpputil::system_memory_range_t _u_get_memory(size_t sz, bool try_expand) REQUIRES(m_mutex);
         /**
          * \brief Create or reuse an allocator block in destination by reference.
          *
@@ -425,7 +426,7 @@ namespace mcppalloc
         /**
          * \brief Vector type for storing blocks held by the global allocator.
          **/
-        using global_block_vector_type = rebind_vector_t<allocator_block_type, allocator>;
+        using global_block_vector_type = mcpputil::rebind_vector_t<allocator_block_type, allocator>;
         /**
          * \brief Return an allocator block.
          *
@@ -508,13 +509,13 @@ namespace mcppalloc
         /**
          * \brief Underlying slab.
         **/
-        slab_t m_slab;
+        mcpputil::slab_t m_slab;
         /**
          * \brief Type that is an owning pointer to a thread allocator that uses the control allocator to handle memory.
          **/
         using thread_allocator_unique_ptr_t =
             typename ::std::unique_ptr<this_thread_allocator_t,
-                                       typename cgc_allocator_deleter_t<this_thread_allocator_t, allocator>::type>;
+                                       typename mcpputil::cgc_allocator_deleter_t<this_thread_allocator_t, allocator>::type>;
         /**
          * \brief Type that is a map for thread allocators that uses the control allocator to handle memory.
          **/
@@ -525,7 +526,7 @@ namespace mcppalloc
          *
          * This is sorted by the address of the beginning of the block.
         **/
-        rebind_vector_t<this_allocator_block_handle_t, allocator> m_blocks;
+        mcpputil::rebind_vector_t<this_allocator_block_handle_t, allocator> m_blocks;
         /**
          * \brief Vector type for storing blocks held by the global allocator.
          *

@@ -1,5 +1,5 @@
 include_directories(../../mcppalloc/mcppalloc/include)
-include_directories(../../mcppalloc_utils/mcppalloc_utils/include)
+include_directories(../../mcpputil/mcpputil/include)
 
 include_directories(include)
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")

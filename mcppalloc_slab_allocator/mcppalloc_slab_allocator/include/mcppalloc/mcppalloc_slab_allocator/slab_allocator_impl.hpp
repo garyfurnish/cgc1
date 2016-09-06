@@ -1,5 +1,5 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <stdexcept>
 namespace mcppalloc
 {
@@ -11,7 +11,7 @@ namespace mcppalloc
 
       {
         m_free_map = free_map_type(m_free_map_back.data(), sizeof(m_free_map_back));
-        if (!m_slab.allocate(size, slab_t::find_hole(size_hint)))
+        if (!m_slab.allocate(size, mcpputil::slab_t::find_hole(size_hint)))
           throw ::std::runtime_error("Unable to allocate slab");
         m_end = reinterpret_cast<slab_allocator_object_t *>(m_slab.begin());
         m_end->set_all(reinterpret_cast<slab_allocator_object_t *>(m_slab.end()), false, false);
@@ -29,8 +29,8 @@ namespace mcppalloc
       }
       void slab_allocator_t::align_next(size_t sz)
       {
-        uint8_t *new_end = unsafe_cast<uint8_t>(align(m_end, sz));
-        auto offset = static_cast<size_t>(new_end - unsafe_cast<uint8_t>(m_end)) - cs_header_sz;
+        uint8_t *new_end = mcpputil::unsafe_cast<uint8_t>(mcpputil::align(m_end, sz));
+        auto offset = static_cast<size_t>(new_end - mcpputil::unsafe_cast<uint8_t>(m_end)) - cs_header_sz;
         allocate_raw(offset);
       }
       void slab_allocator_t::_u_add_free(slab_allocator_object_t *v)
@@ -68,7 +68,7 @@ namespace mcppalloc
         m_free_map_needs_regeneration = false;
         for (auto it = _u_object_begin(); it != _u_object_current_end(); ++it) {
           it->verify_magic();
-          if (mcppalloc_unlikely(&*it >= _u_object_end())) {
+          if (mcpputil_unlikely(&*it >= _u_object_end())) {
             ::std::cerr << "mcppalloc slab allocator consistency error a35664e3-21f9-4ea7-a921-844b8a2dc598" << ::std::endl;
             ::std::terminate();
           }
@@ -136,7 +136,7 @@ namespace mcppalloc
       }
       void *slab_allocator_t::allocate_raw(size_t sz)
       {
-        sz = align(sz, cs_alignment);
+        sz = mcpputil::align(sz, cs_alignment);
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // if empty, create at end.
         if (_u_empty()) {

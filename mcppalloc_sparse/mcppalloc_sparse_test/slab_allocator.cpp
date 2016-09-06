@@ -1,10 +1,10 @@
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
+#include <mcpputil/mcpputil/container.hpp>
+#include <mcpputil/mcpputil/unsafe_cast.hpp>
 using namespace bandit;
-using ::mcppalloc::unsafe_cast;
-using ::mcppalloc::align;
+using ::mcpputil::unsafe_cast;
+using ::mcpputil::align;
 void slab_allocator_bandit_tests()
 {
   describe("Slab Allocator", []() {

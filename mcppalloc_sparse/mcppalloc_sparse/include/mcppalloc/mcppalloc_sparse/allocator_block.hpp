@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <mcppalloc/block.hpp>
 #include <mcppalloc/default_allocator_policy.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/container/flat_set.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree_fwd.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
-#include <mcppalloc/mcppalloc_utils/make_unique.hpp>
 #include <mcppalloc/object_state.hpp>
+#include <mcpputil/mcpputil/boost/container/flat_set.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree_fwd.hpp>
+#include <mcpputil/mcpputil/container.hpp>
+#include <mcpputil/mcpputil/make_unique.hpp>
 #include <string>
 #include <vector>
 namespace mcppalloc
@@ -224,7 +224,7 @@ namespace mcppalloc
          *
          * The allocated memory is stored in control allocator.
          **/
-        allocator_unique_ptr_t<user_data_type, allocator> m_default_user_data;
+        mcpputil::allocator_unique_ptr_t<user_data_type, allocator> m_default_user_data;
         /**
          * \brief Updated last max alloc available.
          *

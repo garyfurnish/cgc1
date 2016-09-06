@@ -1,6 +1,6 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/json_parser.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/json_parser.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -65,13 +65,13 @@ namespace mcppalloc
         {
           MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
           if (!m_free_globals.empty()) {
-            ret = unsafe_cast<bitmap_state_t>(m_free_globals.back());
+            ret = mcpputil::unsafe_cast<bitmap_state_t>(m_free_globals.back());
             m_free_globals.pop_back();
             return ret;
           }
         }
-        ret = unsafe_cast<bitmap_state_t>(m_slab.allocate_raw(c_bitmap_block_size - slab_allocator_type::cs_header_sz));
-        if (mcppalloc_unlikely(!ret)) {
+        ret = mcpputil::unsafe_cast<bitmap_state_t>(m_slab.allocate_raw(c_bitmap_block_size - slab_allocator_type::cs_header_sz));
+        if (mcpputil_unlikely(!ret)) {
           return nullptr;
         }
         ret->initialize_consts();
@@ -94,7 +94,8 @@ namespace mcppalloc
         }
         // one doesn't already exist.
         // create a thread allocator.
-        thread_allocator_unique_ptr_type ta = make_unique_allocator<thread_allocator_type, internal_allocator_type>(*this);
+        thread_allocator_unique_ptr_type ta =
+            mcpputil::make_unique_allocator<thread_allocator_type, internal_allocator_type>(*this);
         // get a reference to thread allocator.
         auto &ret = *ta.get();
         set_ttla(&ret);
@@ -147,7 +148,7 @@ namespace mcppalloc
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         auto it = m_globals.find(type);
-        if (mcppalloc_unlikely(it == m_globals.end()))
+        if (mcpputil_unlikely(it == m_globals.end()))
           return 0;
         return it->second.m_vectors[id].m_vector.size();
       }

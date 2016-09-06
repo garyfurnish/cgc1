@@ -1,12 +1,12 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcpputil/mcpputil/unsafe_cast.hpp>
 namespace cgc1
 {
   class CGC1_DLL_PUBLIC cgc_root_t
   {
   public:
     template <typename T>
-    cgc_root_t(T *&ptr) : m_root(mcppalloc::unsafe_cast<void *>(&ptr))
+    cgc_root_t(T *&ptr) : m_root(mcpputil::unsafe_cast<void *>(&ptr))
     {
       cgc_add_root(m_root);
     }

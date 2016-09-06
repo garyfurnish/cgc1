@@ -1,21 +1,21 @@
 #include <mcppalloc/mcppalloc_sparse/allocator_block.hpp>
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcpputil/mcpputil/aligned_allocator.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
 using namespace bandit;
 template <>
 ::mcppalloc::details::user_data_base_t mcppalloc::sparse::details::allocator_block_t<
-    mcppalloc::default_allocator_policy_t<mcppalloc::aligned_allocator_t<void, 8ul>>>::s_default_user_data{};
+    mcppalloc::default_allocator_policy_t<::mcpputil::aligned_allocator_t<void, 8ul>>>::s_default_user_data{};
 void allocator_block_tests()
 {
   describe("Block", []() {
     void *memory = malloc(200);
-    using policy = ::mcppalloc::default_allocator_policy_t<::mcppalloc::default_aligned_allocator_t>;
+    using policy = ::mcppalloc::default_allocator_policy_t<::mcpputil::default_aligned_allocator_t>;
     using allocator_block_type = typename ::mcppalloc::sparse::details::allocator_block_t<policy>;
 
     using object_state_type = typename allocator_block_type::object_state_type;
     const auto aligned_header_size =
-        mcppalloc::align(sizeof(object_state_type), allocator_block_type::allocator_policy_type::cs_minimum_alignment);
+        mcpputil::align(sizeof(object_state_type), allocator_block_type::allocator_policy_type::cs_minimum_alignment);
     auto memory_size = (aligned_header_size + 16) * 3;
     allocator_block_type block(memory, memory_size, 16, ::mcppalloc::c_infinite_length);
     void *alloc1 = nullptr;

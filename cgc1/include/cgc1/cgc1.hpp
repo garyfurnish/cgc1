@@ -184,7 +184,7 @@ namespace cgc1
     extern bool is_sparse_allocator(void *addr) noexcept;
   }
 }
-#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcppalloc_builtin_current_stack())
+#define CGC1_INITIALIZE_THREAD(...) cgc1::cgc_register_thread(mcpputil_builtin_current_stack())
 #include "cgc_root.hpp"
 #include "cgc_root_pointer.hpp"
 #include "gc_allocator.hpp"

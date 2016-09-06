@@ -3,9 +3,9 @@
 #include "thread_allocator_abs_data.hpp"
 #include <array>
 #include <boost/property_tree/ptree_fwd.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <mcppalloc/mcppalloc_utils/memory_range.hpp>
 #include <mcppalloc/object_state.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
+#include <mcpputil/mcpputil/memory_range.hpp>
 namespace mcppalloc
 {
   namespace sparse

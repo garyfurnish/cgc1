@@ -1,7 +1,7 @@
 #pragma once
 #include "integer_block.hpp"
-#include <mcppalloc/mcppalloc_utils/alignment.hpp>
-#include <mcppalloc/mcppalloc_utils/unsafe_cast.hpp>
+#include <mcpputil/mcpputil/alignment.hpp>
+#include <mcpputil/mcpputil/unsafe_cast.hpp>
 namespace mcppalloc
 {
   namespace bitmap
@@ -23,7 +23,7 @@ namespace mcppalloc
     template <bool is_const>
     inline dynamic_bitmap_ref_t<is_const> &dynamic_bitmap_ref_t<is_const>::deep_copy(const dynamic_bitmap_ref_t<is_const> &rhs)
     {
-      if (mcppalloc_unlikely(rhs.size() != size()))
+      if (mcpputil_unlikely(rhs.size() != size()))
         throw ::std::runtime_error("mcppalloc: dynamic_bitmap_ref_t: bad operator=: 19f0d9b7-200f-46ae-9b73-9b874ed11045");
       for (size_t i = 0; i < rhs.size(); ++i)
         m_array[i] = rhs.m_array[i];
@@ -245,9 +245,10 @@ namespace mcppalloc
       using bits_array_type = typename dynamic_bitmap_ref_t<false>::bits_array_type;
       bits_array_type array = reinterpret_cast<bits_array_type>(memory);
       bits_array_type new_array =
-          reinterpret_cast<bits_array_type>(align(array, dynamic_bitmap_ref_t<false>::bits_type::cs_alignment));
-      if (mcppalloc_unlikely(static_cast<size_t>(unsafe_cast<uint8_t>(new_array) - unsafe_cast<uint8_t>(array)) >
-                             alloca_size - array_size * sizeof(dynamic_bitmap_ref_t<false>::bits_type))) {
+          reinterpret_cast<bits_array_type>(mcpputil::align(array, dynamic_bitmap_ref_t<false>::bits_type::cs_alignment));
+      if (mcpputil_unlikely(
+              static_cast<size_t>(mcpputil::unsafe_cast<uint8_t>(new_array) - mcpputil::unsafe_cast<uint8_t>(array)) >
+              alloca_size - array_size * sizeof(dynamic_bitmap_ref_t<false>::bits_type))) {
         throw ::std::runtime_error("mcppalloc: out of bounds: e788e46f-2e1d-4afb-af86-d48e068d3d5c");
       }
       return dynamic_bitmap_ref_t<false>(new_array, array_size);

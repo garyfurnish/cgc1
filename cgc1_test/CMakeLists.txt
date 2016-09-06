@@ -1,5 +1,5 @@
 include_directories(../mcppalloc/mcppalloc/include)
-include_directories(../mcppalloc_utils/mcppalloc_utils/include)
+include_directories(../mcpputil/mcpputil/include)
 include_directories(../mcppalloc_sparse/mcppalloc_sparse/include/)
 include_directories(../mcppalloc_bitmap/mcppalloc_bitmap/include)
 include_directories(../mcppalloc_slab_allocator/mcppalloc_slab_allocator/include)

@@ -2,7 +2,7 @@
 #ifdef MCPPALLOC_POSIX
 #include <array>
 #include <iostream>
-#include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
+#include <mcpputil/mcpputil/posix_slab.hpp>
 #include <pthread.h>
 #include <signal.h>
 #include <thread>

@@ -59,7 +59,7 @@ int main()
       ::std::terminate();
     for (size_t li = 0; li < 8; ++li)
       ret[li] = ts.allocate(alloc_sz).m_ptr;
-    ::mcppalloc::secure_zero(&ret, sizeof(ret));
+    ::mcpputil::secure_zero(&ret, sizeof(ret));
   }
 
 #else

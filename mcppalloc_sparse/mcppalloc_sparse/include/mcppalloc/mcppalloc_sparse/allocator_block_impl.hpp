@@ -2,9 +2,9 @@
 #include "allocator_block.hpp"
 #include <assert.h>
 #include <mcppalloc/block.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
 #include <mcppalloc/user_data_base.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/function_iterator.hpp>
 namespace mcppalloc
 {
   namespace sparse
@@ -22,9 +22,9 @@ namespace mcppalloc
             m_start(reinterpret_cast<uint8_t *>(start))
       {
         // sanity check alignment of start.
-        if (mcppalloc_unlikely(reinterpret_cast<size_t>(m_start) % minimum_header_alignment() != 0))
+        if (mcpputil_unlikely(reinterpret_cast<size_t>(m_start) % minimum_header_alignment() != 0))
           ::std::terminate();
-        if (mcppalloc_unlikely(reinterpret_cast<size_t>(m_end) % minimum_header_alignment() != 0))
+        if (mcpputil_unlikely(reinterpret_cast<size_t>(m_end) % minimum_header_alignment() != 0))
           ::std::terminate();
         if (maximum_alloc_length == c_infinite_length) {
           m_maximum_alloc_length = maximum_alloc_length;
@@ -37,7 +37,7 @@ namespace mcppalloc
                                   false, false);
 
         // setup default user data.
-        m_default_user_data = allocator_unique_ptr_t<user_data_type, allocator>(&s_default_user_data);
+        m_default_user_data = mcpputil::allocator_unique_ptr_t<user_data_type, allocator>(&s_default_user_data);
         m_default_user_data->set_is_default(true);
       }
       template <typename Allocator_Policy>
@@ -131,7 +131,8 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto allocator_block_t<Allocator_Policy>::find_address(void *addr) const noexcept -> object_state_type *
       {
-        for (auto it = make_next_iterator(_object_state_begin()); it != make_next_iterator(current_end()); ++it) {
+        for (auto it = mcpputil::make_next_iterator(_object_state_begin()); it != mcpputil::make_next_iterator(current_end());
+             ++it) {
           if (it->object_end() > addr) {
             return it;
           }
@@ -146,8 +147,8 @@ namespace mcppalloc
           assert(state->object_size() < static_cast<size_t>(end() - begin()));
           assert(state->next());
         }
-        auto begin = make_next_iterator(reinterpret_cast<object_state_type *>(this->begin()));
-        auto end = make_next_iterator(current_end());
+        auto begin = mcpputil::make_next_iterator(reinterpret_cast<object_state_type *>(this->begin()));
+        auto end = mcpputil::make_next_iterator(current_end());
         assert(begin.m_t <= end.m_t);
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next_valid() || os_it->next() == end);
@@ -166,9 +167,9 @@ namespace mcppalloc
         assert(minimum_allocation_length() <= maximum_allocation_length());
         _verify(nullptr);
         // these help, especially when prefetch crosses cache or page boundry.
-        mcppalloc_builtin_prefetch(this);
-        mcppalloc_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
-        mcppalloc_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
+        mcpputil_builtin_prefetch(this);
+        mcpputil_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 16);
+        mcpputil_builtin_prefetch(reinterpret_cast<uint8_t *>(this) + 32);
         const size_t original_size = size;
         size = object_state_type::needed_size(sizeof(object_state_type), size);
         assert(size >= minimum_allocation_length());
@@ -200,7 +201,7 @@ namespace mcppalloc
               next->set_all(state->next(), false, state->next_valid());
 
               assert(next->object_size() >=
-                     m_minimum_alloc_length - align(sizeof(object_state_type), minimum_header_alignment()));
+                     m_minimum_alloc_length - mcpputil::align(sizeof(object_state_type), minimum_header_alignment()));
               state->set_next(next);
               state->set_next_valid(true);
               _verify(next);
@@ -219,13 +220,13 @@ namespace mcppalloc
         }
         object_state_type *next = later_next;
         // check to see if we have memory left over at tail.
-        if (mcppalloc_unlikely(!m_next_alloc_ptr))
+        if (mcpputil_unlikely(!m_next_alloc_ptr))
           return allocation_return_type(block_type{nullptr, 0}, nullptr);
         // check to see we haven't requested an excessively large allocation.
         if (m_next_alloc_ptr->next_valid()) {
-          if (mcppalloc_unlikely(m_next_alloc_ptr->object_size() < original_size))
+          if (mcpputil_unlikely(m_next_alloc_ptr->object_size() < original_size))
             return allocation_return_type(block_type{nullptr, 0}, nullptr);
-        } else if (mcppalloc_unlikely(static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size))
+        } else if (mcpputil_unlikely(static_cast<size_t>(end() - m_next_alloc_ptr->object_start()) < original_size))
           return allocation_return_type(block_type{nullptr, 0}, nullptr);
         m_next_alloc_ptr->m_user_data = 0;
         const auto ret_os = m_next_alloc_ptr;
@@ -307,7 +308,7 @@ namespace mcppalloc
           // so just adjust pointer.
           m_next_alloc_ptr = state;
           last_collapsed_size = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) -
-                                align(sizeof(object_state_type), minimum_header_alignment());
+                                mcpputil::align(sizeof(object_state_type), minimum_header_alignment());
         }
         last_max_alloc_available = m_last_max_alloc_available;
         m_last_max_alloc_available = ::std::max(m_last_max_alloc_available, last_collapsed_size);
@@ -321,7 +322,7 @@ namespace mcppalloc
         // if we can alloc at tail, first check that size.
         if (m_next_alloc_ptr)
           max_alloc = static_cast<size_t>(end() - reinterpret_cast<uint8_t *>(m_next_alloc_ptr)) -
-                      align(sizeof(object_state_type), minimum_header_alignment());
+                      mcpputil::align(sizeof(object_state_type), minimum_header_alignment());
         // then check size of all objects in free list.
         if (!m_free_list.empty()) {
           const auto top_os = (*m_free_list.rbegin())->object_size();
@@ -344,7 +345,7 @@ namespace mcppalloc
         bool did_merge = false;
         bool needs_insert = false;
         while (state->next_valid()) {
-          mcppalloc_builtin_prefetch(state->next()->next());
+          mcpputil_builtin_prefetch(state->next()->next());
           if (!did_merge && !state->in_use()) {
             needs_insert = true;
           }

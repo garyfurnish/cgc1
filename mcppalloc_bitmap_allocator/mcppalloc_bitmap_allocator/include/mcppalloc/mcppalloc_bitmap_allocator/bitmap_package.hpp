@@ -3,7 +3,7 @@
 #include "declarations.hpp"
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/block.hpp>
-#include <mcppalloc/mcppalloc_utils/container.hpp>
+#include <mcpputil/mcpputil/container.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -34,14 +34,14 @@ namespace mcppalloc
         /**
          * \brief Type of vector holding states of a given id.
          **/
-        using vector_type = rebind_vector_t<bitmap_state_t *, internal_allocator_type>;
+        using vector_type = mcpputil::rebind_vector_t<bitmap_state_t *, internal_allocator_type>;
         struct vector_entry_type {
           vector_type m_vector;
           vector_type m_full_vector;
           size_t m_times_since_full_search{0};
         };
 
-        using free_list_type = rebind_vector_t<void *, internal_allocator_type>;
+        using free_list_type = mcpputil::rebind_vector_t<void *, internal_allocator_type>;
         /**
          * \brief Type of id indexed array.
          **/

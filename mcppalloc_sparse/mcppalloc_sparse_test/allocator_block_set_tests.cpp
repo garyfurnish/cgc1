@@ -1,10 +1,10 @@
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
-#include <mcppalloc/mcppalloc_utils/aligned_allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
-#include <mcppalloc/mcppalloc_utils/literals.hpp>
+#include <mcpputil/mcpputil/aligned_allocator.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
+#include <mcpputil/mcpputil/literals.hpp>
 
 using namespace ::bandit;
-using namespace ::mcppalloc::literals;
+using namespace ::mcpputil::literals;
 
 void allocator_block_set_tests()
 {
@@ -13,11 +13,11 @@ void allocator_block_set_tests()
     void *memory2 = malloc(1000);
     void *memory3 = malloc(1000);
     void *memory4 = malloc(1000);
-    using policy_type = ::mcppalloc::default_allocator_policy_t<::mcppalloc::default_aligned_allocator_t>;
+    using policy_type = ::mcppalloc::default_allocator_policy_t<::mcpputil::default_aligned_allocator_t>;
     using abs_type = ::mcppalloc::sparse::details::allocator_block_set_t<policy_type>;
     using ab_type = typename abs_type::allocator_block_type;
     using object_state_type = typename ab_type::object_state_type;
-    const auto aligned_header_size = mcppalloc::align(sizeof(object_state_type), policy_type::cs_minimum_alignment);
+    const auto aligned_header_size = mcpputil::align(sizeof(object_state_type), policy_type::cs_minimum_alignment);
 
     it("free_empty_blocks", [&]() {
       // setup an allocator with two blocks to test free_empty_blocks.

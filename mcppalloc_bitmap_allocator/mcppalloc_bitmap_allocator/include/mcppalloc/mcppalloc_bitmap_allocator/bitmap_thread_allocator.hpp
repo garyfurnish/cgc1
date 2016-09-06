@@ -3,7 +3,7 @@
 #include "bitmap_state.hpp"
 #include "declarations.hpp"
 #include <mcppalloc/block.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/container/flat_map.hpp>
+#include <mcpputil/mcpputil/boost/container/flat_map.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -64,7 +64,7 @@ namespace mcppalloc
                                          ::std::pair<type_id_t, package_type>>>
             m_locals;
         ::std::atomic<bool> m_force_maintenance;
-        rebind_vector_t<void *, internal_allocator_type> m_free_list;
+        mcpputil::rebind_vector_t<void *, internal_allocator_type> m_free_list;
         bitmap_allocator_t<allocator_policy_type> &m_allocator;
         ::std::array<size_t, package_type::cs_num_vectors> m_popcount_max;
         size_t m_max_in_use{10};

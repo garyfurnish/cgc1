@@ -2,20 +2,20 @@
 #include "slab_allocator_dll.hpp"
 #include <array>
 #include <boost/property_tree/ptree_fwd.hpp>
-#include <mcppalloc/mcppalloc_utils/alignment.hpp>
-#include <mcppalloc/mcppalloc_utils/backed_ordered_map.hpp>
-#include <mcppalloc/mcppalloc_utils/concurrency.hpp>
-#include <mcppalloc/mcppalloc_utils/function_iterator.hpp>
-#include <mcppalloc/mcppalloc_utils/posix_slab.hpp>
-#include <mcppalloc/mcppalloc_utils/win32_slab.hpp>
 #include <mcppalloc/object_state.hpp>
+#include <mcpputil/mcpputil/alignment.hpp>
+#include <mcpputil/mcpputil/backed_ordered_map.hpp>
+#include <mcpputil/mcpputil/concurrency.hpp>
+#include <mcpputil/mcpputil/function_iterator.hpp>
+#include <mcpputil/mcpputil/posix_slab.hpp>
+#include <mcpputil/mcpputil/win32_slab.hpp>
 namespace mcppalloc
 {
   namespace slab_allocator
   {
     namespace details
     {
-      using mutex_type = mutex_t;
+      using mutex_type = mcpputil::mutex_t;
       using slab_allocator_object_t = ::mcppalloc::details::object_state_t<default_allocator_policy_t<void>>;
       static_assert(::std::is_pod<slab_allocator_object_t>::value, "slab_allocator_object_t is not POD");
       /**
@@ -30,7 +30,7 @@ namespace mcppalloc
       {
       public:
         static constexpr const size_t cs_alignment = 32;
-        static constexpr const size_t cs_header_sz = align(sizeof(slab_allocator_object_t), cs_alignment);
+        static constexpr const size_t cs_header_sz = mcpputil::align(sizeof(slab_allocator_object_t), cs_alignment);
         static constexpr size_t alignment() noexcept;
         static_assert(cs_header_sz == 64, "");
         /**
@@ -60,15 +60,15 @@ namespace mcppalloc
         /**
          * \brief Object state begin iterator.
          **/
-        next_iterator<slab_allocator_object_t> _u_object_begin();
+        mcpputil::next_iterator<slab_allocator_object_t> _u_object_begin();
         /**
          * \brief Object state end iterator.
          **/
-        next_iterator<slab_allocator_object_t> _u_object_end();
+        mcpputil::next_iterator<slab_allocator_object_t> _u_object_end();
         /**
          * \brief Object state current end iterator.
          **/
-        next_iterator<slab_allocator_object_t> _u_object_current_end();
+        mcpputil::next_iterator<slab_allocator_object_t> _u_object_current_end();
         /**
          * \brief Return true if no memory allocated.
          **/
@@ -76,7 +76,7 @@ namespace mcppalloc
         /**
          * \brief Return lock for this allocator.
          **/
-        mutex_t &_mutex() RETURN_CAPABILITY(m_mutex)
+        mutex_type &_mutex() RETURN_CAPABILITY(m_mutex)
         {
           return m_mutex;
         }
@@ -138,7 +138,7 @@ namespace mcppalloc
         /**
          * \brief Underlying slab.
          **/
-        slab_t m_slab;
+        mcpputil::slab_t m_slab;
         /**
          * \brief Current position of end object state (invalid).
          **/
@@ -147,7 +147,7 @@ namespace mcppalloc
          * \brief True if free map overflowed and dumped free positions on the floor.
          **/
         bool m_free_map_needs_regeneration{false};
-        using free_map_type = containers::backed_ordered_multimap<size_t, slab_allocator_object_t *>;
+        using free_map_type = mcpputil::containers::backed_ordered_multimap<size_t, slab_allocator_object_t *>;
         /**
          * \brief Map of free positions.
          **/

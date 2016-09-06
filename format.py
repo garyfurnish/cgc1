@@ -31,14 +31,6 @@ if len(sys.argv)==2:
 else:
 
     files = list(find_files(["cgc1","cgc1_test","cgc1_alloc_benchmark","mcppalloc_utils","mcppalloc_sparse","mcppalloc_sparse_test","mcppalloc_bitmap","mcppalloc_bitmap_allocator","mcppalloc_slab_allocator","mcppalloc"],["*.cpp","*.hpp"]))
-    files.remove("mcppalloc_utils/mcppalloc_utils/include/mcppalloc/mcppalloc_utils/bandit.hpp")
-    files.remove("mcppalloc_utils/mcppalloc_utils/include/mcppalloc/mcppalloc_utils/clang_concurrency.hpp")
-    to_remove = []
-    for file in files:
-        if file.startswith("mcppalloc_utils/mcppalloc_utils/include/mcppalloc/mcppalloc_utils/boost"):
-            to_remove.append(file)
-    for x in to_remove:
-        files.remove(x)
         
 pool.map(format,files)
 sys.exit(0)

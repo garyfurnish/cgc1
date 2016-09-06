@@ -6,16 +6,16 @@
 #include <cgc1/cgc1.hpp>
 #include <chrono>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
 #include <signal.h>
 #include <string.h>
 #include <thread>
 static ::std::vector<size_t> locations;
-static ::mcppalloc::spinlock_t debug_mutex;
+static ::mcpputil::spinlock_t debug_mutex;
 using namespace bandit;
 // alias
 static auto &gks = ::cgc1::details::g_gks;
-using namespace ::mcppalloc::literals;
+using namespace ::mcpputil::literals;
 
 /**
  * \brief Setup for root test.
@@ -26,7 +26,7 @@ static MCPPALLOC_NO_INLINE void root_test__setup(void *&memory, size_t &old_memo
   auto &ta = gks->gc_allocator().initialize_thread();
   memory = ta.allocate(50).m_ptr;
   // hide a pointer away for comparison testing.
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   cgc1::cgc_add_root(&memory);
   AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
   AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
@@ -53,7 +53,7 @@ static void root_test()
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that the we zero the memory so the pointer doesn't linger.
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
   auto num_collections = cgc1::debug::num_gc_collections();
   // force collection.
   cgc1::cgc_force_collect();
@@ -76,8 +76,8 @@ static MCPPALLOC_NO_INLINE void internal_pointer_test__setup(void *&memory, size
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   memory = ta.allocate(50).m_ptr;
-  uint8_t *&umemory = ::mcppalloc::unsafe_reference_cast<uint8_t *>(memory);
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  uint8_t *&umemory = ::mcpputil::unsafe_reference_cast<uint8_t *>(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   umemory += 1;
   cgc1::cgc_add_root(&memory);
 }
@@ -102,7 +102,7 @@ static void internal_pointer_test()
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that we zero the memory so the pointer doesn't linger.
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
   // force collection.
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
@@ -125,8 +125,8 @@ static MCPPALLOC_NO_INLINE void atomic_test__setup(void *&memory, size_t &old_me
   cgc1::cgc_add_root(&memory);
   void *memory2 = ta.allocate(50).m_ptr;
   *reinterpret_cast<void **>(memory) = memory2;
-  old_memory = ::mcppalloc::hide_pointer(memory2);
-  ::mcppalloc::secure_zero_pointer(memory2);
+  old_memory = ::mcpputil::hide_pointer(memory2);
+  ::mcpputil::secure_zero_pointer(memory2);
 }
 /**
  * \brief Test atomic object functionality.
@@ -154,7 +154,7 @@ static void atomic_test()
 #endif
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   cgc1::cgc_remove_root(&memory);
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
 #ifdef CGC1_DEBUG_VERBOSE_TRACK
@@ -169,10 +169,10 @@ static MCPPALLOC_NO_INLINE void finalizer_test__setup(std::atomic<bool> &finaliz
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50).m_ptr;
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   finalized = false;
   cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; });
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
 }
 static void finalizer_test()
 {
@@ -200,10 +200,10 @@ static MCPPALLOC_NO_INLINE void finalizer_test2__setup(::std::atomic<bool> &fina
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50).m_ptr;
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   finalized = false;
   cgc1::cgc_register_finalizer(memory, [&finalized](void *) { finalized = true; }, true);
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
 }
 static void finalizer_test2()
 {
@@ -231,14 +231,14 @@ static MCPPALLOC_NO_INLINE void uncollectable_test__setup(size_t &old_memory)
 {
   auto &ta = gks->gc_allocator().initialize_thread();
   void *memory = ta.allocate(50).m_ptr;
-  old_memory = ::mcppalloc::hide_pointer(memory);
+  old_memory = ::mcpputil::hide_pointer(memory);
   AssertThat(::cgc1::details::is_sparse_allocator(memory), IsTrue());
   cgc1::cgc_set_uncollectable(memory, true);
-  ::mcppalloc::secure_zero_pointer(memory);
+  ::mcpputil::secure_zero_pointer(memory);
 }
 static MCPPALLOC_NO_INLINE void uncollectable_test__cleanup(size_t &old_memory)
 {
-  cgc1::cgc_set_uncollectable(::mcppalloc::unhide_pointer(old_memory), false);
+  cgc1::cgc_set_uncollectable(::mcpputil::unhide_pointer(old_memory), false);
 }
 static void uncollectable_test()
 {
@@ -279,23 +279,23 @@ static void linked_list_test_setup()
       for (int i = 0; i < 3000; ++i) {
         {
           MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
-          locations.push_back(::mcppalloc::hide_pointer(bar));
+          locations.push_back(::mcpputil::hide_pointer(bar));
         }
-        ::mcppalloc::secure_zero(bar, allocation_size);
+        ::mcpputil::secure_zero(bar, allocation_size);
         *bar = ta.allocate(allocation_size).m_ptr;
         bar = reinterpret_cast<void **>(*bar);
       }
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
-        locations.push_back(::mcppalloc::hide_pointer(bar));
+        locations.push_back(::mcpputil::hide_pointer(bar));
       }
-      ::mcppalloc::secure_zero_pointer(bar);
+      ::mcpputil::secure_zero_pointer(bar);
     }
     while (keep_going) {
       ::std::stringstream ss;
       ss << foo << ::std::endl;
     }
-    ::mcppalloc::secure_zero_pointer(foo);
+    ::mcpputil::secure_zero_pointer(foo);
     ::cgc1::cgc_unregister_thread();
     ::cgc1::clean_stack(0, 0, 0, 0, 0);
   };
@@ -314,7 +314,7 @@ static void linked_list_test_setup()
   }
   keep_going = false;
   t1->join();
-  ::mcppalloc::secure_zero(&test_thread, sizeof(test_thread));
+  ::mcpputil::secure_zero(&test_thread, sizeof(test_thread));
 }
 static void linked_list_final()
 {
@@ -353,7 +353,7 @@ namespace race_condition_test_detail
     {
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
       foo = ta.allocate(100).m_ptr;
-      llocations.push_back(::mcppalloc::hide_pointer(foo));
+      llocations.push_back(::mcpputil::hide_pointer(foo));
     }
     ++finished_part1;
     // syncronize with tests in main thread.
@@ -361,11 +361,11 @@ namespace race_condition_test_detail
       //      ::std::this_thread::yield();
       ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
     }
-    ::mcppalloc::secure_zero(&foo, sizeof(foo));
+    ::mcpputil::secure_zero(&foo, sizeof(foo));
     {
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(debug_mutex);
       for (int i = 0; i < 1000; ++i) {
-        llocations.push_back(::mcppalloc::hide_pointer(ta.allocate(100).m_ptr));
+        llocations.push_back(::mcpputil::hide_pointer(ta.allocate(100).m_ptr));
       }
     }
     cgc1::cgc_unregister_thread();
@@ -510,8 +510,8 @@ static void return_to_global_test1()
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   bool in_free = allocator.in_free_list(*pair);
   AssertThat(in_free, IsTrue());
-  ::mcppalloc::secure_zero(&begin, sizeof(begin));
-  ::mcppalloc::secure_zero(&end, sizeof(end));
+  ::mcpputil::secure_zero(&begin, sizeof(begin));
+  ::mcpputil::secure_zero(&end, sizeof(end));
 }
 static MCPPALLOC_NO_INLINE void return_to_global_test2()
 {
@@ -614,8 +614,8 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   // Verify that we haven't created any global blocks.
-  ::mcppalloc::secure_zero(&begin, sizeof(begin));
-  ::mcppalloc::secure_zero(&end, sizeof(end));
+  ::mcpputil::secure_zero(&begin, sizeof(begin));
+  ::mcpputil::secure_zero(&end, sizeof(end));
   ::cgc1::clean_stack(0, 0, 0, 0, 0);
 }
 /**
@@ -703,10 +703,10 @@ void gc_bandit_tests()
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("test2,", []() {
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
-      ::mcppalloc::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
+      ::mcpputil::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec;
+      ::mcpputil::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec2;
+      ::mcpputil::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec3;
+      ::mcpputil::rebind_vector_t<size_t, cgc1::cgc_internal_slab_allocator_t<int>> vec4;
       for (size_t i = 0; i < 1000; ++i) {
         vec.push_back(i);
         vec2.push_back(i);

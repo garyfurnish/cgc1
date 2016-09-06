@@ -1,8 +1,8 @@
 #pragma once
-#include <mcppalloc/mcppalloc_utils/boost/iterator/zip_iterator.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/property_tree/ptree.hpp>
-#include <mcppalloc/mcppalloc_utils/boost/range/iterator_range.hpp>
-#include <mcppalloc/mcppalloc_utils/literals.hpp>
+#include <mcpputil/mcpputil/boost/iterator/zip_iterator.hpp>
+#include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/boost/range/iterator_range.hpp>
+#include <mcpputil/mcpputil/literals.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -84,7 +84,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       bitmap_state_info_t bitmap_package_t<Allocator_Policy>::_get_info(size_t id, type_id_t type_id)
       {
-        using namespace mcppalloc::literals;
+        using namespace mcpputil::literals;
         bitmap_state_t state;
         state.m_internal.m_info = bitmap_state_info_t{static_cast<uint32_t>(cs_total_size / ((1 + id) << 5) / 512),
                                                       (1u << (5 + id)),

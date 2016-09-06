@@ -1,5 +1,5 @@
 #include <cgc1/cgc1.hpp>
-#include <mcppalloc/mcppalloc_utils/bandit.hpp>
+#include <mcpputil/mcpputil/bandit.hpp>
 
 using namespace bandit;
 extern void gc_bandit_tests();
