@@ -4,3 +4,6 @@
 [submodule "mcpputil"]
 	path = mcpputil
 	url = git@github.com:garyfurnish/mcpputil.git
+[submodule "mcpposutil"]
+	path = mcpposutil
+	url = git@github.com:garyfurnish/mcpposutil.git
