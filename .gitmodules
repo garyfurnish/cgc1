@@ -7,3 +7,6 @@
 [submodule "mcpposutil"]
 	path = mcpposutil
 	url = git@github.com:garyfurnish/mcpposutil.git
+[submodule "GSL"]
+	path = GSL
+	url = https://github.com/Microsoft/GSL.git
