@@ -14,4 +14,4 @@ add_executable(mcppalloc_sparse_test
   allocator_block_set_tests.cpp
   slab_allocator.cpp
   )
-target_link_libraries(mcppalloc_sparse_test mcppalloc_slab_allocator)
+target_link_libraries(mcppalloc_sparse_test mcppalloc_slab_allocator mcpputil)

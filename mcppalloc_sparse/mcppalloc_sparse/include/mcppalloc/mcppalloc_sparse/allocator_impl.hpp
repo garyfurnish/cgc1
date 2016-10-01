@@ -126,13 +126,13 @@ namespace mcppalloc
         assert(m_current_end <= m_slab.end());
         size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
         if (expansion_size > max_heap_size())
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::nullptr_;
         if (!try_expand)
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::nullptr_;
         if (!m_slab.expand(expansion_size)) {
           ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
           // unable to expand heap so return error condition.
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return mcpputil::system_memory_range_t::nullptr_;
         }
         // recalculate used end.
         uint8_t *new_end = m_current_end + sz;
