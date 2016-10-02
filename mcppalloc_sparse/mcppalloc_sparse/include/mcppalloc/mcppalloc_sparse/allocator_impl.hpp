@@ -83,7 +83,7 @@ namespace mcppalloc
         sz = mcpputil::align(sz, mcpputil::c_alignment);
         // do worst fit memory vector lookup
         typename memory_pair_vector_t::iterator worst = m_free_list.end();
-        auto find_pair = memory_pair_t(nullptr, reinterpret_cast<uint8_t *>(sz));
+        auto find_pair = mcpputil::system_memory_range_t(nullptr, reinterpret_cast<uint8_t *>(sz));
         worst = last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair,
                                         mcpputil::system_memory_range_t::size_comparator());
         if (worst != m_free_list.end()) {
@@ -104,7 +104,7 @@ namespace mcppalloc
           }
           assert(reinterpret_cast<uintptr_t>(ret.begin()) % mcpputil::c_alignment == 0);
           assert(reinterpret_cast<uintptr_t>(ret.end()) % mcpputil::c_alignment == 0);
-          return memory_pair_t(ret.begin(), ret.end());
+          return mcpputil::system_memory_range_t(ret.begin(), ret.end());
         }
         // no space available in free list.
         auto sz_available = m_slab.end() - m_current_end;
@@ -455,19 +455,19 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::release_memory(const memory_pair_t &pair)
+      void allocator_t<Allocator_Policy>::release_memory(const mcpputil::system_memory_range_t &pair)
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _u_release_memory(pair);
       }
 
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_release_memory(const memory_pair_t &pair)
+      void allocator_t<Allocator_Policy>::_u_release_memory(const mcpputil::system_memory_range_t &pair)
       {
         _ud_verify();
         // if the interval is at the end of the currently used part of slab, just move slab pointer.
-        if (pair.second == m_current_end) {
-          m_current_end = pair.first;
+        if (pair.end() == m_current_end) {
+          m_current_end = pair.begin();
           assert(m_current_end <= m_slab.end());
           return;
         } else {
@@ -478,11 +478,11 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      auto allocator_t<Allocator_Policy>::in_free_list(const memory_pair_t &pair) const noexcept -> bool
+      auto allocator_t<Allocator_Policy>::in_free_list(const mcpputil::system_memory_range_t &pair) const noexcept -> bool
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // first check to see if it is past end of used slab.
-        if (_u_current_end() <= pair.first && pair.second <= _u_end())
+        if (_u_current_end() <= pair.begin() && pair.end() <= _u_end())
           return true;
         // otherwise check to see if it is in some interval in the free list.
         for (auto &&fpair : m_free_list) {

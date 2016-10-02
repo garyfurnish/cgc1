@@ -16,19 +16,6 @@ namespace mcppalloc
     namespace details
     {
       /**
-       * \brief Pair of memory addresses (begin and end)
-       **/
-      using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
-      /**
-       * \brief Size comparator for memory pair.
-       **/
-      struct memory_pair_size_comparator_t {
-        bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
-        {
-          return mcpputil::system_memory_range_t(a).size() < mcpputil::system_memory_range_t(b).size();
-        }
-      };
-      /**
        * \brief Global slab interval allocator, used by thread allocators.
        *
        * The intent of this allocator is to maximize linearity of cache accesses.
@@ -175,21 +162,21 @@ namespace mcppalloc
          *
          * @param pair Memory interval to release.
         **/
-        void release_memory(const memory_pair_t &pair) REQUIRES(!m_mutex);
+        void release_memory(const mcpputil::system_memory_range_t &pair) REQUIRES(!m_mutex);
         /**
          * \brief Release an interval of memory.
          *
          * Requires holding lock.
          * @param pair Memory interval to release.
         **/
-        void _u_release_memory(const memory_pair_t &pair) REQUIRES(m_mutex);
+        void _u_release_memory(const mcpputil::system_memory_range_t &pair) REQUIRES(m_mutex);
 
         /**
          * \brief Return true if the interval of memory is in the free list.
          *
          * @param pair Memory interval to test.
          **/
-        REQUIRES(!m_mutex) auto in_free_list(const memory_pair_t &pair) const noexcept -> bool;
+        REQUIRES(!m_mutex) auto in_free_list(const mcpputil::system_memory_range_t &pair) const noexcept -> bool;
         /**
          * \brief Return length of free list.
          **/
