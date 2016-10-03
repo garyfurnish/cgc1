@@ -33,12 +33,6 @@ namespace mcppalloc
       {
       public:
         using value_type = uint8_t;
-        using reference = uint8_t &;
-        using const_reference = const uint8_t &;
-        using pointer = uint8_t *;
-        using const_pointer = const uint8_t *;
-        using iterator = uint8_t *;
-        using const_iterator = const uint8_t *;
         using difference_type = ::std::ptrdiff_t;
         using size_type = size_t;
         using mutex_type = mcpputil::mutex_t;
@@ -66,7 +60,7 @@ namespace mcppalloc
          *
          * This uses the control allocator for control memory.
         **/
-        using memory_pair_vector_t =
+        using memory_range_vector_t =
             typename ::std::vector<mcpputil::system_memory_range_t,
                                    typename allocator::template rebind<mcpputil::system_memory_range_t>::other>;
         /**
@@ -201,22 +195,6 @@ namespace mcppalloc
          * @param block Block to destroy.
         **/
         void _u_destroy_global_allocator_block(allocator_block_type &&block) REQUIRES(m_mutex);
-
-        /**
-         * \brief Register a allocator block before moving/destruction.
-         *
-         * @param ta Requesting thread allocator.
-         * @param block Block to request registartion of.
-        **/
-        //      void register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(!m_mutex);
-        /**
-         * \brief Register a allocator block before moving/destruction.
-         *
-         * Requires holding lock.
-         * @param ta Requesting thread allocator.
-         * @param block Block to request registartion of.
-        **/
-        //      void _u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(m_mutex);
         /**
          * \brief Unregister a registered allocator block before moving/destruction.
          *
@@ -329,11 +307,11 @@ namespace mcppalloc
         /**
          * \brief Return the free list for debugging purposes.
         **/
-        memory_pair_vector_t _d_free_list() const REQUIRES(!m_mutex);
+        memory_range_vector_t _d_free_list() const REQUIRES(!m_mutex);
         /**
          * \brief Return the free list for debugging purposes without locking.
         **/
-        const memory_pair_vector_t &_ud_free_list() const REQUIRES(m_mutex);
+        const memory_range_vector_t &_ud_free_list() const REQUIRES(m_mutex);
         /**
          * \brief Return the beginning of the underlying slab.
          **/
@@ -480,7 +458,7 @@ namespace mcppalloc
          * This is not stored in sorted order.
          * This must be collapsed occasionally.
         **/
-        memory_pair_vector_t m_free_list GUARDED_BY(m_mutex);
+        memory_range_vector_t m_free_list GUARDED_BY(m_mutex);
         /**
          * \brief Pointer to end of currently used portion of slab.
         **/

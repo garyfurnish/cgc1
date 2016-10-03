@@ -82,7 +82,7 @@ namespace mcppalloc
         _ud_verify();
         sz = mcpputil::align(sz, mcpputil::c_alignment);
         // do worst fit memory vector lookup
-        typename memory_pair_vector_t::iterator worst = m_free_list.end();
+        typename memory_range_vector_t::iterator worst = m_free_list.end();
         auto find_pair = mcpputil::system_memory_range_t(nullptr, reinterpret_cast<uint8_t *>(sz));
         worst = last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair,
                                         mcpputil::system_memory_range_t::size_comparator());
@@ -578,13 +578,13 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      inline auto allocator_t<Allocator_Policy>::_d_free_list() const -> memory_pair_vector_t
+      inline auto allocator_t<Allocator_Policy>::_d_free_list() const -> memory_range_vector_t
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _ud_free_list();
       }
       template <typename Allocator_Policy>
-      inline auto allocator_t<Allocator_Policy>::_ud_free_list() const -> const memory_pair_vector_t &
+      inline auto allocator_t<Allocator_Policy>::_ud_free_list() const -> const memory_range_vector_t &
       {
         return m_free_list;
       }

@@ -6,4 +6,8 @@ namespace cgc1
   extern void clean_stack(size_t, size_t, size_t, size_t, size_t);
 
   extern template void clean_stack<5000>(size_t, size_t, size_t, size_t, size_t);
+  namespace details
+  {
+    class global_kernel_state_t;
+  }
 }

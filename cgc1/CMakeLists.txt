@@ -26,6 +26,7 @@ src/internal_allocator.hpp
 src/internal_declarations.hpp
 src/kernel.cpp
 src/posix.cpp
+src/ptree.cpp
 src/thread_local_kernel_state.cpp
 src/thread_local_kernel_state.hpp
 src/thread_local_kernel_state_impl.hpp
