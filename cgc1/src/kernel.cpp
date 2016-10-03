@@ -42,13 +42,13 @@ namespace cgc1
 #endif
     bool is_bitmap_allocator(void *addr) noexcept
     {
-      if (addr >= details::g_gks->fast_slab_begin() && addr < details::g_gks->fast_slab_end())
+      if (addr >= details::g_gks->_bitmap_allocator().begin() && addr < details::g_gks->_bitmap_allocator().end())
         return true;
       return false;
     }
     bool is_sparse_allocator(void *addr) noexcept
     {
-      return (addr >= details::g_gks->slow_slab_begin() && addr < details::g_gks->slow_slab_end());
+      return (addr >= details::g_gks->gc_allocator().begin() && addr < details::g_gks->gc_allocator().end());
     }
   }
   namespace debug
@@ -139,7 +139,7 @@ namespace cgc1
     void *start = cgc_start(addr);
     if (!start)
       return 0;
-    if (start >= details::g_gks->fast_slab_begin() && start < details::g_gks->fast_slab_end()) {
+    if (start >= details::g_gks->_bitmap_allocator().begin() && start < details::g_gks->_bitmap_allocator().end()) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers())
         return state->declared_entry_size();

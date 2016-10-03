@@ -224,8 +224,8 @@ namespace cgc1
     }
     int _is_bitmap_addr_markable(void *addr, bool do_mark, bool force_mark)
     {
-      void *const fast_heap_begin = g_gks->fast_slab_begin();
-      void *const fast_heap_end = g_gks->fast_slab_end();
+      void *const fast_heap_begin = g_gks->_bitmap_allocator().begin();
+      void *const fast_heap_end = g_gks->_bitmap_allocator().end();
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
         return 1;
@@ -309,8 +309,8 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth)
     {
       // Find heap begin and end.
-      void *fast_heap_begin = g_gks->fast_slab_begin();
-      void *fast_heap_end = g_gks->fast_slab_end();
+      void *fast_heap_begin = g_gks->_bitmap_allocator().begin();
+      void *fast_heap_end = g_gks->_bitmap_allocator().end();
       if (addr >= fast_heap_begin && addr < fast_heap_end) {
         _mark_addrs_bitmap(addr, depth);
         return;

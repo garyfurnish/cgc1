@@ -236,10 +236,6 @@ namespace cgc1::details
 
     RETURN_CAPABILITY(m_mutex) auto _mutex() const -> mutex_type &;
 
-    auto slow_slab_begin() const noexcept -> uint8_t *;
-    auto slow_slab_end() const noexcept -> uint8_t *;
-    auto fast_slab_begin() const noexcept -> uint8_t *;
-    auto fast_slab_end() const noexcept -> uint8_t *;
     /**
      * \brief Return reference to cached initialization parameters.
      **/
