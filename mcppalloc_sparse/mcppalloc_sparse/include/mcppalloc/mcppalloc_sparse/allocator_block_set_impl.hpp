@@ -106,7 +106,7 @@ namespace mcppalloc
                 ::std::cerr << "free list size " << block.m_free_list.size() << ::std::endl;
 
                 ::std::cerr << "available blocks\n";
-                for (auto pair : m_available_blocks) {
+                for (auto &&pair : m_available_blocks) {
                   ::std::cerr << pair.first << " " << pair.second << "\n";
                 }
 

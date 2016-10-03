@@ -355,9 +355,11 @@ namespace cgc1
             if (ud) {
               if (ud->is_default()) {
                 os_it->set_quasi_freed();
-#ifdef CGC1_DEBUG_VERBOSE_TRACK
-                m_to_be_freed.push_back(os_it);
-#endif
+                if
+                  constexpr(c_gc_verbose_track)
+                  {
+                    m_to_be_freed.push_back(os_it);
+                  }
               } else {
                 if (ud->is_uncollectable()) {
                   // if uncollectable don't do anything.

@@ -69,26 +69,26 @@ namespace cgc1
     /*
      * \brief Size of slab allocator at start.
      */
-    size_t m_slab_allocator_start_size = ::mcpputil::details::pow2(22);
+    size_t m_slab_allocator_start_size = ::mcpputil::pow2(22);
     /**
      * \brief Expansion size of slab allocator.
      **/
-    size_t m_slab_allocator_expansion_size = ::mcpputil::details::pow2(24);
+    size_t m_slab_allocator_expansion_size = ::mcpputil::pow2(24);
     /**
      * \brief Size of packed allocator at start.
      **/
-    size_t m_packed_allocator_start_size = ::mcpputil::details::pow2(33);
+    size_t m_packed_allocator_start_size = ::mcpputil::pow2(33);
     /**
      * \brief Expansion size of packed allocator.
      **/
-    size_t m_packed_allocator_expansion_size = ::mcpputil::details::pow2(34);
+    size_t m_packed_allocator_expansion_size = ::mcpputil::pow2(34);
     /**
      * \brief Size of internal allocator at start.
      **/
-    size_t m_internal_allocator_start_size = ::mcpputil::details::pow2(31);
+    size_t m_internal_allocator_start_size = ::mcpputil::pow2(31);
     /**
      * \brief Expansion size of internal allocator.
      **/
-    size_t m_internal_allocator_expansion_size = ::mcpputil::details::pow2(33);
+    size_t m_internal_allocator_expansion_size = ::mcpputil::pow2(33);
   };
 }

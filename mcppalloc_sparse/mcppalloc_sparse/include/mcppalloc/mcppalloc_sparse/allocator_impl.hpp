@@ -234,21 +234,25 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block)
       {
-#if MCPPALLOC_DEBUG_LEVEL > 0
-        _ud_verify();
-        for (auto &&it : m_blocks) {
-          // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
-          if (it.m_block == &block)
-            ::std::terminate();
-          // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
-          if (it.m_begin == block.begin()) {
-            ::std::cerr << " Attempt to double register block. 77dbea01-7e0f-49da-81f1-9ad7f4616eea\n";
-            ::std::cerr << "77dbea01-7e0f-49da-81f1-9ad7f4616eea " << &block << " " << reinterpret_cast<void *>(block.begin())
-                        << ::std::endl;
-            ::std::terminate();
+        if
+          constexpr(c_debug_level)
+          {
+            _ud_verify();
+            for (auto &&it : m_blocks) {
+              // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption
+              // spreads.
+              if (it.m_block == &block)
+                ::std::terminate();
+              // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption
+              // spreads.
+              if (it.m_begin == block.begin()) {
+                ::std::cerr << " Attempt to double register block. 77dbea01-7e0f-49da-81f1-9ad7f4616eea\n";
+                ::std::cerr << "77dbea01-7e0f-49da-81f1-9ad7f4616eea " << &block << " " << reinterpret_cast<void *>(block.begin())
+                            << ::std::endl;
+                ::std::terminate();
+              }
+            }
           }
-        }
-#endif
         // create a fake handle to search for.
         this_allocator_block_handle_t handle;
         handle.initialize(&ta, &block, block.begin());
@@ -289,10 +293,12 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_ud_verify()
       {
-#if MCPPALLOC_DEBUG_LEVEL > 1
-        // this is really expensive, but verify that blocks are sorted.
-        assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
-#endif
+        if
+          constexpr(c_debug_level > 1)
+          {
+            // this is really expensive, but verify that blocks are sorted.
+            assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
+          }
       }
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_d_verify()
