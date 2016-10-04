@@ -4,6 +4,7 @@
 #include "global_kernel_state_param.hpp"
 #include "internal_allocator.hpp"
 #include "internal_declarations.hpp"
+#include "root_collection.hpp"
 #include <atomic>
 #include <cgc1/cgc_internal_malloc_allocator.hpp>
 #include <condition_variable>
@@ -23,6 +24,15 @@ namespace cgc1::details
   class global_kernel_state_t
   {
   public:
+    /**
+     * \brief Lock that waits for collection safety.
+     **/
+    class collection_lock_t
+    {
+    public:
+      void lock() const ACQUIRE() NO_THREAD_SAFETY_ANALYSIS;
+      void unlock() const RELEASE() NO_THREAD_SAFETY_ANALYSIS;
+    };
     using cgc_internal_allocator_allocator_t = cgc_internal_slab_allocator_t<void>;
     using internal_allocator_policy_type = ::mcppalloc::default_allocator_policy_t<cgc_internal_allocator_allocator_t>;
     using internal_allocator_t = ::mcppalloc::sparse::allocator_t<internal_allocator_policy_type>;
@@ -130,18 +140,8 @@ namespace cgc1::details
     auto allocate_sparse(size_t sz) -> details::gc_allocator_t::block_type;
     void deallocate(void *v);
 
-    /**
-     * \brief Add a root the global kernel state.
-    **/
-    void add_root(void **) REQUIRES(!m_mutex);
-    /**
-     * \brief Remove a root from the global kernel state.
-    **/
-    void remove_root(void **) REQUIRES(!m_mutex);
-    /**
-     * \brief Return true if has the given root, false otherwise.
-     **/
-    bool has_root(void **r) REQUIRES(!m_mutex);
+    auto root_collection();
+    auto root_collection() const;
     /**
      * \brief Wait for finalization of the last collection to finish.
     **/
@@ -241,6 +241,11 @@ namespace cgc1::details
      **/
     auto initialization_parameters_ref() const noexcept -> const global_kernel_state_param_t &;
 
+    /**
+     * \brief Wait for collection safe point.
+     **/
+    static const constexpr collection_lock_t sc_collection_lock;
+
   private:
     /**
      * \brief Initialize the global kernel state.
@@ -338,10 +343,10 @@ namespace cgc1::details
      * \brief This mutex is locked when mutexes are unavailable.
      **/
     mutable ::mcpputil::mutex_t m_allocators_unavailable_mutex;
-    /**
-     * \brief Vector of pointers to roots.
-     **/
-    ::mcpputil::rebind_vector_t<void **, cgc_internal_malloc_allocator_t<void>> m_roots GUARDED_BY(m_mutex);
+    using root_collection_policy_type =
+        default_root_collection_policy_t<decltype(sc_collection_lock), cgc_internal_malloc_allocator_t<void **>>;
+    mutable root_collection_t<root_collection_policy_type> m_roots{sc_collection_lock,
+                                                                   cgc_internal_malloc_allocator_t<void **>()};
     /**
      * \brief Vector of all threads registered with the kernel.
      *

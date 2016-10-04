@@ -54,4 +54,12 @@ namespace cgc1::details
   {
     return m_mutex;
   }
+  inline auto global_kernel_state_t::root_collection()
+  {
+    return m_roots;
+  }
+  inline auto global_kernel_state_t::root_collection() const
+  {
+    return m_roots;
+  }
 }

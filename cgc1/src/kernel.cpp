@@ -154,17 +154,17 @@ namespace cgc1
   void cgc_add_root(void **v)
   {
     details::check_initialized();
-    details::g_gks->add_root(v);
+    details::g_gks->root_collection().add_root(v);
   }
   void cgc_remove_root(void **v)
   {
     if (!details::g_gks)
       return;
-    details::g_gks->remove_root(v);
+    details::g_gks->root_collection().remove_root(v);
   }
   bool cgc_has_root(void **v)
   {
-    return details::g_gks->has_root(v);
+    return details::g_gks->root_collection().has_root(v);
   }
   size_t cgc_heap_size()
   {

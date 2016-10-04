@@ -45,6 +45,7 @@ namespace mcppalloc::bitmap_allocator::details
 
 namespace cgc1::details
 {
+
   auto _real_gks() -> global_kernel_state_t *
   {
     static global_kernel_state_t *gks = nullptr;
@@ -76,6 +77,14 @@ namespace cgc1::details
     auto gks = _real_gks();
     gks->_internal_slab_allocator().deallocate_raw(p);
   }
+  void global_kernel_state_t::collection_lock_t::lock() const
+  {
+    g_gks->wait_for_collection();
+  }
+  void global_kernel_state_t::collection_lock_t::unlock() const
+  {
+    g_gks->m_mutex.unlock();
+  }
   global_kernel_state_t::global_kernel_state_t(const global_kernel_state_param_t &param)
       : m_slab_allocator(param.slab_allocator_start_size(), param.slab_allocator_expansion_size()),
         m_bitmap_allocator(param.packed_allocator_start_size(), param.packed_allocator_expansion_size()),
@@ -101,7 +110,6 @@ namespace cgc1::details
     {
       m_gc_threads.clear();
       auto a1 = ::std::move(m_gc_threads);
-      m_roots.clear();
       auto a2 = ::std::move(m_roots);
       m_threads.clear();
       auto a3 = ::std::move(m_threads);
@@ -110,7 +118,6 @@ namespace cgc1::details
     }
     m_cgc_allocator.shutdown();
     assert(!m_gc_threads.capacity());
-    assert(!m_roots.capacity());
     assert(!m_threads.capacity());
     assert(!m_freed_in_last_collection.capacity());
     m_in_destructor = false;
@@ -250,34 +257,6 @@ namespace cgc1::details
       sparse_allocator.deallocate(v);
   }
 
-  void global_kernel_state_t::add_root(void **r)
-  {
-    wait_for_collection();
-    MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
-    // make sure not already a root.
-    const auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it == m_roots.end())
-      m_roots.push_back(r);
-  }
-  void global_kernel_state_t::remove_root(void **r)
-  {
-    wait_for_collection();
-    MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
-    // find root and erase.
-    auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it != m_roots.end())
-      m_roots.erase(it);
-  }
-  bool global_kernel_state_t::has_root(void **r)
-  {
-    wait_for_collection();
-    MCPPALLOC_CONCURRENCY_LOCK_GUARD_TAKE(m_mutex);
-    // find root and erase.
-    auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it != m_roots.end())
-      return true;
-    return false;
-  }
   size_t global_kernel_state_t::num_collections() const
   {
     return m_num_collections;
@@ -298,20 +277,23 @@ namespace cgc1::details
       cur_gc_thread = (cur_gc_thread + 1) % m_gc_threads.size();
     }
     auto &blocks = m_gc_allocator._u_blocks();
-    size_t num_gc_threads = m_gc_threads.size();
-    size_t num_blocks = blocks.size();
-    size_t block_per_thread = num_blocks / num_gc_threads;
-    size_t num_roots = m_roots.size();
-    size_t roots_per_thread = num_roots / num_gc_threads;
+    auto num_gc_threads = static_cast<::std::ptrdiff_t>(m_gc_threads.size());
+    auto num_blocks = static_cast<::std::ptrdiff_t>(blocks.size());
+    auto block_per_thread = num_blocks / num_gc_threads;
+    auto &&roots = m_roots.roots();
+    auto numroots = roots.size();
+    auto roots_per_thread = numroots / static_cast<::std::ptrdiff_t>(num_gc_threads);
     // for each gc thread, evenly subdivide blocks and roots.
-    for (size_t i = 0; i < m_gc_threads.size() - 1; ++i) {
-      m_gc_threads[i]->set_allocator_blocks(blocks.data() + block_per_thread * i, blocks.data() + block_per_thread * (i + 1));
-      m_gc_threads[i]->set_root_iterators(m_roots.data() + roots_per_thread * i, m_roots.data() + roots_per_thread * (i + 1));
+    for (::std::ptrdiff_t i = 0; i < static_cast<::std::ptrdiff_t>(m_gc_threads.size() - 1); ++i) {
+      m_gc_threads[static_cast<size_t>(i)]->set_allocator_blocks(blocks.data() + block_per_thread * i,
+                                                                 blocks.data() + block_per_thread * (i + 1));
+      m_gc_threads[static_cast<size_t>(i)]->set_root_iterators(roots.data() + roots_per_thread * i,
+                                                               roots.data() + roots_per_thread * (i + 1));
     }
     // last gc thread may not have even number of blocks or roots so give it what remains.
     m_gc_threads.back()->set_allocator_blocks(blocks.data() + block_per_thread * (num_gc_threads - 1),
                                               blocks.data() + num_blocks);
-    m_gc_threads.back()->set_root_iterators(m_roots.data() + roots_per_thread * (num_gc_threads - 1), m_roots.data() + num_roots);
+    m_gc_threads.back()->set_root_iterators(roots.data() + roots_per_thread * (num_gc_threads - 1), roots.data() + numroots);
   }
   void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
   {
