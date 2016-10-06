@@ -13,6 +13,7 @@ list (APPEND SRC_FILES
 include/cgc1/cgc1.hpp
 include/cgc1/cgc_internal_malloc_allocator.hpp
 include/cgc1/declarations.hpp
+src/bitmap_finalization.cpp
 src/gc_allocator.cpp
 src/gc_allocator.hpp
 src/gc_thread.cpp
