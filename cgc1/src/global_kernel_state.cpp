@@ -11,6 +11,7 @@
 #include <iostream>
 #include <mcpputil/mcpputil/aligned_allocator.hpp>
 #include <mcpputil/mcpputil/concurrency.hpp>
+#include <mcpputil/mcpputil/equipartition.hpp>
 #include <signal.h>
 #ifdef _WIN32
 #define NOMINMAX
@@ -276,24 +277,20 @@ namespace cgc1::details
       m_gc_threads[cur_gc_thread]->add_thread(state->thread_id());
       cur_gc_thread = (cur_gc_thread + 1) % m_gc_threads.size();
     }
-    auto &blocks = m_gc_allocator._u_blocks();
-    auto num_gc_threads = static_cast<::std::ptrdiff_t>(m_gc_threads.size());
-    auto num_blocks = static_cast<::std::ptrdiff_t>(blocks.size());
-    auto block_per_thread = num_blocks / num_gc_threads;
-    auto &&roots = m_roots.roots();
-    auto numroots = roots.size();
-    auto roots_per_thread = numroots / static_cast<::std::ptrdiff_t>(num_gc_threads);
-    // for each gc thread, evenly subdivide blocks and roots.
-    for (::std::ptrdiff_t i = 0; i < static_cast<::std::ptrdiff_t>(m_gc_threads.size() - 1); ++i) {
-      m_gc_threads[static_cast<size_t>(i)]->set_allocator_blocks(blocks.data() + block_per_thread * i,
-                                                                 blocks.data() + block_per_thread * (i + 1));
-      m_gc_threads[static_cast<size_t>(i)]->set_root_iterators(roots.data() + roots_per_thread * i,
-                                                               roots.data() + roots_per_thread * (i + 1));
-    }
-    // last gc thread may not have even number of blocks or roots so give it what remains.
-    m_gc_threads.back()->set_allocator_blocks(blocks.data() + block_per_thread * (num_gc_threads - 1),
-                                              blocks.data() + num_blocks);
-    m_gc_threads.back()->set_root_iterators(roots.data() + roots_per_thread * (num_gc_threads - 1), roots.data() + numroots);
+
+    const auto set_allocator_blocks = [](auto &&thread, auto &&tup) {
+      auto && [ begin, end ] = tup;
+      // TODO: Possible UB
+      thread->set_allocator_blocks(&*begin, &*end);
+    };
+    const auto set_root_iterators = [](auto &&thread, auto &&tup) {
+      auto && [ begin, end ] = tup;
+      // TODO: Possible UB
+      thread->set_root_iterators(&*begin, &*end);
+    };
+
+    mcpputil::equipartition(m_gc_allocator._u_blocks(), m_gc_threads, set_allocator_blocks);
+    mcpputil::equipartition(m_roots.roots(), m_gc_threads, set_root_iterators);
   }
   void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
   {
