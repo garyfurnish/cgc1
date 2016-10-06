@@ -29,7 +29,7 @@ namespace cgc1
           if (ud->abort_on_collect()) {
 
             ::std::cerr << __FILE__ << " " << __LINE__ << " " << state->is_marked(i) << ::std::endl;
-            ::std::abort();
+            ::std::terminate();
           }
           state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).set_bit(i, false);
           state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread).set_bit(i, false);

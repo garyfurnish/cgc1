@@ -2,6 +2,7 @@
 #include "bitmap_gc_user_data.hpp"
 #include "internal_declarations.hpp"
 #include "new.hpp"
+#include "sparse_finalization.hpp"
 #include "thread_local_kernel_state.hpp"
 #include <algorithm>
 #include <cgc1/cgc1.hpp>
@@ -305,16 +306,13 @@ namespace cgc1::details
   }
   void global_kernel_state_t::local_thread_finalization()
   {
-    _local_thread_finalization_sparse();
-  }
-  void global_kernel_state_t::_local_thread_finalization_sparse()
-  {
     cgc_internal_vector_t<gc_sparse_object_state_t *> vec;
     {
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
       vec = _u_get_local_finalization_vector_sparse();
     }
-    _do_local_finalization_sparse(vec);
+    auto to_be_freed = do_local_sparse_finalization(gc_allocator(), vec);
+    _add_freed_in_last_collection(to_be_freed);
   }
   auto global_kernel_state_t::_u_get_local_finalization_vector_sparse() -> cgc_internal_vector_t<gc_sparse_object_state_t *>
   {
@@ -322,27 +320,6 @@ namespace cgc1::details
     // explicitly put in known good state.
     m_need_special_finalizing_collection_sparse.clear();
     return ret;
-  }
-  void global_kernel_state_t::_do_local_finalization_sparse(cgc_internal_vector_t<gc_sparse_object_state_t *> &vec)
-  {
-    cgc_internal_vector_t<uintptr_t> to_be_freed;
-    for (auto &&os : vec) {
-      gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
-      if (mcpputil_likely(ud)) {
-        if (mcpputil_unlikely(ud->is_default())) {
-        } else {
-          // if it has a finalizer that can run in this thread, finalize.
-          if (ud->m_finalizer) {
-            ud->m_finalizer(os->object_start());
-          }
-          unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
-        }
-      }
-      mcpputil::secure_zero(os->object_start(), os->object_size());
-      to_be_freed.emplace_back(::mcpputil::hide_pointer(os->object_start()));
-    }
-    _add_freed_in_last_collection(to_be_freed);
-    gc_allocator().bulk_destroy_memory(vec);
   }
 
   void global_kernel_state_t::collect()

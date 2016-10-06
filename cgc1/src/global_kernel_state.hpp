@@ -272,17 +272,9 @@ namespace cgc1::details
     **/
     void _u_setup_gc_threads() REQUIRES(m_mutex, m_thread_mutex);
     /**
-     * \brief Attempt to do some GKS finalization in this thread.
-     **/
-    void _local_thread_finalization_sparse() REQUIRES(!m_mutex);
-    /**
      * \brief Get a vector of sparse states that need to be finalized by this thread.
      **/
     REQUIRES(m_mutex) auto _u_get_local_finalization_vector_sparse() -> cgc_internal_vector_t<gc_sparse_object_state_t *>;
-    /**
-     * \brief Do local finalization on a vector of sparse states.
-     **/
-    void _do_local_finalization_sparse(cgc_internal_vector_t<gc_sparse_object_state_t *> &vec) REQUIRES(!m_mutex);
     /**
      * \brief Internal slab allocator used for internal allocator.
     **/
