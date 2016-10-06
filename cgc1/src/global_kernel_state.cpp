@@ -13,6 +13,7 @@
 #include <mcpputil/mcpputil/aligned_allocator.hpp>
 #include <mcpputil/mcpputil/concurrency.hpp>
 #include <mcpputil/mcpputil/equipartition.hpp>
+#include <mcpputil/mcpputil/timed_algorithm.hpp>
 #include <signal.h>
 #ifdef _WIN32
 #define NOMINMAX
@@ -367,10 +368,6 @@ namespace cgc1::details
       // we need to unlock these because gc_thread could be using them.
       // and gc_thread is not paused.
       unlock(m_cgc_allocator._mutex(), m_slab_allocator._mutex(), m_start_world_condition_mutex);
-      //        unlock(m_thread_mutex, m_bitmap_allocator._mutex(), m_gc_allocator._mutex(), m_cgc_allocator._mutex(),
-      //               m_slab_allocator._mutex(), m_mutex);
-      //	m_collect = false;
-      //        return;
       // this is not good enough
       // we need an array so we can try to repause threads.
       ::std::this_thread::yield();
@@ -384,10 +381,12 @@ namespace cgc1::details
     m_collect_finished.store(0, ::std::memory_order_release);
     m_num_paused_threads.store(0, ::std::memory_order_release);
     m_num_resumed_threads.store(0, ::std::memory_order_release);
+    // make everything visible
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
     m_allocators_unavailable_mutex.lock();
     _u_suspend_threads();
     m_thread_mutex.unlock();
+    // set stack pointer for this stack.
     get_tlks()->set_stack_ptr(mcpputil_builtin_current_stack());
     m_bitmap_allocator._u_set_force_maintenance();
     m_gc_allocator._u_set_force_free_empty_blocks();
@@ -404,52 +403,38 @@ namespace cgc1::details
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_thread_mutex);
       _u_setup_gc_threads();
     }
-    ::std::chrono::high_resolution_clock::time_point t1, t2, tstart;
-    tstart = t1 = ::std::chrono::high_resolution_clock::now();
+    ::std::chrono::high_resolution_clock::time_point t2, tstart;
+    tstart = ::std::chrono::high_resolution_clock::now();
     // clear all marks.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->start_clear();
-    }
-    _bitmap_allocator()._for_all_state([](auto &&state) { state->clear_mark_bits(); });
-    ::std::atomic_thread_fence(::std::memory_order_release);
+    m_clear_mark_time_span = mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->start_clear(); });
+    // clear bitmap
+    m_clear_mark_time_span += ::std::get<::std::chrono::duration<double>>(
+        mcpputil::timed_invoke([&]() { _bitmap_allocator()._for_all_state([](auto &&state) { state->clear_mark_bits(); }); }));
     // wait for clear to finish.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->wait_until_clear_finished();
-    }
-    t2 = ::std::chrono::high_resolution_clock::now();
-    m_clear_mark_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
-    t1 = t2;
-    // start marking.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->start_mark();
-    }
-    // wait for marking to finish.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->wait_until_mark_finished();
-    }
-    t2 = ::std::chrono::high_resolution_clock::now();
-    m_mark_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
-    t1 = t2;
-    // start sweeping.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->start_sweep();
-    }
+    m_clear_mark_time_span +=
+        mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->wait_until_clear_finished(); });
+    // make sure all clears are visible to everyone.
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
-    cgc_internal_vector_t<gc_sparse_object_state_t *> to_be_finalized;
-    _bitmap_allocator()._for_all_state([](auto &&state) { finalize(state); });
+    // start marking.
+    m_mark_time_span = mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->start_mark(); });
+    // wait for marking to finish.
+    m_mark_time_span += mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->wait_until_mark_finished(); });
+    // make sure all marks are visible to everyone.
+    ::std::atomic_thread_fence(::std::memory_order_acq_rel);
+    // start sweeping.
+    m_sweep_time_span = mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->start_sweep(); });
+    // do bitmap allocator finalization
+    m_sweep_time_span = ::std::get<::std::chrono::duration<double>>(mcpputil::timed_invoke([&]() {
+      cgc_internal_vector_t<gc_sparse_object_state_t *> to_be_finalized;
+      _bitmap_allocator()._for_all_state([](auto &&state) { finalize(state); });
+    }));
     // wait for sweeping to finish.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->wait_until_sweep_finished();
-    }
-    t2 = ::std::chrono::high_resolution_clock::now();
-    m_sweep_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
-    t1 = t2;
+    m_sweep_time_span += mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->wait_until_sweep_finished(); });
     // notify safe to resume threads.
-    for (auto &gc_thread : m_gc_threads) {
-      gc_thread->notify_all_threads_resumed();
-    }
+    m_notify_time_span =
+        mcpputil::timed_for_each(m_gc_threads, [](auto &&gc_thread) { gc_thread->notify_all_threads_resumed(); });
+    // get total timespan
     t2 = ::std::chrono::high_resolution_clock::now();
-    m_notify_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
     m_total_collect_time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - tstart);
     m_num_collections++;
     m_thread_mutex.lock();
@@ -573,11 +558,6 @@ namespace cgc1::details
     m_gc_allocator.initialize(::mcpputil::pow2(33), ::mcpputil::pow2(36));
     //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
     const size_t num_gc_threads = 1;
-    // sanity check bad stl implementations.
-    /*      if (mcpputil_unlikely(!num_gc_threads)) {
-      ::std::cerr << "std::thread::hardware_concurrency not well defined\n";
-      ::std::terminate();
-      }*/
     // add gc threads
     for (size_t i = 0; i < num_gc_threads; ++i)
       m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
