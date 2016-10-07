@@ -1,6 +1,7 @@
 #include "gc_thread.hpp"
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
+#include <mcpputil/mcpputil/algorithm.hpp>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -328,12 +329,10 @@ namespace cgc1
     void gc_thread_t::_mark_mark_vector()
     {
       // note we go from back to front because elements may be added during marking.
-      while (!m_addresses_to_mark.empty()) {
-        auto it = m_addresses_to_mark.rbegin();
-        void *addr = *it;
-        m_addresses_to_mark.erase((it + 1).base());
+      mcpputil::reverse_consume_for_each(m_addresses_to_mark, [&](void *addr) {
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         _mark_addrs(addr, 0);
-      }
+      });
     }
     void gc_thread_t::_sweep()
     {
