@@ -537,6 +537,17 @@ namespace mcppalloc
         return m_current_end;
       }
       template <typename Allocator_Policy>
+      mcpputil::system_memory_range_t allocator_t<Allocator_Policy>::current_range() const
+      {
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+        return _u_current_range();
+      }
+      template <typename Allocator_Policy>
+      mcpputil::system_memory_range_t allocator_t<Allocator_Policy>::_u_current_range() const
+      {
+        return {m_slab.begin(), m_current_end};
+      }
+      template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::size() const noexcept -> size_t
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);

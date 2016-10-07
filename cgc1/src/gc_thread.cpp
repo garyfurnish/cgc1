@@ -318,10 +318,8 @@ namespace cgc1
       }
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      void *heap_begin = g_gks->gc_allocator()._u_begin();
-      void *heap_end = g_gks->gc_allocator()._u_current_end();
       gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
-      if (os >= heap_begin && os < heap_end) {
+      if (g_gks->gc_allocator()._u_current_range().contains(os)) {
         _mark_addrs_sparse(addr, depth);
         return;
       }

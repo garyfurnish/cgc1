@@ -267,6 +267,10 @@ namespace mcppalloc
         **/
         uint8_t *current_end() const REQUIRES(!m_mutex);
         /**
+         * \brief Return current memory range.
+         **/
+        mcpputil::system_memory_range_t current_range() const REQUIRES(!m_mutex);
+        /**
          * \brief Return the size of the slab.
          **/
         REQUIRES(!m_mutex) auto size() const noexcept -> size_t;
@@ -326,6 +330,10 @@ namespace mcppalloc
          * Requires holding lock.
         **/
         uint8_t *_u_current_end() const REQUIRES(m_mutex);
+        /**
+         * \brief Return current memory range.
+         **/
+        mcpputil::system_memory_range_t _u_current_range() const REQUIRES(m_mutex);
         /**
          * \brief Internal consistency checks without locking.
         **/
