@@ -11,7 +11,8 @@ namespace mcppalloc
   {
     namespace details
     {
-
+      template <typename Allocator_Policy>
+      typename allocator_block_t<Allocator_Policy>::user_data_type allocator_block_t<Allocator_Policy>::s_default_user_data;
       template <typename Allocator_Policy>
       MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(void *start,
                                                                                      size_t length,

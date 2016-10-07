@@ -8,6 +8,9 @@ namespace mcppalloc
     namespace details
     {
       template <typename Allocator_Policy>
+      typename mcpputil::thread_local_pointer_t<typename bitmap_allocator_t<Allocator_Policy>::thread_allocator_type>
+          bitmap_allocator_t<Allocator_Policy>::t_thread_allocator;
+      template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::begin() const noexcept -> uint8_t *
       {
         return m_slab.begin();
