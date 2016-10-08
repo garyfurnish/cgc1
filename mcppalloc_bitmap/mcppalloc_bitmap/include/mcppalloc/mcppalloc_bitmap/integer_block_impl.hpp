@@ -1,4 +1,5 @@
 #pragma once
+#include <mcpputil/mcpputil/intrinsics.hpp>
 #include "integer_block.hpp"
 #include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <numeric>
@@ -112,7 +113,7 @@ namespace mcppalloc
 #else
         for (size_t i = 0; i < m_array.size(); ++i) {
           const uint64_t &it = m_array[i];
-          auto first = static_cast<size_t>(__builtin_ffsll(static_cast<long long>(it)));
+		  auto first = mcpputil::ffs(it);
           if (first)
             return (64 * i) + (first - 1);
         }
@@ -128,7 +129,7 @@ namespace mcppalloc
       MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::popcount() const noexcept -> size_t
       {
         return ::std::accumulate(m_array.begin(), m_array.end(), static_cast<size_t>(0),
-                                 [](size_t b, auto x) { return static_cast<size_t>(__builtin_popcountll(x)) + b; });
+                                 [](size_t b, auto x) { return static_cast<size_t>(mcpputil::popcount(x)) + b; });
       }
       template <size_t Quads>
       MCPPALLOC_ALWAYS_INLINE auto integer_block_t<Quads>::operator~() const noexcept -> integer_block_t

@@ -246,15 +246,16 @@ namespace mcppalloc
           return ret;
         }
         size_t attempts = 1;
-        bool success;
-        bool try_expand = true;
-        while (mcpputil_unlikely(!(success = _add_allocator_block(id, sz, try_expand)))) {
+		bool try_expand = true;
+		bool success = _add_allocator_block(id, sz, try_expand);
+        while (mcpputil_unlikely(!success)) {
           auto action = m_allocator.thread_policy().on_allocation_failure({attempts});
           if (!action.m_repeat) {
             break;
           }
           ++attempts;
           try_expand = action.m_attempt_expand;
+		  success = _add_allocator_block(id, sz, try_expand);
         }
         if (!success) {
           ::std::cerr << "mcppalloc: Out of memory, aborting 09c30c8d-2cfa-4646-a562-24f06560fa5c\n" << ::std::endl;

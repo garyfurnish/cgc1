@@ -126,13 +126,13 @@ namespace mcppalloc
         assert(m_current_end <= m_slab.end());
         size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
         if (expansion_size > max_heap_size())
-          return mcpputil::system_memory_range_t::nullptr_;
+			return{};
         if (!try_expand)
-          return mcpputil::system_memory_range_t::nullptr_;
+			return{};
         if (!m_slab.expand(expansion_size)) {
           ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
           // unable to expand heap so return error condition.
-          return mcpputil::system_memory_range_t::nullptr_;
+		  return{};
         }
         // recalculate used end.
         uint8_t *new_end = m_current_end + sz;
@@ -234,8 +234,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block)
       {
-        if
-          constexpr(c_debug_level)
+        if_constexpr(c_debug_level)
           {
             _ud_verify();
             for (auto &&it : m_blocks) {
@@ -293,8 +292,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_ud_verify()
       {
-        if
-          constexpr(c_debug_level > 1)
+        if_constexpr(c_debug_level > 1)
           {
             // this is really expensive, but verify that blocks are sorted.
             assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));

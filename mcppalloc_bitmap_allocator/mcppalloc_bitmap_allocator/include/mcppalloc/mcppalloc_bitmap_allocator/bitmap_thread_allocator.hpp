@@ -18,6 +18,7 @@ namespace mcppalloc
         using package_type = bitmap_package_t<allocator_policy_type>;
         using block_type = block_t<allocator_policy_type>;
         using internal_allocator_type = typename allocator_policy_type::internal_allocator_type;
+		using internal_allocator_traits = typename ::std::allocator_traits<internal_allocator_type>;
         bitmap_thread_allocator_t(bitmap_allocator_t<allocator_policy_type> &allocator);
         bitmap_thread_allocator_t(const bitmap_thread_allocator_t &) = delete;
         bitmap_thread_allocator_t(bitmap_thread_allocator_t &&) noexcept;
@@ -57,11 +58,11 @@ namespace mcppalloc
         auto get_package_by_type(type_id_t type_id) -> package_type &;
 
         void _check_maintenance();
+		using locals_pair_type = typename ::std::pair<type_id_t, package_type>;
+		using locals_allocator_type = typename internal_allocator_traits::template rebind_alloc<locals_pair_type>;
         ::boost::container::flat_map<type_id_t,
                                      package_type,
-                                     ::std::less<type_id_t>,
-                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, package_type>>>
+                                     ::std::less<type_id_t>,locals_allocator_type>
             m_locals;
         ::std::atomic<bool> m_force_maintenance;
         mcpputil::rebind_vector_t<void *, internal_allocator_type> m_free_list;

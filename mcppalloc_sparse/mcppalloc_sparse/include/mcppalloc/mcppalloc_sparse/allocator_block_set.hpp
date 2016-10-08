@@ -3,6 +3,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
 #include <mcppalloc/object_state.hpp>
+#include <utility>
 namespace mcppalloc
 {
   namespace sparse
@@ -48,11 +49,10 @@ namespace mcppalloc
           }
 
         } abrvr_size_compare{};
-
-        using allocator_block_flat_set_t =
-            ::boost::container::flat_set<sized_block_ref_t,
-                                         abrvr_compare_type,
-                                         typename ::std::allocator_traits<allocator>::template rebind_alloc<sized_block_ref_t>>;
+		using allocator_traits = typename ::std::allocator_traits<allocator>;
+		using allocator_block_flat_set_t =
+			::boost::container::flat_set<sized_block_ref_t,
+			abrvr_compare_type , typename allocator_traits::template rebind_alloc<sized_block_ref_t>>;
         using block_type = block_t<allocator_policy_type>;
         explicit allocator_block_set_t() = default;
         allocator_block_set_t(const allocator_block_set_t &) = delete;

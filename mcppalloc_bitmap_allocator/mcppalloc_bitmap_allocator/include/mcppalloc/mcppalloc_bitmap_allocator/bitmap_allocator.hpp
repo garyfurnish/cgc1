@@ -124,12 +124,16 @@ namespace mcppalloc
         /**
          * \brief In use states held by global.
          **/
+		using globals_pair_type = typename ::std::pair<type_id_t, package_type>;
+		using internal_allocator_traits = typename ::std::allocator_traits<internal_allocator_type>;
+		using globals_allocator_type = typename internal_allocator_traits::template rebind_alloc<globals_pair_type>;
         ::boost::container::flat_map<type_id_t,
                                      package_type,
-                                     ::std::less<type_id_t>,
-                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, package_type>>>
+                                     typename ::std::less<type_id_t>,
+                                     globals_allocator_type>
             m_globals GUARDED_BY(m_mutex);
+		using types_pair_type = ::std::pair<type_id_t, bitmap_type_info_t >;
+		using types_allocator_type = typename internal_allocator_traits::template rebind_alloc<types_pair_type>;
         /**
          * \brief Type info for various allocation types.
          *
@@ -138,8 +142,7 @@ namespace mcppalloc
         ::boost::container::flat_map<type_id_t,
                                      bitmap_type_info_t,
                                      ::std::less<type_id_t>,
-                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<type_id_t, bitmap_type_info_t>>>
+                                     types_allocator_type >
             m_types;
         /**
          * \brief Type of free list memory list.
@@ -149,14 +152,15 @@ namespace mcppalloc
          * \brief Free sections of slab.
          **/
         free_list_type m_free_globals GUARDED_BY(m_mutex);
+		using thread_allocators_pair_type = typename ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>;
+		using thread_allocators_allocator_type = typename internal_allocator_traits::template rebind_alloc<thread_allocators_pair_type>;
         /**
          * \brief Thread allocators.
          **/
         ::boost::container::flat_map<::std::thread::id,
                                      thread_allocator_unique_ptr_type,
                                      ::std::less<::std::thread::id>,
-                                     typename ::std::allocator_traits<internal_allocator_type>::template rebind_alloc<
-                                         ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>>>
+                                     thread_allocators_allocator_type>
             m_thread_allocators;
       };
     }

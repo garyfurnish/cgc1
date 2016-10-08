@@ -77,8 +77,7 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_block_set_t<Allocator_Policy>::_verify() const
       {
-        if
-          constexpr(c_debug_level)
+        if_constexpr(c_debug_level)
           {
             if (mcpputil_unlikely(m_magic_prefix != cs_magic_prefix)) {
               ::std::cerr << "ABS MEMORY CORRUPTION 965b54ab-0eef-4878-8a0b-d4a4c5e62a0f\n";
@@ -200,7 +199,6 @@ namespace mcppalloc
           ::std::cerr << "recomp max alloc " << block.max_alloc_available() << "\n";
           ::std::cerr << "free list size " << block.m_free_list.size() << "\n";
           ::std::terminate();
-          return ret;
         }
         // ok, so we have allocated the memory.
         const auto new_max_alloc = lower_bound->second->max_alloc_available();

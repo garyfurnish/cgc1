@@ -25,7 +25,7 @@ namespace mcppalloc
         sz = sz >> min_2;
         if (!sz)
           return 0;
-        size_t ret = 64 - static_cast<size_t>(__builtin_clzll(sz));
+        size_t ret = 64 - mcpputil::clz(sz);
         if (ret > max_bins)
           ret = ::std::numeric_limits<size_t>::max();
         return ret;
