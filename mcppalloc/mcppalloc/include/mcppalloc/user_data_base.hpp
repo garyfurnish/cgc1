@@ -31,6 +31,7 @@ namespace mcppalloc
        * If this magic constant is present, this is probabilistically user data.
        **/
       size_t m_magic_constant = c_magic_constant;
+      size_t m_padding[3];
 
     public:
       auto magic_constant() const noexcept -> size_t

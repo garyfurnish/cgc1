@@ -15,3 +15,4 @@ INSTALL(TARGETS mcppalloc_slab_allocator
                 RUNTIME DESTINATION bin
                 LIBRARY DESTINATION lib
                 ARCHIVE DESTINATION lib)
+target_link_libraries(mcppalloc_slab_allocator mcpputil)

@@ -137,7 +137,6 @@ namespace mcppalloc
        **/
       uintptr_type m_user_data;
       size_type m_post_magic;
-      size_type m_pad;
       static constexpr const size_type cs_pre_magic = 0x2ab78593;
       static constexpr const size_type cs_post_magic = 0x45a8cda0;
     };

@@ -26,10 +26,11 @@ namespace mcppalloc
        * It differs from allocator_t in that this allocator is completely in place.
        * This is both less memory and runtime efficient, but can be used to back the allocator_t.
       **/
-      class MCPPALLOC_SLAB_ALLOCATOR_DLL_PUBLIC slab_allocator_t
+      class slab_allocator_t
       {
       public:
-        static constexpr const size_t cs_alignment = 32;
+        //    static constexpr const size_t cs_alignment = 32;
+        static constexpr const size_t cs_alignment = 64;
         static constexpr const size_t cs_header_sz = mcpputil::align(sizeof(slab_allocator_object_t), cs_alignment);
         static constexpr size_t alignment() noexcept;
         static_assert(cs_header_sz == 64, "");

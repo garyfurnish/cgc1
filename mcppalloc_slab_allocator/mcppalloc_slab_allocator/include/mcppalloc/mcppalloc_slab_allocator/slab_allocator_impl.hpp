@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <stdexcept>
 namespace mcppalloc
@@ -186,7 +187,7 @@ namespace mcppalloc
       }
       ptrdiff_t slab_allocator_t::offset(void *v) const noexcept
       {
-        return reinterpret_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
+        return static_cast<ptrdiff_t>(reinterpret_cast<uint8_t *>(v) - begin());
       }
       auto slab_allocator_t::current_size() const noexcept -> size_t
       {

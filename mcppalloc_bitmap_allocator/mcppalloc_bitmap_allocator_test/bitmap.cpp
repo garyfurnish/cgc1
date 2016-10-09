@@ -2,7 +2,6 @@
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>
 #include <mcpputil/mcpputil/security.hpp>
-const size_t mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
 #ifdef __APPLE__
 template <>
 pthread_key_t mcpputil::thread_local_pointer_t<mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<

@@ -1,6 +1,7 @@
 #include "gc_thread.hpp"
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
+#include <mcpputil/mcpputil/algorithm.hpp>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -224,8 +225,8 @@ namespace cgc1
     }
     int _is_bitmap_addr_markable(void *addr, bool do_mark, bool force_mark)
     {
-      void *const fast_heap_begin = g_gks->fast_slab_begin();
-      void *const fast_heap_end = g_gks->fast_slab_end();
+      void *const fast_heap_begin = g_gks->_bitmap_allocator().begin();
+      void *const fast_heap_end = g_gks->_bitmap_allocator().end();
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
         return 1;
@@ -309,18 +310,16 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth)
     {
       // Find heap begin and end.
-      void *fast_heap_begin = g_gks->fast_slab_begin();
-      void *fast_heap_end = g_gks->fast_slab_end();
+      void *fast_heap_begin = g_gks->_bitmap_allocator().begin();
+      void *fast_heap_end = g_gks->_bitmap_allocator().end();
       if (addr >= fast_heap_begin && addr < fast_heap_end) {
         _mark_addrs_bitmap(addr, depth);
         return;
       }
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      void *heap_begin = g_gks->gc_allocator()._u_begin();
-      void *heap_end = g_gks->gc_allocator()._u_current_end();
       gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
-      if (os >= heap_begin && os < heap_end) {
+      if (g_gks->gc_allocator()._u_current_range().contains(os)) {
         _mark_addrs_sparse(addr, depth);
         return;
       }
@@ -328,12 +327,10 @@ namespace cgc1
     void gc_thread_t::_mark_mark_vector()
     {
       // note we go from back to front because elements may be added during marking.
-      while (!m_addresses_to_mark.empty()) {
-        auto it = m_addresses_to_mark.rbegin();
-        void *addr = *it;
-        m_addresses_to_mark.erase((it + 1).base());
+      mcpputil::reverse_consume_for_each(m_addresses_to_mark, [&](void *addr) {
+        MCPPALLOC_CONCURRENCY_LOCK_ASSUME(m_mutex);
         _mark_addrs(addr, 0);
-      }
+      });
     }
     void gc_thread_t::_sweep()
     {
@@ -355,9 +352,11 @@ namespace cgc1
             if (ud) {
               if (ud->is_default()) {
                 os_it->set_quasi_freed();
-#ifdef CGC1_DEBUG_VERBOSE_TRACK
-                m_to_be_freed.push_back(os_it);
-#endif
+                if
+                  constexpr(c_gc_verbose_track)
+                  {
+                    m_to_be_freed.push_back(os_it);
+                  }
               } else {
                 if (ud->is_uncollectable()) {
                   // if uncollectable don't do anything.

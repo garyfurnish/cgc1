@@ -1,6 +1,8 @@
 #pragma once
 #include <atomic>
+#include <iostream>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
+#include <mcpputil/mcpputil/intrinsics.hpp>
 #include <mcpputil/mcpputil/security.hpp>
 namespace mcppalloc
 {
@@ -12,7 +14,7 @@ namespace mcppalloc
       inline bitmap_state_t *get_state(void *v)
       {
         uintptr_t vi = reinterpret_cast<uintptr_t>(v);
-        size_t mask = ::std::numeric_limits<size_t>::max() << (__builtin_ffsll(c_bitmap_block_size) - 1);
+        size_t mask = ::std::numeric_limits<size_t>::max() << (mcpputil::ffs(c_bitmap_block_size) - 1);
 
         vi &= mask;
         vi += ::mcppalloc::slab_allocator::details::slab_allocator_t::cs_header_sz;
@@ -300,14 +302,18 @@ namespace mcppalloc
 
       inline auto bitmap_state_t::user_bits_checked(size_t i) noexcept -> bits_array_type *
       {
-        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
-          throw ::std::out_of_range("mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242");
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields)) {
+          ::std::cerr << "mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242";
+          ::std::terminate();
+        }
         return user_bits(i);
       }
       inline auto bitmap_state_t::user_bits_checked(size_t i) const noexcept -> const bits_array_type *
       {
-        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
-          throw ::std::out_of_range("mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605");
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields)) {
+          ::std::cerr << "mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605";
+          ::std::terminate();
+        }
         return user_bits(i);
       }
 
@@ -327,7 +333,8 @@ namespace mcppalloc
       inline auto bitmap_state_t::get_object(size_t i) noexcept -> void *
       {
         if (mcpputil_unlikely(i >= size())) {
-          throw ::std::runtime_error("mcppalloc: bitmap_state get object failed");
+          ::std::cerr << "mcppalloc: bitmap_state get object failed";
+          ::std::terminate();
         }
         return reinterpret_cast<void *>(begin() + i * real_entry_size());
       }

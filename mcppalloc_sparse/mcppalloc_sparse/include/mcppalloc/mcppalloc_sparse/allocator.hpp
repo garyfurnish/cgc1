@@ -16,19 +16,6 @@ namespace mcppalloc
     namespace details
     {
       /**
-       * \brief Pair of memory addresses (begin and end)
-       **/
-      using memory_pair_t = typename ::std::pair<uint8_t *, uint8_t *>;
-      /**
-       * \brief Size comparator for memory pair.
-       **/
-      struct memory_pair_size_comparator_t {
-        bool operator()(const memory_pair_t &a, const memory_pair_t &b) const noexcept
-        {
-          return mcpputil::system_memory_range_t(a).size() < mcpputil::system_memory_range_t(b).size();
-        }
-      };
-      /**
        * \brief Global slab interval allocator, used by thread allocators.
        *
        * The intent of this allocator is to maximize linearity of cache accesses.
@@ -46,12 +33,6 @@ namespace mcppalloc
       {
       public:
         using value_type = uint8_t;
-        using reference = uint8_t &;
-        using const_reference = const uint8_t &;
-        using pointer = uint8_t *;
-        using const_pointer = const uint8_t *;
-        using iterator = uint8_t *;
-        using const_iterator = const uint8_t *;
         using difference_type = ::std::ptrdiff_t;
         using size_type = size_t;
         using mutex_type = mcpputil::mutex_t;
@@ -79,7 +60,7 @@ namespace mcppalloc
          *
          * This uses the control allocator for control memory.
         **/
-        using memory_pair_vector_t =
+        using memory_range_vector_t =
             typename ::std::vector<mcpputil::system_memory_range_t,
                                    typename allocator::template rebind<mcpputil::system_memory_range_t>::other>;
         /**
@@ -175,21 +156,21 @@ namespace mcppalloc
          *
          * @param pair Memory interval to release.
         **/
-        void release_memory(const memory_pair_t &pair) REQUIRES(!m_mutex);
+        void release_memory(const mcpputil::system_memory_range_t &pair) REQUIRES(!m_mutex);
         /**
          * \brief Release an interval of memory.
          *
          * Requires holding lock.
          * @param pair Memory interval to release.
         **/
-        void _u_release_memory(const memory_pair_t &pair) REQUIRES(m_mutex);
+        void _u_release_memory(const mcpputil::system_memory_range_t &pair) REQUIRES(m_mutex);
 
         /**
          * \brief Return true if the interval of memory is in the free list.
          *
          * @param pair Memory interval to test.
          **/
-        REQUIRES(!m_mutex) auto in_free_list(const memory_pair_t &pair) const noexcept -> bool;
+        REQUIRES(!m_mutex) auto in_free_list(const mcpputil::system_memory_range_t &pair) const noexcept -> bool;
         /**
          * \brief Return length of free list.
          **/
@@ -214,22 +195,6 @@ namespace mcppalloc
          * @param block Block to destroy.
         **/
         void _u_destroy_global_allocator_block(allocator_block_type &&block) REQUIRES(m_mutex);
-
-        /**
-         * \brief Register a allocator block before moving/destruction.
-         *
-         * @param ta Requesting thread allocator.
-         * @param block Block to request registartion of.
-        **/
-        //      void register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(!m_mutex);
-        /**
-         * \brief Register a allocator block before moving/destruction.
-         *
-         * Requires holding lock.
-         * @param ta Requesting thread allocator.
-         * @param block Block to request registartion of.
-        **/
-        //      void _u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block) REQUIRES(m_mutex);
         /**
          * \brief Unregister a registered allocator block before moving/destruction.
          *
@@ -302,6 +267,10 @@ namespace mcppalloc
         **/
         uint8_t *current_end() const REQUIRES(!m_mutex);
         /**
+         * \brief Return current memory range.
+         **/
+        mcpputil::system_memory_range_t current_range() const REQUIRES(!m_mutex);
+        /**
          * \brief Return the size of the slab.
          **/
         REQUIRES(!m_mutex) auto size() const noexcept -> size_t;
@@ -342,11 +311,11 @@ namespace mcppalloc
         /**
          * \brief Return the free list for debugging purposes.
         **/
-        memory_pair_vector_t _d_free_list() const REQUIRES(!m_mutex);
+        memory_range_vector_t _d_free_list() const REQUIRES(!m_mutex);
         /**
          * \brief Return the free list for debugging purposes without locking.
         **/
-        const memory_pair_vector_t &_ud_free_list() const REQUIRES(m_mutex);
+        const memory_range_vector_t &_ud_free_list() const REQUIRES(m_mutex);
         /**
          * \brief Return the beginning of the underlying slab.
          **/
@@ -361,6 +330,10 @@ namespace mcppalloc
          * Requires holding lock.
         **/
         uint8_t *_u_current_end() const REQUIRES(m_mutex);
+        /**
+         * \brief Return current memory range.
+         **/
+        mcpputil::system_memory_range_t _u_current_range() const REQUIRES(m_mutex);
         /**
          * \brief Internal consistency checks without locking.
         **/
@@ -493,7 +466,7 @@ namespace mcppalloc
          * This is not stored in sorted order.
          * This must be collapsed occasionally.
         **/
-        memory_pair_vector_t m_free_list GUARDED_BY(m_mutex);
+        memory_range_vector_t m_free_list GUARDED_BY(m_mutex);
         /**
          * \brief Pointer to end of currently used portion of slab.
         **/

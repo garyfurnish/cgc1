@@ -82,8 +82,8 @@ namespace mcppalloc
         _ud_verify();
         sz = mcpputil::align(sz, mcpputil::c_alignment);
         // do worst fit memory vector lookup
-        typename memory_pair_vector_t::iterator worst = m_free_list.end();
-        auto find_pair = memory_pair_t(nullptr, reinterpret_cast<uint8_t *>(sz));
+        typename memory_range_vector_t::iterator worst = m_free_list.end();
+        auto find_pair = mcpputil::system_memory_range_t(nullptr, reinterpret_cast<uint8_t *>(sz));
         worst = last_greater_equal_than(m_free_list.begin(), m_free_list.end(), find_pair,
                                         mcpputil::system_memory_range_t::size_comparator());
         if (worst != m_free_list.end()) {
@@ -104,7 +104,7 @@ namespace mcppalloc
           }
           assert(reinterpret_cast<uintptr_t>(ret.begin()) % mcpputil::c_alignment == 0);
           assert(reinterpret_cast<uintptr_t>(ret.end()) % mcpputil::c_alignment == 0);
-          return memory_pair_t(ret.begin(), ret.end());
+          return mcpputil::system_memory_range_t(ret.begin(), ret.end());
         }
         // no space available in free list.
         auto sz_available = m_slab.end() - m_current_end;
@@ -126,13 +126,13 @@ namespace mcppalloc
         assert(m_current_end <= m_slab.end());
         size_t expansion_size = ::std::max(m_slab.size() + m_minimum_expansion_size, m_slab.size() + sz);
         if (expansion_size > max_heap_size())
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return {};
         if (!try_expand)
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return {};
         if (!m_slab.expand(expansion_size)) {
           ::std::cerr << "Unable to expand slab to " << expansion_size << ::std::endl;
           // unable to expand heap so return error condition.
-          return mcpputil::system_memory_range_t::make_nullptr();
+          return {};
         }
         // recalculate used end.
         uint8_t *new_end = m_current_end + sz;
@@ -234,21 +234,24 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_u_register_allocator_block(this_thread_allocator_t &ta, allocator_block_type &block)
       {
-#if MCPPALLOC_DEBUG_LEVEL > 0
-        _ud_verify();
-        for (auto &&it : m_blocks) {
-          // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
-          if (it.m_block == &block)
-            ::std::terminate();
-          // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption spreads.
-          if (it.m_begin == block.begin()) {
-            ::std::cerr << " Attempt to double register block. 77dbea01-7e0f-49da-81f1-9ad7f4616eea\n";
-            ::std::cerr << "77dbea01-7e0f-49da-81f1-9ad7f4616eea " << &block << " " << reinterpret_cast<void *>(block.begin())
-                        << ::std::endl;
-            ::std::terminate();
+        if_constexpr(c_debug_level)
+        {
+          _ud_verify();
+          for (auto &&it : m_blocks) {
+            // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption
+            // spreads.
+            if (it.m_block == &block)
+              ::std::terminate();
+            // it is a fatal error to try to double add and something is inconsistent.  Terminate before memory corruption
+            // spreads.
+            if (it.m_begin == block.begin()) {
+              ::std::cerr << " Attempt to double register block. 77dbea01-7e0f-49da-81f1-9ad7f4616eea\n";
+              ::std::cerr << "77dbea01-7e0f-49da-81f1-9ad7f4616eea " << &block << " " << reinterpret_cast<void *>(block.begin())
+                          << ::std::endl;
+              ::std::terminate();
+            }
           }
         }
-#endif
         // create a fake handle to search for.
         this_allocator_block_handle_t handle;
         handle.initialize(&ta, &block, block.begin());
@@ -289,10 +292,11 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_ud_verify()
       {
-#if MCPPALLOC_DEBUG_LEVEL > 1
-        // this is really expensive, but verify that blocks are sorted.
-        assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
-#endif
+        if_constexpr(c_debug_level > 1)
+        {
+          // this is really expensive, but verify that blocks are sorted.
+          assert(m_blocks.empty() || ::std::is_sorted(m_blocks.begin(), m_blocks.end(), block_handle_begin_compare_t{}));
+        }
       }
       template <typename Allocator_Policy>
       void allocator_t<Allocator_Policy>::_d_verify()
@@ -455,19 +459,19 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::release_memory(const memory_pair_t &pair)
+      void allocator_t<Allocator_Policy>::release_memory(const mcpputil::system_memory_range_t &pair)
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         _u_release_memory(pair);
       }
 
       template <typename Allocator_Policy>
-      void allocator_t<Allocator_Policy>::_u_release_memory(const memory_pair_t &pair)
+      void allocator_t<Allocator_Policy>::_u_release_memory(const mcpputil::system_memory_range_t &pair)
       {
         _ud_verify();
         // if the interval is at the end of the currently used part of slab, just move slab pointer.
-        if (pair.second == m_current_end) {
-          m_current_end = pair.first;
+        if (pair.end() == m_current_end) {
+          m_current_end = pair.begin();
           assert(m_current_end <= m_slab.end());
           return;
         } else {
@@ -478,11 +482,11 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      auto allocator_t<Allocator_Policy>::in_free_list(const memory_pair_t &pair) const noexcept -> bool
+      auto allocator_t<Allocator_Policy>::in_free_list(const mcpputil::system_memory_range_t &pair) const noexcept -> bool
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         // first check to see if it is past end of used slab.
-        if (_u_current_end() <= pair.first && pair.second <= _u_end())
+        if (_u_current_end() <= pair.begin() && pair.end() <= _u_end())
           return true;
         // otherwise check to see if it is in some interval in the free list.
         for (auto &&fpair : m_free_list) {
@@ -529,6 +533,17 @@ namespace mcppalloc
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return m_current_end;
+      }
+      template <typename Allocator_Policy>
+      mcpputil::system_memory_range_t allocator_t<Allocator_Policy>::current_range() const
+      {
+        MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+        return _u_current_range();
+      }
+      template <typename Allocator_Policy>
+      mcpputil::system_memory_range_t allocator_t<Allocator_Policy>::_u_current_range() const
+      {
+        return {m_slab.begin(), m_current_end};
       }
       template <typename Allocator_Policy>
       inline auto allocator_t<Allocator_Policy>::size() const noexcept -> size_t
@@ -578,13 +593,13 @@ namespace mcppalloc
         _ud_verify();
       }
       template <typename Allocator_Policy>
-      inline auto allocator_t<Allocator_Policy>::_d_free_list() const -> memory_pair_vector_t
+      inline auto allocator_t<Allocator_Policy>::_d_free_list() const -> memory_range_vector_t
       {
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         return _ud_free_list();
       }
       template <typename Allocator_Policy>
-      inline auto allocator_t<Allocator_Policy>::_ud_free_list() const -> const memory_pair_vector_t &
+      inline auto allocator_t<Allocator_Policy>::_ud_free_list() const -> const memory_range_vector_t &
       {
         return m_free_list;
       }

@@ -14,7 +14,8 @@ def build_linux():
         build_location = settings_json["build_location"]
         build_location = os.path.abspath(build_location)
         printing_chdir(build_location+"/cgc1/")
-        builds = ["unixmake_gcc_release","unixmake_gcc_debug","unixmake_clang_release","unixmake_clang_debug","unixmake_gcc_gcov"]
+#        builds = ["unixmake_gcc_release","unixmake_gcc_debug","unixmake_clang_release","unixmake_clang_debug","unixmake_gcc_gcov"]
+        builds = ["unixmake_clang_release","unixmake_clang_debug"]
         for build in builds:
             printing_chdir(build)
             os.system("ninja")

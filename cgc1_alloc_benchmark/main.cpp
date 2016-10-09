@@ -13,6 +13,7 @@
 
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_declarations.hpp"
+#include "../cgc1/src/ptree.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cgc1/posix.hpp>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
@@ -49,7 +50,7 @@ int main()
   ::std::cout << "Using cgc1 sparse\n";
   CGC1_INITIALIZE_THREAD();
   auto &allocator = cgc1::details::g_gks->gc_allocator();
-  ::std::cout << cgc1::details::g_gks->to_json(2) << ::std::endl;
+  ::std::cout << ::cgc1::to_json(*cgc1::details::g_gks, 2) << ::std::endl;
 
   auto &ts = allocator.initialize_thread();
   ::std::cout << ts.to_json(2) << ::std::endl;
@@ -95,18 +96,15 @@ int main()
   ::std::cout << "Unampped bytes " << GC_get_unmapped_bytes() << ::std::endl;
 #elif defined(CGC1_SPARSE)
   cgc1::cgc_force_collect();
-  auto &gks = cgc1::details::g_gks;
-  ::std::cout << gks->to_json(2) << ::std::endl;
+  ::std::cout << cgc1::to_json(*cgc1::details::g_gks, 2) << ::std::endl;
   auto &int_ts = cgc1::details::g_gks->_internal_allocator().initialize_thread();
   ts._do_maintenance();
   int_ts._do_maintenance();
   ts.shrink_secondary_memory_usage_to_fit();
-  ::std::cout << gks->to_json(2) << ::std::endl;
-
+  ::std::cout << cgc1::to_json(*cgc1::details::g_gks, 2) << ::std::endl;
 #else
   cgc1::cgc_force_collect();
-  auto &gks = cgc1::details::g_gks;
-  ::std::cout << gks->to_json(2) << ::std::endl;
+  ::std::cout << cgc1::to_json(*cgc1::details::g_gks, 2) << ::std::endl;
 #endif
   hrc::time_point t3 = hrc::now();
   ::std::chrono::duration<double> setup = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
