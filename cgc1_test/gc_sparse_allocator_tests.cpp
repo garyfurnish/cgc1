@@ -47,10 +47,10 @@ static void root_test()
   // verify that nothing was collected.
   auto last_collect = gks->_d_freed_in_last_collection();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      AssertThat(last_collect, HasLength(0));
-      AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
-    }
+  {
+    AssertThat(last_collect, HasLength(0));
+    AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
+  }
   // remove the root.
   cgc1::cgc_remove_root(&memory);
   // make sure that the we zero the memory so the pointer doesn't linger.
@@ -61,12 +61,12 @@ static void root_test()
   gks->wait_for_finalization();
   last_collect = gks->_d_freed_in_last_collection();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      // now we should collect.
-      AssertThat(last_collect.size(), Equals(1_sz));
-      // verify it collected the correct address.
-      AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+  {
+    // now we should collect.
+    AssertThat(last_collect.size(), Equals(1_sz));
+    // verify it collected the correct address.
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // verify that we did perform a collection.
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));

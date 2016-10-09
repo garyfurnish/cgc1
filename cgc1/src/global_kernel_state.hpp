@@ -244,7 +244,7 @@ namespace cgc1::details
     /**
      * \brief Wait for collection safe point.
      **/
-	static const constexpr collection_lock_t sc_collection_lock{};
+    static const constexpr collection_lock_t sc_collection_lock{};
 
   private:
     /**

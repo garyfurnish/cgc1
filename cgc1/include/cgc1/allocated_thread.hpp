@@ -6,11 +6,11 @@ namespace cgc1
   namespace details
   {
 #ifdef _WIN32
-	  using native_thread_handle_type = ::std::thread::native_handle_type;
+    using native_thread_handle_type = ::std::thread::native_handle_type;
 #else
     using native_thread_handle_type = ::pthread_t;
 #endif
-	constexpr const static native_thread_handle_type c_native_thread_handle_initializer{ 0 };
+    constexpr const static native_thread_handle_type c_native_thread_handle_initializer{0};
     template <typename Allocator>
     class allocated_thread_details_base_t
     {
