@@ -46,8 +46,7 @@ static void root_test()
   gks->wait_for_finalization();
   // verify that nothing was collected.
   auto last_collect = gks->_d_freed_in_last_collection();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       AssertThat(last_collect, HasLength(0));
       AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
@@ -61,8 +60,7 @@ static void root_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   last_collect = gks->_d_freed_in_last_collection();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       // now we should collect.
       AssertThat(last_collect.size(), Equals(1_sz));
