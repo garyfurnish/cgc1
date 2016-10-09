@@ -1,5 +1,5 @@
 #include <mcpputil/mcpputil/declarations.hpp>
-//This Must be first.
+// This Must be first.
 #include <mcppalloc/mcppalloc_sparse/mcppalloc_sparse.hpp>
 #include <mcpputil/mcpputil/aligned_allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>

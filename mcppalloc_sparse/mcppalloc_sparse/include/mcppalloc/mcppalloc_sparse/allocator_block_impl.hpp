@@ -144,19 +144,19 @@ namespace mcppalloc
       void allocator_block_t<Allocator_Policy>::_verify(const object_state_type *state)
       {
         if_constexpr(c_debug_level > 1)
-          {
-            if (state && state->next_valid()) {
-              assert(state->object_size() < static_cast<size_t>(end() - begin()));
-              assert(state->next());
-            }
-            auto begin = mcpputil::make_next_iterator(reinterpret_cast<object_state_type *>(this->begin()));
-            auto end = mcpputil::make_next_iterator(current_end());
-            assert(begin.m_t <= end.m_t);
-            for (auto os_it = begin; os_it != end; ++os_it) {
-              assert(os_it->next_valid() || os_it->next() == end);
-              assert(os_it->next() != nullptr);
-            }
+        {
+          if (state && state->next_valid()) {
+            assert(state->object_size() < static_cast<size_t>(end() - begin()));
+            assert(state->next());
           }
+          auto begin = mcpputil::make_next_iterator(reinterpret_cast<object_state_type *>(this->begin()));
+          auto end = mcpputil::make_next_iterator(current_end());
+          assert(begin.m_t <= end.m_t);
+          for (auto os_it = begin; os_it != end; ++os_it) {
+            assert(os_it->next_valid() || os_it->next() == end);
+            assert(os_it->next() != nullptr);
+          }
+        }
       }
       template <typename Allocator_Policy>
       auto allocator_block_t<Allocator_Policy>::allocate(size_t size) -> allocation_return_type

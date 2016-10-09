@@ -2,8 +2,8 @@
 #include <atomic>
 #include <iostream>
 #include <mcppalloc/mcppalloc_slab_allocator/slab_allocator.hpp>
-#include <mcpputil/mcpputil/security.hpp>
 #include <mcpputil/mcpputil/intrinsics.hpp>
+#include <mcpputil/mcpputil/security.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
@@ -302,20 +302,18 @@ namespace mcppalloc
 
       inline auto bitmap_state_t::user_bits_checked(size_t i) noexcept -> bits_array_type *
       {
-		  if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
-		  {
-			  ::std::cerr << "mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242";
-			  ::std::terminate();
-		  }
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields)) {
+          ::std::cerr << "mcppalloc: User bits out of range: 224f26b3-d2e6-47f3-b6de-6a4194750242";
+          ::std::terminate();
+        }
         return user_bits(i);
       }
       inline auto bitmap_state_t::user_bits_checked(size_t i) const noexcept -> const bits_array_type *
       {
-		if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields))
-		{
-		  ::std::cerr << "mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605";
-		  ::std::terminate();
-		}
+        if (mcpputil_unlikely(i >= m_internal.m_info.m_num_user_bit_fields)) {
+          ::std::cerr << "mcppalloc: User bits out of range: 24a934d1-160f-4bfc-b765-e0e21ee69605";
+          ::std::terminate();
+        }
         return user_bits(i);
       }
 
@@ -336,7 +334,7 @@ namespace mcppalloc
       {
         if (mcpputil_unlikely(i >= size())) {
           ::std::cerr << "mcppalloc: bitmap_state get object failed";
-		  ::std::terminate();
+          ::std::terminate();
         }
         return reinterpret_cast<void *>(begin() + i * real_entry_size());
       }

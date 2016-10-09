@@ -29,8 +29,8 @@ namespace mcppalloc
       class slab_allocator_t
       {
       public:
-    //    static constexpr const size_t cs_alignment = 32;
-		static constexpr const size_t cs_alignment = 64;
+        //    static constexpr const size_t cs_alignment = 32;
+        static constexpr const size_t cs_alignment = 64;
         static constexpr const size_t cs_header_sz = mcpputil::align(sizeof(slab_allocator_object_t), cs_alignment);
         static constexpr size_t alignment() noexcept;
         static_assert(cs_header_sz == 64, "");

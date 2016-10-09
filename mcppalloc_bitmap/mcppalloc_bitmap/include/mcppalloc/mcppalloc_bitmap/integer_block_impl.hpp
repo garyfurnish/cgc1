@@ -1,6 +1,6 @@
 #pragma once
-#include <mcpputil/mcpputil/intrinsics.hpp>
 #include "integer_block.hpp"
+#include <mcpputil/mcpputil/intrinsics.hpp>
 #include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <numeric>
 namespace mcppalloc
@@ -113,7 +113,7 @@ namespace mcppalloc
 #else
         for (size_t i = 0; i < m_array.size(); ++i) {
           const uint64_t &it = m_array[i];
-		  auto first = mcpputil::ffs(it);
+          auto first = mcpputil::ffs(it);
           if (first)
             return (64 * i) + (first - 1);
         }

@@ -1,7 +1,7 @@
 #pragma once
+#include <iostream>
 #include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <stdexcept>
-#include <iostream>
 namespace mcppalloc
 {
   namespace slab_allocator

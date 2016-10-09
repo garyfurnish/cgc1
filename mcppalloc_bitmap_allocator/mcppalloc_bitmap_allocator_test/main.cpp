@@ -1,5 +1,5 @@
 #include <mcpputil/mcpputil/declarations.hpp>
-//This Must be first.
+// This Must be first.
 #include <mcpputil/mcpputil/bandit.hpp>
 #ifdef _WIN32
 #pragma optimize("", off)
