@@ -141,7 +141,7 @@ namespace mcppalloc
         return nullptr;
       }
       template <typename Allocator_Policy>
-      void allocator_block_t<Allocator_Policy>::_verify(const object_state_type *state)
+      void allocator_block_t<Allocator_Policy>::_verify([[maybe_unused]] const object_state_type *state)
       {
         if_constexpr(c_debug_level > 1)
         {
