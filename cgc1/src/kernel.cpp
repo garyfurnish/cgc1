@@ -82,7 +82,7 @@ namespace cgc1
       return tlks->in_signal_handler();
     return false;
   }
-  CGC1_DLL_PUBLIC void * cgc_malloc(size_t sz)
+  CGC1_DLL_PUBLIC void *cgc_malloc(size_t sz)
   {
     return ::cgc1::details::g_gks->allocate(sz).m_ptr;
   }

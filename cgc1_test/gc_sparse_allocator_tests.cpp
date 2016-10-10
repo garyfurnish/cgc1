@@ -96,11 +96,11 @@ static void internal_pointer_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      // it should stick around because it has a root.
-      AssertThat(last_collect, HasLength(0));
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    // it should stick around because it has a root.
+    AssertThat(last_collect, HasLength(0));
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
   // remove the root.
   cgc1::cgc_remove_root(&memory);
@@ -110,13 +110,13 @@ static void internal_pointer_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      // now we should collect.
-      AssertThat(last_collect, HasLength(1));
-      // verify it collected the correct address.
-      AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    // now we should collect.
+    AssertThat(last_collect, HasLength(1));
+    // verify it collected the correct address.
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
 }
 /**
@@ -143,31 +143,31 @@ static void atomic_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect.size(), Equals(0_sz));
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect.size(), Equals(0_sz));
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
   cgc1::cgc_set_atomic(memory, true);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
 
-      AssertThat(last_collect, HasLength(1));
-      AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+    AssertThat(last_collect, HasLength(1));
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   cgc1::cgc_remove_root(&memory);
   ::mcpputil::secure_zero_pointer(memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect, HasLength(1));
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect, HasLength(1));
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
   cgc1::cgc_set_atomic(nullptr, true);
@@ -192,11 +192,11 @@ static void finalizer_test()
   cgc1::cgc_wait_finalization();
 
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect.size(), Equals(1_sz));
-      AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect.size(), Equals(1_sz));
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   AssertThat(static_cast<bool>(finalized), IsTrue());
   // test bad parameters
@@ -223,11 +223,11 @@ static void finalizer_test2()
   cgc1::cgc_force_collect(false);
   cgc1::cgc_wait_finalization(false);
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect.size(), Equals(1_sz));
-      AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect.size(), Equals(1_sz));
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(finalized.load(), IsTrue());
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
@@ -257,20 +257,20 @@ static void uncollectable_test()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect.size(), Equals(0_sz));
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect.size(), Equals(0_sz));
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
   uncollectable_test__cleanup(old_memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      last_collect = gks->_d_freed_in_last_collection();
-      AssertThat(last_collect.size(), Equals(1_sz)) AssertThat(last_collect[0] == old_memory, IsTrue());
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    last_collect = gks->_d_freed_in_last_collection();
+    AssertThat(last_collect.size(), Equals(1_sz)) AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
   cgc1::cgc_set_uncollectable(nullptr, true);
@@ -319,11 +319,11 @@ static void linked_list_test_setup()
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
     if_constexpr(cgc1::c_gc_verbose_track)
-      {
-        auto freed_last = gks->_d_freed_in_last_collection();
-        assert(freed_last.empty());
-        AssertThat(freed_last, HasLength(0));
-      }
+    {
+      auto freed_last = gks->_d_freed_in_last_collection();
+      assert(freed_last.empty());
+      AssertThat(freed_last, HasLength(0));
+    }
     AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
   }
   keep_going = false;
@@ -335,15 +335,15 @@ static void linked_list_final()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto last_collect = gks->_d_freed_in_last_collection();
-      ::std::sort(locations.begin(), locations.end());
-      ::std::sort(last_collect.begin(), last_collect.end());
-      AssertThat(last_collect.size(), Equals(locations.size()));
-      bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), locations.begin());
-      assert(all_found);
-      AssertThat(all_found, IsTrue());
-    }
+  {
+    auto last_collect = gks->_d_freed_in_last_collection();
+    ::std::sort(locations.begin(), locations.end());
+    ::std::sort(last_collect.begin(), last_collect.end());
+    AssertThat(last_collect.size(), Equals(locations.size()));
+    bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), locations.begin());
+    assert(all_found);
+    AssertThat(all_found, IsTrue());
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(locations.size()));
   locations.clear();
 }
@@ -409,11 +409,11 @@ namespace race_condition_test_detail
       cgc1::cgc_force_collect();
       gks->wait_for_finalization();
       if_constexpr(cgc1::c_gc_verbose_track)
-        {
-          auto freed_last = gks->_d_freed_in_last_collection();
-          assert(freed_last.empty());
-          AssertThat(freed_last, HasLength(0));
-        }
+      {
+        auto freed_last = gks->_d_freed_in_last_collection();
+        assert(freed_last.empty());
+        AssertThat(freed_last, HasLength(0));
+      }
       AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
       // prevent test from hammering gc before threads are setup.
       // sleep could cause deadlock with some osx platform functionality
@@ -428,21 +428,21 @@ namespace race_condition_test_detail
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
     if_constexpr(cgc1::c_gc_verbose_track)
-      {
-        auto last_collect = gks->_d_freed_in_last_collection();
-        // pointers might be in arbitrary order so sort them.
-        ::std::sort(llocations.begin(), llocations.end());
-        ::std::sort(last_collect.begin(), last_collect.end());
-        // make sure all pointers have been collected.
-        assert(last_collect.size() == 1001 * num_threads);
-        AssertThat(last_collect, HasLength(1001 * num_threads));
-        // check to make sure sizes are equal.
-        AssertThat(last_collect.size(), Equals(llocations.size()));
-        bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), llocations.begin());
-        assert(all_found);
-        AssertThat(all_found, IsTrue());
-        last_collect.clear();
-      }
+    {
+      auto last_collect = gks->_d_freed_in_last_collection();
+      // pointers might be in arbitrary order so sort them.
+      ::std::sort(llocations.begin(), llocations.end());
+      ::std::sort(last_collect.begin(), last_collect.end());
+      // make sure all pointers have been collected.
+      assert(last_collect.size() == 1001 * num_threads);
+      AssertThat(last_collect, HasLength(1001 * num_threads));
+      // check to make sure sizes are equal.
+      AssertThat(last_collect.size(), Equals(llocations.size()));
+      bool all_found = ::std::equal(last_collect.begin(), last_collect.end(), llocations.begin());
+      assert(all_found);
+      AssertThat(all_found, IsTrue());
+      last_collect.clear();
+    }
     AssertThat(gks->num_freed_in_last_collection(), Equals(llocations.size()));
     // cleanup
     llocations.clear();
@@ -480,10 +480,10 @@ static void return_to_global_test0()
   gks->wait_for_finalization();
   // make sure exactly one memory location was freed.
   if_constexpr(cgc1::c_gc_verbose_track)
-    {
-      auto freed_last = gks->_d_freed_in_last_collection();
-      AssertThat(freed_last, HasLength(1));
-    }
+  {
+    auto freed_last = gks->_d_freed_in_last_collection();
+    AssertThat(freed_last, HasLength(1));
+  }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // make sure that exactly one global block was added.
   auto num_global_blocks = allocator.num_global_blocks();

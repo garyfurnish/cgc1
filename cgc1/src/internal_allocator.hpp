@@ -16,14 +16,14 @@ namespace cgc1
   template <class T>
   class cgc_internal_allocator_t;
   template <class T>
-  constexpr bool operator==(const cgc_internal_allocator_t<T>& a, const cgc_internal_allocator_t<T>& b)
+  constexpr bool operator==(const cgc_internal_allocator_t<T> &, const cgc_internal_allocator_t<T> &)
   {
-	  return true;
+    return true;
   }
   template <class T>
-  constexpr bool operator!=(const cgc_internal_allocator_t<T>& a, const cgc_internal_allocator_t<T>& b)
+  constexpr bool operator!=(const cgc_internal_allocator_t<T> &, const cgc_internal_allocator_t<T> &)
   {
-	  return false;
+    return false;
   }
   template <>
   class cgc_internal_allocator_t<void>
@@ -34,7 +34,7 @@ namespace cgc1
     using pointer = void *;
     using const_pointer = const void *;
     using propogate_on_container_move_assignment = ::std::true_type;
-	using is_always_equal = ::std::true_type;
+    using is_always_equal = ::std::true_type;
     template <class U>
     struct rebind {
       typedef cgc_internal_allocator_t<U> other;
@@ -65,7 +65,7 @@ namespace cgc1
     using size_type = ::std::size_t;
     using difference_type = ::std::ptrdiff_t;
     using propogate_on_container_move_assignment = ::std::true_type;
-	using is_always_equal = ::std::true_type;
+    using is_always_equal = ::std::true_type;
     cgc_internal_allocator_t() noexcept = default;
     cgc_internal_allocator_t(const cgc_internal_allocator_t<T> &) noexcept = default;
     template <class _Other>

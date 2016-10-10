@@ -52,16 +52,16 @@ namespace cgc1
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
   }
 #else
-	template <size_t bytes>
-	MCPPALLOC_NO_INLINE void clean_stack(size_t, size_t, size_t, size_t, size_t)
-	{
-		::std::atomic_thread_fence(::std::memory_order_acq_rel);
-		// zero the stack.
-		int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
-		::mcpputil::secure_zero(array, bytes);
-		assert(*array == 0);
-		::std::atomic_thread_fence(::std::memory_order_acq_rel);
-	}
+  template <size_t bytes>
+  MCPPALLOC_NO_INLINE void clean_stack(size_t, size_t, size_t, size_t, size_t)
+  {
+    ::std::atomic_thread_fence(::std::memory_order_acq_rel);
+    // zero the stack.
+    int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
+    ::mcpputil::secure_zero(array, bytes);
+    assert(*array == 0);
+    ::std::atomic_thread_fence(::std::memory_order_acq_rel);
+  }
 #endif
   template void clean_stack<5000>(size_t, size_t, size_t, size_t, size_t);
 }

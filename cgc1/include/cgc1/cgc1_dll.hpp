@@ -10,7 +10,7 @@
 #ifdef __GNUC__
 #define CGC1_DLL_PUBLIC __attribute__((dllimport))
 #else
-#define CGC1_DLL_PUBLIC// __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
+#define CGC1_DLL_PUBLIC // __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
 #endif
 #endif
 #define CGC1_DLL_LOCAL

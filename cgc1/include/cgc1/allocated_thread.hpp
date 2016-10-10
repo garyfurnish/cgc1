@@ -23,7 +23,7 @@ namespace cgc1
 #ifndef _WIN32
       static void *_s_run(void *user_data);
 #else
-	  static unsigned long _s_run(void *user_data);
+      static unsigned long _s_run(void *user_data);
 #endif
       virtual void *_run() = 0;
 
