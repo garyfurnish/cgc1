@@ -281,12 +281,14 @@ namespace cgc1::details
     }
 
     const auto set_allocator_blocks = [](auto &&thread, auto &&tup) {
-      auto && [ begin, end ] = tup;
+      auto begin = ::std::get<0>( tup);
+	  auto end = ::std::get<1>(tup);
       // TODO: Possible UB
       thread->set_allocator_blocks(&*begin, &*end);
     };
     const auto set_root_iterators = [](auto &&thread, auto &&tup) {
-      auto && [ begin, end ] = tup;
+		auto begin = ::std::get<0>(tup);
+		auto end = ::std::get<1>(tup);
       // TODO: Possible UB
       thread->set_root_iterators(&*begin, &*end);
     };

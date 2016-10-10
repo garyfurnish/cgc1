@@ -95,8 +95,7 @@ static void internal_pointer_test()
   // force collection.
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       // it should stick around because it has a root.
@@ -110,8 +109,7 @@ static void internal_pointer_test()
   // force collection.
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       // now we should collect.
@@ -144,8 +142,7 @@ static void atomic_test()
   atomic_test__setup(memory, old_memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       AssertThat(last_collect.size(), Equals(0_sz));
@@ -154,8 +151,7 @@ static void atomic_test()
   cgc1::cgc_set_atomic(memory, true);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
 
@@ -167,8 +163,7 @@ static void atomic_test()
   ::mcpputil::secure_zero_pointer(memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       AssertThat(last_collect, HasLength(1));
@@ -196,8 +191,7 @@ static void finalizer_test()
   cgc1::cgc_force_collect(true);
   cgc1::cgc_wait_finalization();
 
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       AssertThat(last_collect.size(), Equals(1_sz));
@@ -228,8 +222,7 @@ static void finalizer_test2()
   ::cgc1::clean_stack(0, 0, 0, 0, 0);
   cgc1::cgc_force_collect(false);
   cgc1::cgc_wait_finalization(false);
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       AssertThat(last_collect.size(), Equals(1_sz));
@@ -263,8 +256,7 @@ static void uncollectable_test()
   uncollectable_test__setup(old_memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       AssertThat(last_collect.size(), Equals(0_sz));
@@ -273,8 +265,7 @@ static void uncollectable_test()
   uncollectable_test__cleanup(old_memory);
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       last_collect = gks->_d_freed_in_last_collection();
@@ -327,8 +318,7 @@ static void linked_list_test_setup()
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
-    if
-      constexpr(cgc1::c_gc_verbose_track)
+    if_constexpr(cgc1::c_gc_verbose_track)
       {
         auto freed_last = gks->_d_freed_in_last_collection();
         assert(freed_last.empty());
@@ -344,8 +334,7 @@ static void linked_list_final()
 {
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto last_collect = gks->_d_freed_in_last_collection();
       ::std::sort(locations.begin(), locations.end());
@@ -419,8 +408,7 @@ namespace race_condition_test_detail
     while (finished_part1 != num_threads) {
       cgc1::cgc_force_collect();
       gks->wait_for_finalization();
-      if
-        constexpr(cgc1::c_gc_verbose_track)
+      if_constexpr(cgc1::c_gc_verbose_track)
         {
           auto freed_last = gks->_d_freed_in_last_collection();
           assert(freed_last.empty());
@@ -439,8 +427,7 @@ namespace race_condition_test_detail
     // force collection.
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
-    if
-      constexpr(cgc1::c_gc_verbose_track)
+    if_constexpr(cgc1::c_gc_verbose_track)
       {
         auto last_collect = gks->_d_freed_in_last_collection();
         // pointers might be in arbitrary order so sort them.
@@ -492,8 +479,7 @@ static void return_to_global_test0()
   cgc1::cgc_force_collect();
   gks->wait_for_finalization();
   // make sure exactly one memory location was freed.
-  if
-    constexpr(cgc1::c_gc_verbose_track)
+  if_constexpr(cgc1::c_gc_verbose_track)
     {
       auto freed_last = gks->_d_freed_in_last_collection();
       AssertThat(freed_last, HasLength(1));

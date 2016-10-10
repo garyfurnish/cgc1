@@ -3,6 +3,7 @@
 #include "thread_local_kernel_state.hpp"
 #include <mcpputil/mcpputil/algorithm.hpp>
 #ifdef _WIN32
+#define NOMINMAX
 #include <Windows.h>
 #else
 #include <string.h>
@@ -352,8 +353,7 @@ namespace cgc1
             if (ud) {
               if (ud->is_default()) {
                 os_it->set_quasi_freed();
-                if
-                  constexpr(c_gc_verbose_track)
+                if_constexpr(c_gc_verbose_track)
                   {
                     m_to_be_freed.push_back(os_it);
                   }

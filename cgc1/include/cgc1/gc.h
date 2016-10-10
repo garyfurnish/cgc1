@@ -27,58 +27,58 @@ extern "C"
    * @param old_object Old object.
    * @param new_size New size of object.
    **/
-  extern void* GC_realloc(void* old_object, size_t new_size);
+  CGC1_DLL_PUBLIC extern void* GC_realloc(void* old_object, size_t new_size);
   /**
    * \brief Allocate memory.
    **/
-  extern void* GC_malloc(size_t size_in_bytes);
+  CGC1_DLL_PUBLIC extern void* GC_malloc(size_t size_in_bytes);
   /**
    * \brief Allocate atomic memory.
    *
    * Atomic memory is memory that is not searched for pointers.
    * @param size_in_bytes Size of memory.
    **/
-  extern void* GC_malloc_atomic(size_t size_in_bytes);
+  CGC1_DLL_PUBLIC extern void* GC_malloc_atomic(size_t size_in_bytes);
   /**
    * \brief Allocate uncollectable memory.
    *
    * @param size_in_bytes Size of memory.
    **/
-  extern void* GC_malloc_uncollectable(size_t size_in_bytes);
+  CGC1_DLL_PUBLIC extern void* GC_malloc_uncollectable(size_t size_in_bytes);
   /**
    * \brief Explicitly free garbage collected memory.
    *
    * @param object_addr Adddress to free.
    **/
-  extern void GC_free(void* object_addr);
+  CGC1_DLL_PUBLIC extern void GC_free(void* object_addr);
   /**
    * \brief Initialize garbage collector.
    * 
    * @param current_stack Current top of stack.
    **/
-  extern void GC_init(void* current_stack);
+  CGC1_DLL_PUBLIC extern void GC_init(void* current_stack);
   /**
    * \brief Force garbage collection.
    **/
-  extern void GC_gcollect();
+  CGC1_DLL_PUBLIC extern void GC_gcollect();
   /**
    * \brief Register a finalizer.
    **/
-  extern void GC_register_finalizer(void *addr, GC_finalization_proc finalizer, void* user_data, void* b, void* c);
-  extern void* GC_base(void* addr);
-  extern int GC_get_heap_size();
-  extern int GC_get_gc_no();
-  extern int GC_get_parallel();
-  extern int GC_get_finalize_on_demand();
-  extern int GC_get_java_finalization();
-  extern int GC_get_dont_expand();
-  extern int GC_get_full_freq();
-  extern int GC_get_max_retries();
-  extern unsigned long GC_get_time_limit();
-  extern long GC_get_free_space_divisor();
-  extern long GC_get_all_interior_pointers();
-  extern int GC_is_visible(void* addr);
-  extern void *GC_check_annotated_obj(void *);
+  CGC1_DLL_PUBLIC extern void GC_register_finalizer(void *addr, GC_finalization_proc finalizer, void* user_data, void* b, void* c);
+  CGC1_DLL_PUBLIC extern void* GC_base(void* addr);
+  CGC1_DLL_PUBLIC extern int GC_get_heap_size();
+  CGC1_DLL_PUBLIC extern int GC_get_gc_no();
+  CGC1_DLL_PUBLIC extern int GC_get_parallel();
+  CGC1_DLL_PUBLIC extern int GC_get_finalize_on_demand();
+  CGC1_DLL_PUBLIC extern int GC_get_java_finalization();
+  CGC1_DLL_PUBLIC extern int GC_get_dont_expand();
+  CGC1_DLL_PUBLIC extern int GC_get_full_freq();
+  CGC1_DLL_PUBLIC  extern int GC_get_max_retries();
+  CGC1_DLL_PUBLIC  extern unsigned long GC_get_time_limit();
+  CGC1_DLL_PUBLIC  extern long GC_get_free_space_divisor();
+  CGC1_DLL_PUBLIC  extern long GC_get_all_interior_pointers();
+  CGC1_DLL_PUBLIC  extern int GC_is_visible(void* addr);
+  CGC1_DLL_PUBLIC  extern void *GC_check_annotated_obj(void *);
 #ifdef __cplusplus
 }
 #endif
