@@ -20,7 +20,11 @@ namespace cgc1
       using this_type = allocated_thread_details_base_t<allocator>;
       allocated_thread_details_base_t(const allocator &allocator);
       virtual ~allocated_thread_details_base_t() = default;
+#ifndef _WIN32
       static void *_s_run(void *user_data);
+#else
+      static unsigned long _s_run(void *user_data);
+#endif
       virtual void *_run() = 0;
 
     protected:

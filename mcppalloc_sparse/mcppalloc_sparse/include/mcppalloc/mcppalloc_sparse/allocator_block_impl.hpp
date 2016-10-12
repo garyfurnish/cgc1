@@ -11,8 +11,10 @@ namespace mcppalloc
   {
     namespace details
     {
+#ifdef _WIN32
       template <typename Allocator_Policy>
       typename allocator_block_t<Allocator_Policy>::user_data_type allocator_block_t<Allocator_Policy>::s_default_user_data;
+#endif
       template <typename Allocator_Policy>
       MCPPALLOC_ALWAYS_INLINE allocator_block_t<Allocator_Policy>::allocator_block_t(void *start,
                                                                                      size_t length,
@@ -141,7 +143,7 @@ namespace mcppalloc
         return nullptr;
       }
       template <typename Allocator_Policy>
-      void allocator_block_t<Allocator_Policy>::_verify(const object_state_type *state)
+      void allocator_block_t<Allocator_Policy>::_verify([[maybe_unused]] const object_state_type *state)
       {
         if_constexpr(c_debug_level > 1)
         {

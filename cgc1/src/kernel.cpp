@@ -82,35 +82,35 @@ namespace cgc1
       return tlks->in_signal_handler();
     return false;
   }
-  void *cgc_malloc(size_t sz)
+  CGC1_DLL_PUBLIC void *cgc_malloc(size_t sz)
   {
     return ::cgc1::details::g_gks->allocate(sz).m_ptr;
   }
-  auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
+  CGC1_DLL_PUBLIC auto cgc_allocate(size_t sz) -> details::gc_allocator_t::block_type
   {
     return ::cgc1::details::g_gks->allocate(sz);
   }
-  uintptr_t cgc_hidden_malloc(size_t sz)
+  CGC1_DLL_PUBLIC uintptr_t cgc_hidden_malloc(size_t sz)
   {
     void *addr = cgc_malloc(sz);
     return ::mcpputil::hide_pointer(addr);
   }
-  void *cgc_realloc(void *v, size_t sz)
+  CGC1_DLL_PUBLIC void *cgc_realloc(void *v, size_t sz)
   {
     void *ret = cgc_malloc(sz);
     if (v)
       ::memcpy(ret, v, sz);
     return ret;
   }
-  void cgc_free(void *v)
+  CGC1_DLL_PUBLIC void cgc_free(void *v)
   {
     ::cgc1::details::g_gks->deallocate(v);
   }
-  bool cgc_is_cgc(void *v)
+  CGC1_DLL_PUBLIC bool cgc_is_cgc(void *v)
   {
     return cgc_size(v) > 0;
   }
-  void *cgc_start(void *addr)
+  CGC1_DLL_PUBLIC void *cgc_start(void *addr)
   {
     if (!addr)
       return nullptr;
@@ -132,7 +132,7 @@ namespace cgc1
       return nullptr;
     }
   }
-  size_t cgc_size(void *addr)
+  CGC1_DLL_PUBLIC size_t cgc_size(void *addr)
   {
     if (!addr)
       return 0;
@@ -151,44 +151,44 @@ namespace cgc1
     else
       return 0;
   }
-  void cgc_add_root(void **v)
+  CGC1_DLL_PUBLIC void cgc_add_root(void **v)
   {
     details::check_initialized();
     details::g_gks->root_collection().add_root(v);
   }
-  void cgc_remove_root(void **v)
+  CGC1_DLL_PUBLIC void cgc_remove_root(void **v)
   {
     if (!details::g_gks)
       return;
     details::g_gks->root_collection().remove_root(v);
   }
-  bool cgc_has_root(void **v)
+  CGC1_DLL_PUBLIC bool cgc_has_root(void **v)
   {
     return details::g_gks->root_collection().has_root(v);
   }
-  size_t cgc_heap_size()
+  CGC1_DLL_PUBLIC size_t cgc_heap_size()
   {
     // this cast is safe because end > begin is an invariant.
     return static_cast<size_t>(details::g_gks->gc_allocator().end() - details::g_gks->gc_allocator().begin());
   }
-  size_t cgc_heap_free()
+  CGC1_DLL_PUBLIC size_t cgc_heap_free()
   {
     // this cast is safe because end > current_end is an invariant.
     return static_cast<size_t>(details::g_gks->gc_allocator().end() - details::g_gks->gc_allocator().current_end());
   }
-  void cgc_enable()
+  CGC1_DLL_PUBLIC void cgc_enable()
   {
     details::g_gks->enable();
   }
-  void cgc_disable()
+  CGC1_DLL_PUBLIC void cgc_disable()
   {
     details::g_gks->disable();
   }
-  bool cgc_is_enabled()
+  CGC1_DLL_PUBLIC bool cgc_is_enabled()
   {
     return details::g_gks->enabled();
   }
-  void cgc_register_thread(void *top_of_stack)
+  CGC1_DLL_PUBLIC void cgc_register_thread(void *top_of_stack)
   {
     details::check_initialized();
     details::g_gks->initialize_current_thread(top_of_stack);
@@ -196,33 +196,33 @@ namespace cgc1
     tlks->set_thread_allocator(&::cgc1::details::g_gks->gc_allocator().initialize_thread());
     tlks->set_bitmap_thread_allocator(&::cgc1::details::g_gks->_bitmap_allocator().initialize_thread());
   }
-  void cgc_collect()
+  CGC1_DLL_PUBLIC void cgc_collect()
   {
     details::g_gks->collect();
   }
-  void cgc_force_collect(bool do_local_finalization)
+  CGC1_DLL_PUBLIC void cgc_force_collect(bool do_local_finalization)
   {
     details::g_gks->force_collect(do_local_finalization);
   }
-  void cgc_wait_collect()
+  CGC1_DLL_PUBLIC void cgc_wait_collect()
   {
     details::g_gks->wait_for_collection();
     details::g_gks->_mutex().unlock();
   }
-  void cgc_wait_finalization(bool do_local_finalization)
+  CGC1_DLL_PUBLIC void cgc_wait_finalization(bool do_local_finalization)
   {
     details::g_gks->wait_for_finalization(do_local_finalization);
   }
-  void cgc_unregister_thread()
+  CGC1_DLL_PUBLIC void cgc_unregister_thread()
   {
     details::g_gks->destroy_current_thread();
   }
-  void cgc_shutdown()
+  CGC1_DLL_PUBLIC void cgc_shutdown()
   {
     details::g_gks->shutdown();
     details::g_gks = nullptr;
   }
-  void
+  CGC1_DLL_PUBLIC void
   cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread, bool throws)
   {
     if (!addr) {
@@ -289,7 +289,7 @@ namespace cgc1
       ba_user_data->set_abort_on_collect(abort_on_collect);
     }
   }
-  void cgc_set_uncollectable(void *const addr, const bool is_uncollectable)
+  CGC1_DLL_PUBLIC void cgc_set_uncollectable(void *const addr, const bool is_uncollectable)
   {
     if (!addr)
       return;
@@ -315,7 +315,7 @@ namespace cgc1
       throw ::std::runtime_error("cgc1: set uncollectable called on bad address. 3d503975-2d36-4c20-b426-a7c9727508f3");
     }
   }
-  void cgc_set_atomic(void *addr, bool is_atomic)
+  CGC1_DLL_PUBLIC void cgc_set_atomic(void *addr, bool is_atomic)
   {
     if (!addr)
       return;

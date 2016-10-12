@@ -11,11 +11,20 @@ namespace cgc1
     {
     }
     template <typename Allocator>
-    void *allocated_thread_details_base_t<Allocator>::_s_run(void *user_data)
+#ifdef _WIN32
+    unsigned long
+#else
+    void *
+#endif
+    allocated_thread_details_base_t<Allocator>::_s_run(void *user_data)
     {
       auto unique = ::mcpputil::allocator_unique_ptr_t<this_type, allocator>(::mcpputil::unsafe_cast<this_type>(user_data));
       unique->_run();
+#ifdef _WIN32
+      return 0;
+#else
       return nullptr;
+#endif
     }
 
     template <typename Allocator, typename Function, typename... Args>
@@ -78,6 +87,42 @@ namespace cgc1
     int ec = ::pthread_detach(m_native_handle);
     if (ec)
       throw ::std::system_error(::std::error_code(ec, ::std::system_category()), "thread::detach failed");
+  }
+#else
+  template <typename Allocator>
+  void allocated_thread_t<Allocator>::_start(void *details_ptr)
+  {
+    auto ec = CreateThread(NULL,                  // default security attributes
+                           0,                     // use default stack size
+                           &details_type::_s_run, // thread function name
+                           details_ptr,           // argument to thread function
+                           0,                     // use default creation flags
+                           nullptr);              // returns the thread identifier
+
+    m_native_handle = ec;
+    if (!ec)
+      throw ::std::runtime_error("thread constructor failed");
+  }
+
+  template <typename Allocator>
+  auto allocated_thread_t<Allocator>::joinable() const noexcept -> bool
+  {
+    return m_native_handle != details::c_native_thread_handle_initializer;
+  }
+  template <typename Allocator>
+  void allocated_thread_t<Allocator>::join()
+  {
+    auto ec = WaitForSingleObject(m_native_handle, 0);
+    if (!ec)
+      throw ::std::runtime_error("thread::join failed");
+    detach();
+  }
+  template <typename Allocator>
+  void allocated_thread_t<Allocator>::detach()
+  {
+    auto ec = CloseHandle(m_native_handle);
+    if (!ec)
+      throw ::std::runtime_error("thread::detach failed");
   }
 #endif
   template <typename Allocator>
