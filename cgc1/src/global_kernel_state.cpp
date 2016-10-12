@@ -48,6 +48,7 @@ namespace mcppalloc::bitmap_allocator::details
 
 namespace cgc1::details
 {
+  const constexpr global_kernel_state_t::collection_lock_t global_kernel_state_t::sc_collection_lock;
   void finalize(::mcppalloc::bitmap_allocator::details::bitmap_state_t *state);
   auto _real_gks() -> global_kernel_state_t *
   {
