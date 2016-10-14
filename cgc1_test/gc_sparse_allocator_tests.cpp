@@ -4,6 +4,7 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include "../cgc1/src/internal_stream.hpp"
 #include <cgc1/cgc1.hpp>
+#include <cgc1/hide_pointer.hpp>
 #include <chrono>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>

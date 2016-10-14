@@ -1,5 +1,7 @@
 #pragma once
+#include <cassert>
 #include <mcpputil/mcpputil/alignment.hpp>
+#include <mcpputil/mcpputil/bitwise.hpp>
 namespace mcppalloc
 {
   namespace details
@@ -44,7 +46,7 @@ namespace mcppalloc
     {
       size_type ptr = static_cast<size_type>(m_next);
       size_type iv = static_cast<size_type>(v);
-      m_next = (ptr & mcpputil::size_inverse(1)) | (iv & 1);
+      m_next = (ptr & mcpputil::bitwise_negate(1)) | (iv & 1);
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE bool object_state_t<Allocator_Policy>::not_available() const noexcept
@@ -77,7 +79,7 @@ namespace mcppalloc
     {
       size_type ptr = static_cast<size_type>(m_next);
       size_type iv = static_cast<size_type>(v) << 1;
-      m_next = (ptr & mcpputil::size_inverse(2)) | (iv & 2);
+      m_next = (ptr & mcpputil::bitwise_negate(2)) | (iv & 2);
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE bool object_state_t<Allocator_Policy>::next_valid() const noexcept
@@ -87,7 +89,7 @@ namespace mcppalloc
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE object_state_t<Allocator_Policy> *object_state_t<Allocator_Policy>::next() const noexcept
     {
-      return reinterpret_cast<object_state_t<Allocator_Policy> *>(m_next & mcpputil::size_inverse(7));
+      return reinterpret_cast<object_state_t<Allocator_Policy> *>(m_next & mcpputil::bitwise_negate(7));
     }
     template <typename Allocator_Policy>
     MCPPALLOC_ALWAYS_INLINE void object_state_t<Allocator_Policy>::set_next(object_state_t<Allocator_Policy> *state) noexcept

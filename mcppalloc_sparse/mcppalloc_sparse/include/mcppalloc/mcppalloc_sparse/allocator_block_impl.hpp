@@ -5,6 +5,7 @@
 #include <mcppalloc/user_data_base.hpp>
 #include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
 #include <mcpputil/mcpputil/function_iterator.hpp>
+#include <mcpputil/mcpputil/intrinsics.hpp>
 namespace mcppalloc
 {
   namespace sparse

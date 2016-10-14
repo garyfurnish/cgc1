@@ -1,6 +1,7 @@
 #pragma once
 #include "declarations.hpp"
 #include "object_state.hpp"
+#include <limits>
 namespace mcppalloc
 {
   namespace details

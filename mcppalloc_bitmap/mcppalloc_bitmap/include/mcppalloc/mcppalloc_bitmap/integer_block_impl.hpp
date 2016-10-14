@@ -1,5 +1,6 @@
 #pragma once
 #include "integer_block.hpp"
+#include <limits>
 #include <mcpputil/mcpputil/intrinsics.hpp>
 #include <mcpputil/mcpputil/unsafe_cast.hpp>
 #include <numeric>

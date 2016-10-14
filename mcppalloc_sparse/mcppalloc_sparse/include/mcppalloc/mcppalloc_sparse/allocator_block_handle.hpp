@@ -1,5 +1,6 @@
 #pragma once
 #include "declarations.hpp"
+#include <ostream>
 namespace mcppalloc
 {
   namespace sparse

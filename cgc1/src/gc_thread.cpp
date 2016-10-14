@@ -1,6 +1,7 @@
 #include "gc_thread.hpp"
 #include "global_kernel_state.hpp"
 #include "thread_local_kernel_state.hpp"
+#include <cgc1/hide_pointer.hpp>
 #include <mcpputil/mcpputil/algorithm.hpp>
 #ifdef _WIN32
 #define NOMINMAX

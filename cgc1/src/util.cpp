@@ -1,4 +1,5 @@
 #include <atomic>
+#include <cassert>
 #include <cgc1/declarations.hpp>
 #include <mcpputil/mcpputil/security.hpp>
 namespace cgc1

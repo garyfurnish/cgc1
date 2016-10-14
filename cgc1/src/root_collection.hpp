@@ -51,6 +51,11 @@ namespace cgc1
      **/
     ::gsl::span<const void **> roots() const;
 
+    void add_memory_range(mcpputil::system_memory_range_t range);
+    void remove_memory_range(mcpputil::system_memory_range_t range);
+    void remove_memory_range(ptrdiff_t location);
+    bool has_memory_range(mcpputil::system_memory_range_t range);
+
   private:
     lock_type &m_lock;
     /**

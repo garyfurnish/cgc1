@@ -1,6 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <cgc1/declarations.hpp>
+#include <limits>
 #include <mcpputil/mcpputil/make_unique.hpp>
 #include <memory>
 #include <vector>

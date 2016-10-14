@@ -1,6 +1,7 @@
 #pragma once
 #include "allocator_policy.hpp"
 #include "default_allocator_thread_policy.hpp"
+#include <cstdint>
 namespace mcppalloc
 {
   template <typename Internal_Allocator>

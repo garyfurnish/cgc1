@@ -3,6 +3,7 @@
 #include "declarations.hpp"
 #include <array>
 #include <functional>
+#include <mcpputil/mcpputil/intrinsics.hpp>
 #include <type_traits>
 #include <vector>
 namespace cgc1

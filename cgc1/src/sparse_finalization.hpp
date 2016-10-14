@@ -1,5 +1,6 @@
 #include "gc_allocator.hpp"
 #include "global_kernel_state.hpp"
+#include <cgc1/hide_pointer.hpp>
 namespace cgc1::details
 {
   template <typename Allocator>

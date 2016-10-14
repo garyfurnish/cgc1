@@ -5,6 +5,7 @@
 #include "thread_local_kernel_state.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cgc1/cgc1_dll.hpp>
+#include <cgc1/hide_pointer.hpp>
 #include <cstring>
 namespace cgc1
 {

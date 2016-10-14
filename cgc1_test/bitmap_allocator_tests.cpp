@@ -2,6 +2,7 @@
 #include "../cgc1/src/global_kernel_state.hpp"
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
+#include <cgc1/hide_pointer.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>
 
