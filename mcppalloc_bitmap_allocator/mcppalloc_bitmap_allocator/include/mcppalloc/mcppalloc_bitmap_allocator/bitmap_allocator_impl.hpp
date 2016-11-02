@@ -1,17 +1,13 @@
 #pragma once
 #include <mcpputil/mcpputil/boost/property_tree/json_parser.hpp>
 #include <mcpputil/mcpputil/boost/property_tree/ptree.hpp>
+#include <mcpputil/mcpputil/thread_id_manager.hpp>
 namespace mcppalloc
 {
   namespace bitmap_allocator
   {
     namespace details
     {
-#ifdef _WIN32
-      template <typename Allocator_Policy>
-      typename mcpputil::thread_local_pointer_t<typename bitmap_allocator_t<Allocator_Policy>::thread_allocator_type>
-          bitmap_allocator_t<Allocator_Policy>::t_thread_allocator;
-#endif
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::begin() const noexcept -> uint8_t *
       {
@@ -30,6 +26,9 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       bitmap_allocator_t<Allocator_Policy>::bitmap_allocator_t(size_t size, size_t size_hint) : m_slab(size, size_hint)
       {
+        m_thread_allocator_by_manager_id.resize(gsl::narrow<size_t>(mcpputil::thread_id_manager_t::gs().current_thread_id()));
+        for (auto &&ptr : m_thread_allocator_by_manager_id)
+          ptr = nullptr;
         m_slab.align_next(c_bitmap_block_size);
       }
       template <typename Allocator_Policy>
@@ -56,12 +55,12 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::get_ttla() noexcept -> thread_allocator_type *
       {
-        return t_thread_allocator;
+        return m_thread_allocator_by_manager_id[::gsl::narrow_cast<size_t>(mcpputil::thread_id_manager_t::gs().current_thread_id())];
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::set_ttla(thread_allocator_type *ta) noexcept
       {
-        t_thread_allocator = ta;
+        m_thread_allocator_by_manager_id[::gsl::narrow<size_t>(mcpputil::thread_id_manager_t::gs().current_thread_id())] = ta;
       }
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::_get_memory() -> bitmap_state_t *

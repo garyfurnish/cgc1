@@ -100,10 +100,6 @@ namespace mcppalloc
          **/
         static void set_ttla(thread_allocator_type *ta) noexcept;
         /**
-         * \brief Per thread thread allocator variable.
-         **/
-        static mcpputil::thread_local_pointer_t<thread_allocator_type> t_thread_allocator;
-        /**
          * \brief Type of unique ptr for thread allocator.
          **/
         using thread_allocator_unique_ptr_type = typename ::std::unique_ptr<
@@ -148,6 +144,9 @@ namespace mcppalloc
         using thread_allocators_pair_type = typename ::std::pair<::std::thread::id, thread_allocator_unique_ptr_type>;
         using thread_allocators_allocator_type =
             typename internal_allocator_traits::template rebind_alloc<thread_allocators_pair_type>;
+
+        using static_vec_type = ::std::vector<thread_allocator_type *>;
+        static static_vec_type m_thread_allocator_by_manager_id;
         /**
          * \brief Thread allocators.
          **/

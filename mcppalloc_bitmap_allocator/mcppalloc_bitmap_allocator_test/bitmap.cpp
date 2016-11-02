@@ -13,19 +13,7 @@ thread_local mcpputil::thread_local_pointer_t<mcppalloc::bitmap_allocator::detai
     mcpputil::thread_local_pointer_t<mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<
         mcppalloc::default_allocator_policy_t<::std::allocator<void>>>>::s_tlks = nullptr;
 #endif
-namespace mcppalloc
-{
-  namespace bitmap_allocator
-  {
-    namespace details
-    {
-      template <>
-      mcpputil::thread_local_pointer_t<
-          typename bitmap_allocator_t<default_allocator_policy_t<::std::allocator<void>>>::thread_allocator_type>
-          bitmap_allocator_t<default_allocator_policy_t<::std::allocator<void>>>::t_thread_allocator{};
-    }
-  }
-}
+
 using namespace bandit;
 
 using namespace ::mcpputil::literals;

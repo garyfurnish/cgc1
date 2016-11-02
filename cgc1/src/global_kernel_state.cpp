@@ -38,13 +38,6 @@ thread_local mcpputil::thread_local_pointer_t<
         mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_tlks =
         nullptr;
 #endif
-namespace mcppalloc::bitmap_allocator::details
-{
-  template <>
-  mcpputil::thread_local_pointer_t<
-      typename bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::thread_allocator_type>
-      bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::t_thread_allocator{};
-}
 
 namespace cgc1::details
 {

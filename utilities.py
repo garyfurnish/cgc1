@@ -21,4 +21,5 @@ def do_cmake(current_directory, generator_string, ddict):
     sys_str = 'cmake ' + current_directory + ' -G "' + generator_string +'"'
     for key,value in ddict.iteritems():
         sys_str += ' -D' + key + '="' + value + '"'
+    sys_str+=' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
     printing_system(sys_str)
