@@ -31,19 +31,6 @@ using bitmap_allocator =
 template <>
 ::std::vector<bitmap_allocator::thread_allocator_type *> bitmap_allocator::m_thread_allocator_by_manager_id{};
 
-#ifdef __APPLE__
-template <>
-pthread_key_t mcpputil::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_pkey{0};
-#else
-template <>
-thread_local mcpputil::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::pointer_type
-    mcpputil::thread_local_pointer_t<
-        mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_tlks =
-        nullptr;
-#endif
-
 namespace cgc1::details
 {
   const constexpr global_kernel_state_t::collection_lock_t global_kernel_state_t::sc_collection_lock;
@@ -52,13 +39,7 @@ namespace cgc1::details
   {
     static global_kernel_state_t *gks = nullptr;
     if (mcpputil_likely(g_gks)) {
-      {
-        gks = g_gks;
-      }
-    } else {
-      if (!gks->m_in_destructor) {
-        ::std::abort();
-      }
+      gks = g_gks;
     }
     return gks;
   }
