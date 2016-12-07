@@ -56,7 +56,7 @@ namespace cgc1::details
         gks = g_gks;
       }
     } else {
-      if (!g_gks->m_in_destructor) {
+      if (!gks->m_in_destructor) {
         ::std::abort();
       }
     }
