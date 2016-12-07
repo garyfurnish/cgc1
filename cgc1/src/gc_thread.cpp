@@ -7,7 +7,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #else
-#include <string.h>
+#include <cstring>
 #endif
 
 namespace cgc1
@@ -34,8 +34,9 @@ namespace cgc1
     }
     gc_thread_t::~gc_thread_t()
     {
-      if (m_run)
+      if (m_run) {
         shutdown();
+      }
     }
     void gc_thread_t::shutdown()
     {
@@ -97,8 +98,9 @@ namespace cgc1
         MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
         while (!m_do_clear) {
           m_wake_up.wait(m_mutex);
-          if (!m_run)
+          if (!m_run) {
             return;
+          }
         }
         m_do_clear = false;
         // Clear marks.
@@ -178,7 +180,7 @@ namespace cgc1
     bool gc_thread_t::handle_thread(::std::thread::id id)
     {
       thread_local_kernel_state_t *tlks = g_gks->tlks(id);
-      if (!tlks) {
+      if (tlks == nullptr) {
         return false;
       }
       // this is during GC so the slab will not be changed so no locks for gks needed.
@@ -230,22 +232,29 @@ namespace cgc1
       void *const fast_heap_begin = g_gks->_bitmap_allocator().begin();
       void *const fast_heap_end = g_gks->_bitmap_allocator().end();
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
-      if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end))
+      if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end)) {
         return 1;
+      }
       // getting state moves pointer lower, so recheck bounds.
-      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin)
+      if (reinterpret_cast<uint8_t *>(state) < fast_heap_begin) {
         return 2;
-      if (mcpputil_unlikely(!state->has_valid_magic_numbers()))
+      }
+      if (mcpputil_unlikely(!state->has_valid_magic_numbers())) {
         return 3;
-      if (state->addr_in_header(addr))
+      }
+      if (state->addr_in_header(addr)) {
         return 4;
+      }
       auto index = state->get_index(addr);
-      if (mcpputil_unlikely(index == ::std::numeric_limits<size_t>::max()))
+      if (mcpputil_unlikely(index == ::std::numeric_limits<size_t>::max())) {
         return 5;
-      if (state->is_marked(index) && !force_mark)
+      }
+      if (state->is_marked(index) && !force_mark) {
         return 6;
-      if (do_mark)
+      }
+      if (do_mark) {
         state->set_marked(index);
+      }
       if (state->type_id() != 2) {
         // atomic, so done.
         return 7;
@@ -260,7 +269,7 @@ namespace cgc1
         return;
       }
       auto is_markable = _is_bitmap_addr_markable(addr, true, false);
-      if (is_markable) {
+      if (is_markable != 0) {
         return;
       }
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
@@ -282,14 +291,17 @@ namespace cgc1
         // This is calling during garbage collection, therefore no mutex is needed.
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
         os = g_gks->_u_find_valid_object_state(addr);
-        if (!os)
+        if (os == nullptr) {
           return;
+        }
       }
       assert(is_aligned_properly(os));
-      if (!os->in_use() || os->quasi_freed() || !os->next())
+      if (!os->in_use() || os->quasi_freed() || (os->next() == nullptr)) {
         return;
-      if (is_marked(os))
+      }
+      if (is_marked(os)) {
         return;
+      }
 
       // if it is atomic we are done here.
       if (is_atomic(os)) {
@@ -300,13 +312,11 @@ namespace cgc1
         // if recursion depth too big, put it on addresses to mark.
         m_addresses_to_mark.insert(addr);
         return;
-      } else {
-        // set it as marked.
-        set_mark(os);
-        // recurse to pointers.
-        for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
-          _mark_addrs(*it, depth + 1);
-        }
+      } // set it as marked.
+      set_mark(os);
+      // recurse to pointers.
+      for (void **it = reinterpret_cast<void **>(os->object_start()); it != reinterpret_cast<void **>(os->object_end()); ++it) {
+        _mark_addrs(*it, depth + 1);
       }
     }
     void gc_thread_t::_mark_addrs(void *addr, size_t depth)
@@ -351,7 +361,7 @@ namespace cgc1
           if (os_it->in_use() && !is_marked(os_it)) {
             ++num_freed;
             gc_user_data_t *ud = static_cast<gc_user_data_t *>(os_it->user_data());
-            if (ud) {
+            if (ud != nullptr) {
               if (ud->is_default()) {
                 os_it->set_quasi_freed();
                 if_constexpr(c_gc_verbose_track)
@@ -364,7 +374,8 @@ namespace cgc1
                   // didn't actually free anything, so decrement.
                   --num_freed;
                   continue;
-                } else if (ud->m_finalizer) {
+                }
+                if (ud->m_finalizer) {
                   // if it has a finalizer, finalize.
                   m_to_be_freed.push_back(os_it);
                 } else {
@@ -389,7 +400,7 @@ namespace cgc1
       cgc_internal_vector_t<typename gc_allocator_t::object_state_type *> special_finalization;
       for (auto &os : m_to_be_freed) {
         gc_user_data_t *ud = static_cast<gc_user_data_t *>(os->user_data());
-        if (ud) {
+        if (ud != nullptr) {
           if (ud->is_default()) {
           } else {
             // if it has a finalizer that can run in this thread, finalize.
@@ -402,10 +413,8 @@ namespace cgc1
               special_finalization.emplace_back(os);
               // we do not want to zero memory etc so continue.
               continue;
-            } else {
-              // delete user data if not owned by block.
-              unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
-            }
+            } // delete user data if not owned by block.
+            unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
           }
         }
         assert(os->object_end() < g_gks->gc_allocator().end());

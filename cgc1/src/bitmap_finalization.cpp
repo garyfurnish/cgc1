@@ -19,13 +19,15 @@ namespace cgc1
       free_with_finalizer.deep_copy(to_be_freed);
       free_with_finalizer &= state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable);
       for (size_t i = 0; i < state->size(); ++i) {
-        if (!free_with_finalizer.get_bit(i))
+        if (!free_with_finalizer.get_bit(i)) {
           continue;
+        }
         const auto object = state->get_object(i);
         if (state->user_bits_ref(cs_bitmap_allocation_user_bit_finalizeable).get_bit(i)) {
           const auto ud = bitmap_allocator_user_data(object);
-          if (mcpputil_unlikely(!ud))
+          if (mcpputil_unlikely(!ud)) {
             continue;
+          }
           if (ud->abort_on_collect()) {
 
             ::std::cerr << __FILE__ << " " << __LINE__ << " " << state->is_marked(i) << ::std::endl;
