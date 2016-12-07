@@ -19,13 +19,13 @@ namespace cgc1
     }
     void check_initialized()
     {
-      if (!details::g_gks) {
+      if (nullptr == details::g_gks) {
         global_kernel_state_param_t param;
         get_gks() = make_unique_malloc<details::global_kernel_state_t>(param);
         g_gks = get_gks().get();
         get_gks()->initialize();
       }
-      if (!details::g_gks) {
+      if (nullptr == details::g_gks) {
         {
           g_gks = get_gks().get();
         }
@@ -85,7 +85,7 @@ namespace cgc1
   bool in_signal_handler() noexcept
   {
     auto tlks = details::get_tlks();
-    if (tlks) {
+    if (nullptr != tlks) {
       {
         return tlks->in_signal_handler();
       }
@@ -108,7 +108,7 @@ namespace cgc1
   CGC1_DLL_PUBLIC void *cgc_realloc(void *v, size_t sz)
   {
     void *ret = cgc_malloc(sz);
-    if (v) {
+    if (nullptr != v) {
       {
         ::memcpy(ret, v, sz);
       }
@@ -125,7 +125,7 @@ namespace cgc1
   }
   CGC1_DLL_PUBLIC void *cgc_start(void *addr)
   {
-    if (!addr) {
+    if (nullptr == addr) {
       {
         return nullptr;
       }
@@ -133,56 +133,43 @@ namespace cgc1
     if (details::is_bitmap_allocator(addr)) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers()) {
-        {
-          return state->begin() + state->get_index(addr) * state->real_entry_size();
-        }
+        return state->begin() + state->get_index(addr) * state->real_entry_size();
       }
       return nullptr;
-    } else if (details::is_sparse_allocator(addr)) {
+    }
+    if (details::is_sparse_allocator(addr)) {
       details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
       if (!details::g_gks->is_valid_object_state(os)) {
         os = details::g_gks->find_valid_object_state(addr);
-        if (!os) {
+        if (nullptr == os) {
           return nullptr;
         }
       }
       return os->object_start();
-    } else {
-      return nullptr;
     }
+    return nullptr;
   }
   CGC1_DLL_PUBLIC size_t cgc_size(void *addr)
   {
-    if (!addr) {
-      {
-        return 0;
-      }
+    if (nullptr == addr) {
+      return 0;
     }
     void *start = cgc_start(addr);
-    if (!start) {
-      {
-        return 0;
-      }
+    if (nullptr == start) {
+      return 0;
     }
     if (start >= details::g_gks->_bitmap_allocator().begin() && start < details::g_gks->_bitmap_allocator().end()) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers()) {
-        {
-          return state->declared_entry_size();
-        }
+        return state->declared_entry_size();
       }
       return 0;
     }
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
-    if (os) {
-      {
-        return os->object_size();
-      }
-    } else {
-      {
-        return 0;
-      }
+    if (nullptr != os) {
+      return os->object_size();
     }
+    return 0;
   }
   CGC1_DLL_PUBLIC void cgc_add_root(void **v)
   {
@@ -191,7 +178,7 @@ namespace cgc1
   }
   CGC1_DLL_PUBLIC void cgc_remove_root(void **v)
   {
-    if (!details::g_gks) {
+    if (nullptr == details::g_gks) {
       {
         return;
       }
@@ -261,7 +248,7 @@ namespace cgc1
   CGC1_DLL_PUBLIC void
   cgc_register_finalizer(void *addr, ::std::function<void(void *)> finalizer, bool allow_arbitrary_finalizer_thread, bool throws)
   {
-    if (!addr) {
+    if (nullptr == addr) {
       if (throws) {
         throw ::std::runtime_error("cgc1: nullptr 2731790e-a3be-4824-9cce-cee54cd06606");
       } else {
@@ -271,7 +258,7 @@ namespace cgc1
       }
     }
     const auto ba_user_data = details::bitmap_allocator_user_data(addr);
-    if (ba_user_data) {
+    if (ba_user_data != nullptr) {
       const auto ba_state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (mcpputil_unlikely(!ba_state)) {
         {
@@ -338,7 +325,7 @@ namespace cgc1
   CGC1_DLL_PUBLIC void cgc_set_abort_on_collect(void *addr, bool abort_on_collect)
   {
     const auto ba_user_data = details::bitmap_allocator_user_data(addr);
-    if (!ba_user_data) {
+    if (nullptr == ba_user_data) {
       if (details::is_sparse_allocator(addr)) {
         throw ::std::runtime_error("cgc1: abort on collect not implemented for sparse allocator");
       } else if (details::is_bitmap_allocator(addr)) {
@@ -352,25 +339,19 @@ namespace cgc1
   }
   CGC1_DLL_PUBLIC void cgc_set_uncollectable(void *const addr, const bool is_uncollectable)
   {
-    if (!addr) {
-      {
-        return;
-      }
+    if (nullptr == addr) {
+      return;
     }
     const auto ba_user_data = details::bitmap_allocator_user_data(addr);
-    if (ba_user_data) {
+    if (nullptr != ba_user_data) {
       throw ::std::runtime_error("cgc1: set uncollectable: NOT IMPLEMENTED");
     } else if (details::is_sparse_allocator(addr)) {
-      if (!addr) {
-        {
-          return;
-        }
+      if (nullptr == addr) {
+        return;
       }
       void *start = cgc_start(addr);
-      if (!start) {
-        {
-          return;
-        }
+      if (nullptr == start) {
+        return;
       }
       details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
       details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
@@ -387,25 +368,19 @@ namespace cgc1
   }
   CGC1_DLL_PUBLIC void cgc_set_atomic(void *addr, bool is_atomic)
   {
-    if (!addr) {
-      {
-        return;
-      }
+    if (nullptr == addr) {
+      return;
     }
     void *start = cgc_start(addr);
-    if (!start) {
-      {
-        return;
-      }
+    if (nullptr == start) {
+      return;
     }
     const auto ba_user_data = details::bitmap_allocator_user_data(addr);
-    if (ba_user_data) {
+    if (nullptr != ba_user_data) {
       throw ::std::runtime_error("NOT IMPLEMENTED");
     }
     if (!mcpputil_unlikely(details::is_sparse_allocator(addr))) {
-      {
-        ::std::abort();
-      }
+      ::std::abort();
     }
     details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
     set_atomic(os, is_atomic);
@@ -471,19 +446,19 @@ CGC1_DLL_PUBLIC int GC_get_gc_no()
 }
 CGC1_DLL_PUBLIC int GC_get_parallel()
 {
-  return true;
+  return 1;
 }
 CGC1_DLL_PUBLIC int GC_get_finalize_on_demand()
 {
-  return false;
+  return 0;
 }
 CGC1_DLL_PUBLIC int GC_get_java_finalization()
 {
-  return false;
+  return 0;
 }
 CGC1_DLL_PUBLIC int GC_get_dont_expand()
 {
-  return false;
+  return 0;
 }
 CGC1_DLL_PUBLIC int GC_get_full_freq()
 {

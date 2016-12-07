@@ -397,7 +397,7 @@ namespace cgc1::details
     //      m_collect = true;
     m_num_freed_in_last_collection = 0;
     m_freed_in_last_collection.clear();
-    m_collect_finished.store(0, ::std::memory_order_release);
+    m_collect_finished.store(false, ::std::memory_order_release);
     m_num_paused_threads.store(0, ::std::memory_order_release);
     m_num_resumed_threads.store(0, ::std::memory_order_release);
     // make everything visible
@@ -641,9 +641,9 @@ namespace cgc1::details
   {
     // if no thread llks we really can't collect.
     auto tlks = details::get_tlks();
-    if (!tlks) {
+    if (nullptr == tlks) {
       // this should be considered a fatal logic error.
-      ::std::terminate();
+      ::std::abort();
     }
     // set stack pointer.
     tlks->set_stack_ptr(__builtin_frame_address(0));

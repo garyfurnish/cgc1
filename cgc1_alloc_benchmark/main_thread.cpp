@@ -121,7 +121,7 @@ void thread_main()
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (static_cast<unsigned int>((i % 2) != 0u)) {
+    if (static_cast<unsigned int>((i % 2)) != 0u) {
       {
         ts.deallocate(ptrs[i]);
       }

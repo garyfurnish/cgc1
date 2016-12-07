@@ -136,7 +136,7 @@ static void packed_linked_list_test()
 }
 static MCPPALLOC_NO_INLINE bool is_unique_seeded_random(void *v, size_t sz)
 {
-  return ::mcpputil::is_unique_seeded_random(v, sz);
+  return ::mcpputil::is_unique_seeded_random(v, ::gsl::narrow<ptrdiff_t>(sz));
 }
 static void packed_allocator_test()
 {
@@ -155,7 +155,7 @@ static void packed_allocator_test()
     ::mcppalloc::bitmap_allocator::details::get_state(tmp)->verify_magic();
     if (!mcpputil::is_zero(tmp, allocation_size)) {
       ::std::cerr << "c3c1b941-f503-4730-b1bf-fd72861348e1\n";
-      assert(0);
+      assert(false);
       ::std::abort();
     }
     mcpputil::put_unique_seeded_random(tmp, allocation_size);
@@ -164,7 +164,7 @@ static void packed_allocator_test()
     assert(mcpputil::is_unique_seeded_random(tmp, allocation_size));
     if (!mcpputil::is_unique_seeded_random(tmp, allocation_size)) {
       ::std::cerr << "eb5d2cda-f75a-4e04-8e0c-eb302b536e01\n";
-      assert(0);
+      assert(false);
       ::std::abort();
     }
     void *tmp2 = cgc1::cgc_malloc(100);
