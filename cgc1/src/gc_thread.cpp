@@ -129,6 +129,7 @@ namespace cgc1
         ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         _finalize();
         m_finalization_done = true;
+        ::std::atomic_thread_fence(::std::memory_order_acq_rel);
         m_done_finalization.notify_all();
       }
     }

@@ -10,9 +10,10 @@ with open("settings.json") as settings_file:
 cmake_build = build_location+"cgc1/unixmake_clang_debug"
 
 checks = "boost-*,cert-*,cppcoreguildlines-*,clang-analyzer-*,modernize-*,performance-*,readability-*,-readability-named-parameter,-clang-analyzer-alpha.clone.CloneChecker,-google-build-using-namespace,-clang-analyzer-alpha.core.CastSize"
+#checks = "readability-braces-around-statements"
 
-
-src_files = ["mcpputil/mcpputil/src/*.cpp","mcpputil/mcpputil_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp"]#, "cgc1/src/*.cpp","cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
+src_files = ["mcpputil/mcpputil/src/*.cpp","mcpputil/mcpputil_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp", "cgc1/src/*.cpp"]#,"cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
+src_files = ["cgc1/src/*.cpp", "cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
 src_str = ' '.join(map(str, src_files))
 header_filter = ["mcpputil/*","mcppalloc/*","mcpposutil/*", "cgc1/*"]
 header_filter_str = ','.join(map(str, header_filter))
