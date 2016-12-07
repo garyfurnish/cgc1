@@ -16,8 +16,8 @@ with open("settings.json") as settings_file:
 def run_test(location):
     printing_system(location+"/mcpputil/mcpputil_test/mcpputil_test")
     printing_system(location+"/mcpposutil/mcpposutil/mcpposutil_test/mcpposutil_test")
-    printing_system(location+"/mcppalloc_sparse/mcppalloc_sparse_test/mcppalloc_sparse_test")
-    printing_system(location+"/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/mcppalloc_bitmap_allocator_test")
+    printing_system(location+"/mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/mcppalloc_sparse_test")
+    printing_system(location+"/mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/mcppalloc_bitmap_allocator_test")
     printing_system(location+"/cgc1_test/cgc1_test")
 
 def test_linux():

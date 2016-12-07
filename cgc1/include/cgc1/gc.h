@@ -54,9 +54,9 @@ extern "C"
   /**
    * \brief Initialize garbage collector.
    * 
-   * @param current_stack Current top of stack.
+   * @param stack_addr Current top of stack.
    **/
-  CGC1_DLL_PUBLIC extern void GC_init(void* current_stack);
+  CGC1_DLL_PUBLIC extern void GC_init(void* stack_addr);
   /**
    * \brief Force garbage collection.
    **/

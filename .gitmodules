@@ -10,3 +10,6 @@
 [submodule "GSL"]
 	path = GSL
 	url = git@github.com:garyfurnish/GSL.git
+[submodule "mcppalloc"]
+	path = mcppalloc
+	url = git@github.com:garyfurnish/mcppalloc.git

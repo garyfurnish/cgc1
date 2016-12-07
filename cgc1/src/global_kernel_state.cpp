@@ -9,12 +9,12 @@
 #include <cgc1/declarations.hpp>
 #include <cgc1/posix.hpp>
 #include <chrono>
+#include <csignal>
 #include <iostream>
 #include <mcpputil/mcpputil/aligned_allocator.hpp>
 #include <mcpputil/mcpputil/concurrency.hpp>
 #include <mcpputil/mcpputil/equipartition.hpp>
 #include <mcpputil/mcpputil/timed_algorithm.hpp>
-#include <signal.h>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -26,25 +26,10 @@ template <>
 ::mcppalloc::details::user_data_base_t mcppalloc::sparse::details::allocator_block_t<
     mcppalloc::default_allocator_policy_t<cgc1::cgc_internal_slab_allocator_t<void>>>::s_default_user_data{};
 
-#ifdef __APPLE__
+using bitmap_allocator =
+    ::mcppalloc::bitmap_allocator::details::bitmap_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>;
 template <>
-pthread_key_t mcpputil::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_pkey{0};
-#else
-template <>
-thread_local mcpputil::thread_local_pointer_t<
-    mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::pointer_type
-    mcpputil::thread_local_pointer_t<
-        mcppalloc::bitmap_allocator::details::bitmap_thread_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>>::s_tlks =
-        nullptr;
-#endif
-namespace mcppalloc::bitmap_allocator::details
-{
-  template <>
-  mcpputil::thread_local_pointer_t<
-      typename bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::thread_allocator_type>
-      bitmap_allocator_t<cgc1::details::gc_bitmap_allocator_policy_t>::t_thread_allocator{};
-}
+::std::vector<bitmap_allocator::thread_allocator_type *> bitmap_allocator::m_thread_allocator_by_manager_id{};
 
 namespace cgc1::details
 {
@@ -53,11 +38,8 @@ namespace cgc1::details
   auto _real_gks() -> global_kernel_state_t *
   {
     static global_kernel_state_t *gks = nullptr;
-    if (mcpputil_likely(g_gks))
+    if (mcpputil_likely(g_gks)) {
       gks = g_gks;
-    else {
-      if (mcpputil_unlikely(!gks->m_in_destructor))
-        ::std::terminate();
     }
     return gks;
   }
@@ -128,8 +110,9 @@ namespace cgc1::details
   }
   void global_kernel_state_t::initialize()
   {
-    if (m_initialize_called)
+    if (m_initialize_called) {
       throw ::std::runtime_error("CGC1: Already initialized b404159e-e0b9-46f4-9e9c-98aa5a38ac1f");
+    }
     m_initialize_called = true;
     m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(0, 0));
     m_bitmap_allocator.add_type(::mcppalloc::bitmap_allocator::details::bitmap_type_info_t(1, 0));
@@ -183,13 +166,19 @@ namespace cgc1::details
   {
     // get handle for block.
     const auto handle = gc_allocator()._u_find_block(addr);
-    if (!handle)
-      return nullptr;
+    if (handle == nullptr) {
+      {
+        return nullptr;
+      }
+    }
     // find state for address.
     gc_sparse_object_state_t *const os = handle->m_block->find_address(addr);
     // make sure is in valid and in use.
-    if (!os || !os->in_use())
-      return nullptr;
+    if (os == nullptr || !os->in_use()) {
+      {
+        return nullptr;
+      }
+    }
     return os;
   }
   gc_sparse_object_state_t *global_kernel_state_t::find_valid_object_state(void *addr) const
@@ -206,7 +195,7 @@ namespace cgc1::details
     const auto size_with_user_data =
         ::mcpputil::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(bitmap_gc_user_data_t);
 
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data) != 0) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(size_with_user_data, 2);
       auto user_data = bitmap_allocator_user_data(ret.m_ptr);
@@ -221,7 +210,7 @@ namespace cgc1::details
   {
     details::gc_allocator_t::block_type ret{nullptr, 0};
     auto &tlks = *details::get_tlks();
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz) != 0) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(sz, 1);
     } else {
@@ -236,7 +225,7 @@ namespace cgc1::details
   {
     details::gc_allocator_t::block_type ret{nullptr, 0};
     auto &tlks = *details::get_tlks();
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz) != 0) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(sz, 0);
     } else {
@@ -257,8 +246,9 @@ namespace cgc1::details
     auto &tlks = *details::get_tlks();
     auto &sparse_allocator = *tlks.thread_allocator();
     auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
-    if (!bitmap_allocator.deallocate(v))
+    if (!bitmap_allocator.deallocate(v)) {
       sparse_allocator.deallocate(v);
+    }
   }
 
   size_t global_kernel_state_t::num_collections() const
@@ -268,8 +258,9 @@ namespace cgc1::details
   void global_kernel_state_t::_u_setup_gc_threads()
   {
     // if no gc threads, trivially done.
-    if (m_gc_threads.empty())
+    if (m_gc_threads.empty()) {
       return;
+    }
     size_t cur_gc_thread = 0;
     // reset all threads.
     for (auto &thread : m_gc_threads) {
@@ -305,8 +296,9 @@ namespace cgc1::details
     for (auto &gc_thread : m_gc_threads) {
       gc_thread->wait_until_finalization_finished();
     }
-    if (do_local_finalization)
+    if (do_local_finalization) {
       local_thread_finalization();
+    }
   }
   void global_kernel_state_t::local_thread_finalization()
   {
@@ -333,8 +325,9 @@ namespace cgc1::details
     {
       MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_thread_mutex);
       for (auto &gc_thread : m_gc_threads) {
-        if (!gc_thread->finalization_finished())
+        if (!gc_thread->finalization_finished()) {
           return;
+        }
       }
     }
     // force a collection.
@@ -346,15 +339,19 @@ namespace cgc1::details
       ::std::cerr << "Attempted to gc with no thread state" << ::std::endl;
       ::std::terminate();
     }
-    if (!enabled())
+    if (!enabled()) {
       return;
+    }
     bool expected = false;
     m_collect.compare_exchange_strong(expected, true);
     if (expected) {
       // if another thread is trying to collect, let them do it instead.
       // this is memory order acquire because it should be a barrier like locking a mutex.
-      while (m_collect.load(::std::memory_order_acquire))
-        ::std::this_thread::yield();
+      while (m_collect.load(::std::memory_order_acquire)) {
+        {
+          ::std::this_thread::yield();
+        }
+      }
       return;
     }
     // wait until safe to collect.
@@ -381,7 +378,7 @@ namespace cgc1::details
     //      m_collect = true;
     m_num_freed_in_last_collection = 0;
     m_freed_in_last_collection.clear();
-    m_collect_finished.store(0, ::std::memory_order_release);
+    m_collect_finished.store(false, ::std::memory_order_release);
     m_num_paused_threads.store(0, ::std::memory_order_release);
     m_num_resumed_threads.store(0, ::std::memory_order_release);
     // make everything visible
@@ -497,6 +494,7 @@ namespace cgc1::details
   }
   void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
   {
+    mcpputil::thread_id_manager_t::gs().add_current_thread();
     // this is not a race condition because only this thread could initialize.
     auto tlks = details::get_tlks();
     // do not start creating threads during an ongoing collection.
@@ -511,8 +509,11 @@ namespace cgc1::details
       set_tlks(tlks);
       // make sure gc kernel is initialized.
       _u_initialize();
-    } else
-      ::std::terminate();
+    } else {
+      {
+        ::std::terminate();
+      }
+    }
     // set very top of stack.
     tlks->set_top_of_stack(top_of_stack);
     m_threads.push_back(tlks);
@@ -544,6 +545,7 @@ namespace cgc1::details
     m_threads.erase(it);
     // this will delete our tks.
     ::std::unique_ptr<details::thread_local_kernel_state_t, cgc_internal_malloc_deleter_t> tlks_deleter(tlks);
+    // mcpputil::thread_id_manager_t::gs().remove_current_thread();
     // do this to make any changes to state globally visible.
     ::std::atomic_thread_fence(::std::memory_order_release);
     /*#ifndef _WIN32
@@ -553,8 +555,11 @@ namespace cgc1::details
   void global_kernel_state_t::_u_initialize()
   {
     // if already initialized, this is a no-op
-    if (m_initialized)
-      return;
+    if (m_initialized) {
+      {
+        return;
+      }
+    }
 #ifndef _WIN32
     details::initialize_thread_suspension();
 #endif
@@ -562,8 +567,11 @@ namespace cgc1::details
     //      const size_t num_gc_threads = ::std::thread::hardware_concurrency();
     const size_t num_gc_threads = 1;
     // add gc threads
-    for (size_t i = 0; i < num_gc_threads; ++i)
-      m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
+    for (size_t i = 0; i < num_gc_threads; ++i) {
+      {
+        m_gc_threads.emplace_back(make_unique_malloc<gc_thread_t>());
+      }
+    }
     m_initialized = true;
   }
 #ifndef _WIN32
@@ -574,8 +582,11 @@ namespace cgc1::details
     // for each thread
     for (auto state : m_threads) {
       // don't want to suspend this thread.
-      if (state->thread_id() == ::std::this_thread::get_id())
-        continue;
+      if (state->thread_id() == ::std::this_thread::get_id()) {
+        {
+          continue;
+        }
+      }
       // send signal to stop it.
       if (mcpputil_unlikely(cgc1::pthread_kill(state->thread_handle(), SIGUSR1))) {
         ::std::cerr << "Thread went away during suspension 3c846d50-475f-488c-82b5-15ba2c5fa508\n";
@@ -593,8 +604,11 @@ namespace cgc1::details
       ::std::this_thread::yield();
       ::std::chrono::high_resolution_clock::time_point cur_time = ::std::chrono::high_resolution_clock::now();
       auto time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(cur_time - start_time);
-      if (mcpputil_unlikely(time_span > ::std::chrono::seconds(1)))
-        ::std::cerr << "Waiting on thread to pause\n";
+      if (mcpputil_unlikely(time_span > ::std::chrono::seconds(1))) {
+        {
+          ::std::cerr << "Waiting on thread to pause\n";
+        }
+      }
     }
     lock.lock();
     // we shouldn't unlock at end of this.
@@ -608,9 +622,9 @@ namespace cgc1::details
   {
     // if no thread llks we really can't collect.
     auto tlks = details::get_tlks();
-    if (!tlks) {
+    if (nullptr == tlks) {
       // this should be considered a fatal logic error.
-      ::std::terminate();
+      ::std::abort();
     }
     // set stack pointer.
     tlks->set_stack_ptr(__builtin_frame_address(0));

@@ -16,8 +16,8 @@
 #include "../cgc1/src/ptree.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cgc1/posix.hpp>
+#include <csignal>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <signal.h>
 #include <thread>
 
 #endif
@@ -38,8 +38,9 @@ int main()
   ptrs = reinterpret_cast<void **>(GC_malloc(sizeof(void *) * num_alloc));
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(GC_malloc(alloc_sz));
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     for (size_t li = 0; li < 8; ++li) {
       ret[li] = GC_malloc(alloc_sz);
     }
@@ -56,10 +57,12 @@ int main()
   ::std::cout << ts.to_json(2) << ::std::endl;
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
-    for (size_t li = 0; li < 8; ++li)
+    }
+    for (size_t li = 0; li < 8; ++li) {
       ret[li] = ts.allocate(alloc_sz).m_ptr;
+    }
     ::mcpputil::secure_zero(&ret, sizeof(ret));
   }
 
@@ -71,11 +74,13 @@ int main()
   auto &ts = allocator.initialize_thread();
   for (size_t i = 0; i < num_alloc; ++i) {
     auto ret = reinterpret_cast<void **>(ts.allocate(alloc_sz).m_ptr);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     for (size_t li = 0; li < 8; ++li) {
-      if (!(ret[li] = ts.allocate(alloc_sz).m_ptr))
+      if ((ret[li] = ts.allocate(alloc_sz).m_ptr) == nullptr) {
         ::std::terminate();
+      }
     }
   }
 #endif

@@ -1,10 +1,10 @@
 #include <cgc1/posix.hpp>
 #ifdef MCPPALLOC_POSIX
 #include <array>
+#include <csignal>
 #include <iostream>
 #include <mcpputil/mcpputil/posix_slab.hpp>
 #include <pthread.h>
-#include <signal.h>
 #include <thread>
 namespace cgc1
 {
@@ -29,30 +29,35 @@ namespace cgc1
       return s_signal_handlers;
     }
   }
-  bool register_signal_handler(int isignum, const signal_handler_function_t &handler)
+  bool register_signal_handler(int signum, const signal_handler_function_t &handler)
   {
-    if (isignum < 0)
-      ::std::abort();
-    auto signum = static_cast<size_t>(isignum);
-    if (signum >= SIGUNUSED) {
+    const auto isignum = signum;
+    if (isignum < 0) {
+      {
+        ::std::abort();
+      }
+    }
+    auto ssignum = static_cast<size_t>(isignum);
+    if (ssignum >= SIGUNUSED) {
       return false;
     }
     if (handler) {
-      details::signal_handler_functions()[signum] = handler;
+      details::signal_handler_functions()[ssignum] = handler;
       signal(isignum, [](int lsignum) { details::signal_handler_functions()[static_cast<size_t>(lsignum)](lsignum); });
     } else {
       signal(isignum, SIG_IGN);
-      details::signal_handler_functions()[signum] = handler;
+      details::signal_handler_functions()[ssignum] = handler;
     }
     return true;
   }
-  void set_default_signal_handler(int isignum)
+  void set_default_signal_handler(int signum)
   {
-    if (isignum < 0)
+    if (signum < 0) {
       ::std::abort();
-    auto signum = static_cast<size_t>(isignum);
-    signal(isignum, SIG_DFL);
-    details::signal_handler_functions()[signum] = nullptr;
+    }
+    auto ssignum = static_cast<size_t>(signum);
+    signal(signum, SIG_DFL);
+    details::signal_handler_functions()[ssignum] = nullptr;
   }
   int pthread_kill(::std::thread &thread, int sig)
   {

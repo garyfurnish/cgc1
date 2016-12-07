@@ -3,6 +3,7 @@
 #include "declarations.hpp"
 #include <array>
 #include <functional>
+#include <mcpputil/mcpputil/intrinsics.hpp>
 #include <type_traits>
 #include <vector>
 namespace cgc1
@@ -45,13 +46,13 @@ namespace cgc1
    *
    * May be larger than the amount requested.
   **/
-  extern CGC1_DLL_PUBLIC size_t cgc_size(void *v);
+  extern CGC1_DLL_PUBLIC size_t cgc_size(void *addr);
   /**
    * \brief Return the start of an allocated block of memory.
    *
    * @return Return nullptr on error.
   **/
-  extern CGC1_DLL_PUBLIC void *cgc_start(void *v);
+  extern CGC1_DLL_PUBLIC void *cgc_start(void *addr);
   /**
    * \brief Add a root to scan.
   **/
@@ -158,7 +159,7 @@ namespace cgc1
   /**
    * \brief Set if program should abort if this object is collected.
    **/
-  extern CGC1_DLL_PUBLIC void cgc_set_abort_on_collect(void *v, bool abort_on_collect);
+  extern CGC1_DLL_PUBLIC void cgc_set_abort_on_collect(void *addr, bool abort_on_collect);
   namespace debug
   {
     /**

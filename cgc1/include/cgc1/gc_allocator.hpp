@@ -1,5 +1,7 @@
 #pragma once
 #include "cgc1.hpp"
+#include <limits>
+#include <memory>
 namespace cgc1
 {
   template <typename T>

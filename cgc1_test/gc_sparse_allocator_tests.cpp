@@ -4,11 +4,12 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include "../cgc1/src/internal_stream.hpp"
 #include <cgc1/cgc1.hpp>
+#include <cgc1/hide_pointer.hpp>
 #include <chrono>
+#include <csignal>
+#include <cstring>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>
-#include <signal.h>
-#include <string.h>
 #include <thread>
 static ::std::vector<size_t> locations;
 static ::mcpputil::spinlock_t debug_mutex;
@@ -398,11 +399,11 @@ namespace race_condition_test_detail
     finished_part1 = 0;
     // get number of hardware threads
     const size_t num_threads = ::std::thread::hardware_concurrency() * 4;
-    // const size_t num_threads = 2;
     // start threads
     ::std::vector<::std::thread> threads;
-    for (size_t i = 0; i < num_threads; ++i)
+    for (size_t i = 0; i < num_threads; ++i) {
       threads.emplace_back(test_thread);
+    }
     // try to force a race condition by interrupting threads.
     // this is obviously stochastic.
     while (finished_part1 != num_threads) {
@@ -422,8 +423,9 @@ namespace race_condition_test_detail
     }
     // wait for threads to finish.
     keep_going = false;
-    for (auto &&thread : threads)
+    for (auto &&thread : threads) {
       thread.join();
+    }
     // force collection.
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
@@ -568,8 +570,9 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
     ptrs.pop_back();
     ready_for_test = true;
     // wait for test to finish.
-    while (!test_done)
+    while (!test_done) {
       ::std::this_thread::yield();
+    }
     test_done = false;
     // reset stats on last block (it may not exist).
     begin = end = nullptr;
@@ -580,7 +583,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
     }
     ptrs.clear();
     // there should be a block left, but check before we try to access it.
-    if (abs.size()) {
+    if (abs.size() != 0u) {
       // get the stats on the last block so that we can test to see if it is freed to global.
       auto &lb2 = *abs.last_block();
       assert(lb2.valid());
@@ -590,15 +593,17 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
     }
     ready_for_test = true;
     // wait for test to finish.
-    while (!test_done)
+    while (!test_done) {
       ::std::this_thread::yield();
+    }
     cgc1::cgc_unregister_thread();
     ::cgc1::clean_stack(0, 0, 0, 0, 0);
   };
   ::std::thread t1(test_thread);
   // wait for thread to setup.
-  while (!ready_for_test)
+  while (!ready_for_test) {
     ::std::this_thread::yield();
+  }
   // Verify that we haven't created any global blocks.
   // Verify that the block that contained the freed allocation is now in the global free list.
   auto pair = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
@@ -610,8 +615,9 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
   // signal to the thread that it can go ahead and finish.
   test_done = true;
   // wait for thread to setup next phase of testing.
-  while (!ready_for_test)
+  while (!ready_for_test) {
     ::std::this_thread::yield();
+  }
   // the last block should not be in global free here.
   auto pair2 = ::std::make_unique<::std::pair<uint8_t *, uint8_t *>>(begin, end);
   auto in_free2 = allocator.in_free_list(*pair2);

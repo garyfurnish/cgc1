@@ -30,9 +30,7 @@ namespace cgc1
       m_thread_handle = pthread_self();
       assert(m_thread_handle);
     }
-    thread_local_kernel_state_t::~thread_local_kernel_state_t()
-    {
-    }
+    thread_local_kernel_state_t::~thread_local_kernel_state_t() = default;
 #endif
   }
 }
