@@ -18,8 +18,8 @@
 #include "../cgc1/src/internal_declarations.hpp"
 #include <cgc1/cgc1.hpp>
 #include <cgc1/posix.hpp>
+#include <csignal>
 #include <mcppalloc/mcppalloc_sparse/allocator.hpp>
-#include <signal.h>
 #include <thread>
 #endif
 
@@ -47,19 +47,22 @@ void thread_main()
   go_lk.unlock();
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = GC_malloc(alloc_sz);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (i % 2)
+    if ((i % 2) != 0u) {
       GC_free(ptrs[i]);
+    }
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = GC_malloc(alloc_sz);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     ptrs.emplace_back(ret);
   }
   ++done;
@@ -71,19 +74,22 @@ void thread_main()
   go_lk.unlock();
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = malloc(alloc_sz);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (i % 2)
+    if ((i % 2) != 0u) {
       free(ptrs[i]);
+    }
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = malloc(alloc_sz);
-    if (!ret)
+    if (ret == nullptr) {
       ::std::terminate();
+    }
     ptrs.emplace_back(ret);
   }
   ++done;
@@ -95,8 +101,9 @@ void thread_main()
   auto &ts = allocator.initialize_thread();
 
   using ts_type = typename ::std::decay<decltype(ts)>::type;
-  for (size_t i = 0; i < ts_type::c_bins; ++i)
+  for (size_t i = 0; i < ts_type::c_bins; ++i) {
     ts.set_allocator_multiple(i, ts.get_allocator_multiple(i) * 256);
+  }
 #else
   auto &ts = cgc1::details::g_gks->_bitmap_allocator().initialize_thread();
 #endif
@@ -106,19 +113,28 @@ void thread_main()
 
   for (size_t i = 0; i < num_thread_alloc; ++i) {
     auto ret = ts.allocate(alloc_sz).m_ptr;
-    if (!ret)
-      ::std::terminate();
+    if (nullptr == ret) {
+      {
+        ::std::terminate();
+      }
+    }
     ptrs.emplace_back(ret);
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (i % 2)
-      ts.deallocate(ptrs[i]);
+    if (((i % 2) != 0u) != 0u) {
+      {
+        ts.deallocate(ptrs[i]);
+      }
+    }
   }
   ptrs.clear();
   for (size_t i = 0; i < num_thread_alloc / 2; ++i) {
     auto ret = ts.allocate(alloc_sz).m_ptr;
-    if (!ret)
-      ::std::terminate();
+    if (ret == nullptr) {
+      {
+        ::std::terminate();
+      }
+    }
     ptrs.emplace_back(ret);
   }
   ++done;
@@ -163,8 +179,15 @@ int main()
   assert(done == num_thread);
   ::std::chrono::duration<double> time_span = ::std::chrono::duration_cast<::std::chrono::duration<double>>(t2 - t1);
   ::std::cout << "Time elapsed: " << time_span.count() << ::std::endl;
-  for (auto &&thread : threads)
-    thread.join();
+  for (auto &&thread : threads) {
+    {
+      {
+        {
+          thread.join();
+        }
+      }
+    }
+  }
   t1 = ::std::chrono::high_resolution_clock::now();
 #ifdef BOEHM
   GC_enable();

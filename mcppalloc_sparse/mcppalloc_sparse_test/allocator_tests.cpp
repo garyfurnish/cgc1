@@ -118,13 +118,15 @@ void allocator_tests()
       auto &abs = tls.allocators()[id];
       // list to store allocate pointers in so we can destroy them.
       ::std::vector<void *> ptrs;
-      while (abs.m_blocks.size() != 2)
+      while (abs.m_blocks.size() != 2) {
         ptrs.emplace_back(tls.allocate(size_to_alloc).m_ptr);
+      }
       ptrs.pop_back();
       AssertThat(abs.m_blocks.size(), Equals(2_sz));
       // get rid of one of the blocks by freeing everything in it.
-      for (auto &&ptr : ptrs)
+      for (auto &&ptr : ptrs) {
         tls.destroy(ptr);
+      }
       AssertThat(abs.m_blocks.size(), Equals(1_sz));
       {
         // the one block that is left should have the same address in registration as in the block set.

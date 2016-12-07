@@ -73,18 +73,20 @@ static void bitmap_state_test0()
   AssertThat(ps->any_marked(), IsTrue());
   AssertThat(ps->none_marked(), IsFalse());
   for (size_t i = 0; i < 64; ++i) {
-    if (i % 2)
+    if ((i % 2) != 0u) {
       ps->set_marked(i);
+    }
   }
   AssertThat(ps->is_marked(0), IsTrue());
   AssertThat(ps->is_marked(31), IsTrue());
   AssertThat(ps->is_marked(33), IsTrue());
   for (size_t i = 200; i < 255; ++i) {
-    if (i % 2)
+    if ((i % 2) != 0u) {
       ps->set_marked(i);
+    }
   }
   for (size_t i = 1; i < 255; ++i) {
-    if (i % 2 && (i < 64 || (i >= 200))) {
+    if (((i % 2) != 0u) && (i < 64 || (i >= 200))) {
       AssertThat(ps->is_marked(i), IsTrue());
     } else {
       AssertThat(ps->is_marked(i), IsFalse());
@@ -110,20 +112,20 @@ static void bitmap_state_test0()
   AssertThat(ps->num_blocks() * ps_type::bits_array_type::size(), Equals(8_sz));
   while (keep_going) {
     void *ptr = ps->allocate();
-    if (ptr)
+    if (ptr != nullptr) {
       ptrs.push_back(ptr);
-    else {
+    } else {
       keep_going = false;
     }
   }
   AssertThat(ptrs.size(), Equals(expected_entries));
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (i % 3) {
+    if ((i % 3) != 0u) {
       AssertThat(ps->deallocate(ptrs[i]), IsTrue());
     }
   }
   for (size_t i = 0; i < ptrs.size(); ++i) {
-    if (i % 3) {
+    if ((i % 3) != 0u) {
       AssertThat(ps->is_free(i), IsTrue());
     } else {
       AssertThat(ps->is_free(i), IsFalse());
@@ -295,9 +297,10 @@ void exhaustive_test()
       ptrs.push_back(v);
     } catch (::std::bad_alloc) {
     }
-  } while (v);
-  for (auto &&ptr : ptrs)
+  } while (v != nullptr);
+  for (auto &&ptr : ptrs) {
     ta.deallocate(ptr);
+  }
 }
 
 void bitmap_allocator_tests()

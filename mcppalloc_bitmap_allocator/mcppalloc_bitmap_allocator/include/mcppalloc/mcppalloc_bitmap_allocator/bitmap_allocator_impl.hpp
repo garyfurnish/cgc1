@@ -55,7 +55,8 @@ namespace mcppalloc
       template <typename Allocator_Policy>
       auto bitmap_allocator_t<Allocator_Policy>::get_ttla() noexcept -> thread_allocator_type *
       {
-        return m_thread_allocator_by_manager_id[::gsl::narrow_cast<size_t>(mcpputil::thread_id_manager_t::gs().current_thread_id())];
+        return m_thread_allocator_by_manager_id[::gsl::narrow_cast<size_t>(
+            mcpputil::thread_id_manager_t::gs().current_thread_id())];
       }
       template <typename Allocator_Policy>
       void bitmap_allocator_t<Allocator_Policy>::set_ttla(thread_allocator_type *ta) noexcept

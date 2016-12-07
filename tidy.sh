@@ -1,2 +1,0 @@
-#!/bin/bash
-/mnt/fscratch0/pub/build/root-Linux-system/bin/clang-tidy -p=/mnt/fscratch0/pub/build/cgc1/unixmake_clang_debug mcpputil/mcpputil/src/*.cpp mcpputil/mcpputil_test/*.cpp -checks=boost-*,cert-*,cppcoreguildlines-*,clang-analyzer-*,modernize-*,performance-*,readability-*,-google-readability-braces-around-statements,-readability-braces-around-statements,-clang-analyzer-alpha.clone.CloneChecker,-google-build-using-namespace --header-filter=mcpputil/*
