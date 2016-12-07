@@ -26,6 +26,11 @@ template <>
 ::mcppalloc::details::user_data_base_t mcppalloc::sparse::details::allocator_block_t<
     mcppalloc::default_allocator_policy_t<cgc1::cgc_internal_slab_allocator_t<void>>>::s_default_user_data{};
 
+using bitmap_allocator =
+    ::mcppalloc::bitmap_allocator::details::bitmap_allocator_t<::cgc1::details::gc_bitmap_allocator_policy_t>;
+template <>
+::std::vector<bitmap_allocator::thread_allocator_type *> bitmap_allocator::m_thread_allocator_by_manager_id{};
+
 #ifdef __APPLE__
 template <>
 pthread_key_t mcpputil::thread_local_pointer_t<
@@ -490,6 +495,7 @@ namespace cgc1::details
   }
   void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
   {
+    mcpputil::thread_id_manager_t::gs().add_current_thread();
     // this is not a race condition because only this thread could initialize.
     auto tlks = details::get_tlks();
     // do not start creating threads during an ongoing collection.
@@ -537,6 +543,7 @@ namespace cgc1::details
     m_threads.erase(it);
     // this will delete our tks.
     ::std::unique_ptr<details::thread_local_kernel_state_t, cgc_internal_malloc_deleter_t> tlks_deleter(tlks);
+    // mcpputil::thread_id_manager_t::gs().remove_current_thread();
     // do this to make any changes to state globally visible.
     ::std::atomic_thread_fence(::std::memory_order_release);
     /*#ifndef _WIN32

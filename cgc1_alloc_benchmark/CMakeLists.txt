@@ -12,12 +12,12 @@ target_link_libraries(cgc1_alloc_benchmark_thread_boehm ${SystemGC} pthread)
 ENDIF(SystemGC)
 
 
-include_directories(../mcppalloc/mcppalloc/include)
+include_directories(../mcppalloc/mcppalloc/mcppalloc/include)
 include_directories(../mcpputil/mcpputil/include)
-include_directories(../mcppalloc_sparse/mcppalloc_sparse/include/)
-include_directories(../mcppalloc_bitmap/mcppalloc_bitmap/include)
-include_directories(../mcppalloc_slab_allocator/mcppalloc_slab_allocator/include)
-include_directories(../mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator/include/)
+include_directories(../mcppalloc/mcppalloc_sparse/mcppalloc_sparse/include/)
+include_directories(../mcppalloc/mcppalloc_bitmap/mcppalloc_bitmap/include)
+include_directories(../mcppalloc/mcppalloc_slab_allocator/mcppalloc_slab_allocator/include)
+include_directories(../mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator/include/)
 include_directories(../cgc1/include)
 
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
