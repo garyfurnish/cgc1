@@ -1,2 +1,0 @@
-add_subdirectory(mcppalloc_bitmap_allocator)
-add_subdirectory(mcppalloc_bitmap_allocator_test)
