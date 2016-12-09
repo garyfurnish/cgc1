@@ -14,12 +14,12 @@ test_file_checks = checks+",-google-build-using-namespace"
 #checks = "readability-braces-around-statements"
 
 src_files = ["mcpputil/mcpputil/src/*.cpp","mcppconcurrency/mcppconcurrency/src/*.cpp","cgc1/src/*.cpp"]
-test_files = ["mcpputil/mcpputil_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp", "cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
+test_files = ["mcpputil/mcpputil_test/*.cpp", "mcppconcurrency/mcppconcurrency_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp", "cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
 
 
 src_str = ' '.join(map(str, src_files))
 test_files_str = ' '.join(map(str, test_files))
-header_filter = ["mcpputil/*","mcppalloc/*","mcpposutil/*", "cgc1/*"]
+header_filter = ["mcpputil/*","mcppalloc/*","mcpposutil/*","mcppconcurrency","cgc1/*"]
 header_filter_str = ','.join(map(str, header_filter))
 
 cmd = clang_install_location+"/clang-tidy -p=" + cmake_build + " " + src_str + " -checks="+checks+" --header-filter=" +header_filter_str #+ " -fix"
