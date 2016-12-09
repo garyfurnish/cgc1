@@ -46,10 +46,7 @@ namespace cgc1
 #endif
     bool is_bitmap_allocator(void *addr) noexcept
     {
-      if (details::g_gks->_bitmap_allocator().underlying_memory().memory_range().contains(addr)) {
-        return true;
-      }
-      return false;
+      return details::g_gks->_bitmap_allocator().underlying_memory().memory_range().contains(addr);
     }
     bool is_sparse_allocator(void *addr) noexcept
     {
