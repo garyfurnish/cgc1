@@ -47,7 +47,7 @@ namespace cgc1::details
     // We may assume this because the internal allocator may only grow.
     // At worse this may be falsely negative, but then it is undef behavior race condition.
     MCPPALLOC_CONCURRENCY_LOCK_ASSUME(_internal_allocator()._mutex());
-    return ::mcppalloc::sparse::details::is_valid_object_state(os, _internal_allocator()._u_begin(),
+    return ::mcppalloc::sparse::details::is_valid_object_state(os, _internal_allocator().underlying_memory().begin(),
                                                                _internal_allocator()._u_current_end());
   }
   inline auto global_kernel_state_t::_mutex() const -> mutex_type &

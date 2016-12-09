@@ -191,7 +191,7 @@ namespace cgc1
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
-      tlks->scan_stack(m_stack_roots, g_gks->gc_allocator()._u_begin(), g_gks->gc_allocator()._u_current_end(),
+      tlks->scan_stack(m_stack_roots, g_gks->gc_allocator().underlying_memory().begin(), g_gks->gc_allocator()._u_current_end(),
                        g_gks->_bitmap_allocator().underlying_memory().begin(),
                        g_gks->_bitmap_allocator().underlying_memory().end());
       return true;
@@ -419,7 +419,7 @@ namespace cgc1
             unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
           }
         }
-        assert(os->object_end() < g_gks->gc_allocator().end());
+        assert(os->object_end() < g_gks->gc_allocator().underlying_memory().end());
         ::mcpputil::secure_zero_stream(os->object_start(), os->object_size());
         // add to list of objects to be freed.
         to_be_freed.push_back(::mcpputil::hide_pointer(os->object_start()));
