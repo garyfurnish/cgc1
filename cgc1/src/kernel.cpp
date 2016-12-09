@@ -46,10 +46,9 @@ namespace cgc1
 #endif
     bool is_bitmap_allocator(void *addr) noexcept
     {
-      if (addr >= details::g_gks->_bitmap_allocator().begin() && addr < details::g_gks->_bitmap_allocator().end()) {
-        {
-          return true;
-        }
+      if (addr >= details::g_gks->_bitmap_allocator().underlying_memory().begin() &&
+          addr < details::g_gks->_bitmap_allocator().underlying_memory().end()) {
+        return true;
       }
       return false;
     }
@@ -158,7 +157,8 @@ namespace cgc1
     if (nullptr == start) {
       return 0;
     }
-    if (start >= details::g_gks->_bitmap_allocator().begin() && start < details::g_gks->_bitmap_allocator().end()) {
+    if (start >= details::g_gks->_bitmap_allocator().underlying_memory().begin() &&
+        start < details::g_gks->_bitmap_allocator().underlying_memory().end()) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers()) {
         return state->declared_entry_size();
