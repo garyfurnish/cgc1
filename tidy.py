@@ -13,7 +13,7 @@ checks = "boost-*,cert-*,cppcoreguildlines-*,clang-analyzer-*,modernize-*,perfor
 test_file_checks = checks+",-google-build-using-namespace"
 #checks = "readability-braces-around-statements"
 
-src_files = ["mcpputil/mcpputil/src/*.cpp","cgc1/src/*.cpp"]
+src_files = ["mcpputil/mcpputil/src/*.cpp","mcppconcurrency/mcppconcurrency/src/*.cpp","cgc1/src/*.cpp"]
 test_files = ["mcpputil/mcpputil_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp", "cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
 
 
