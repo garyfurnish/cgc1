@@ -133,7 +133,8 @@ namespace cgc1
       return nullptr;
     }
     if (details::is_sparse_allocator(addr)) {
-      details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
+      details::gc_sparse_object_state_t *os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(addr);
       if (!details::g_gks->is_valid_object_state(os)) {
         os = details::g_gks->find_valid_object_state(addr);
         if (nullptr == os) {
@@ -160,7 +161,8 @@ namespace cgc1
       }
       return 0;
     }
-    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os =
+        details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
     if (nullptr != os) {
       return os->object_size();
     }
@@ -297,7 +299,8 @@ namespace cgc1
           }
         }
       }
-      details::gc_sparse_object_state_t *const os = details::gc_sparse_object_state_t::from_object_start(start);
+      details::gc_sparse_object_state_t *const os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
       details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
       if (ud->is_default()) {
         ud = ::mcpputil::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -349,7 +352,8 @@ namespace cgc1
       if (nullptr == start) {
         return;
       }
-      details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+      details::gc_sparse_object_state_t *os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
       details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
       if (ud->is_default()) {
         ud = ::mcpputil::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -378,7 +382,8 @@ namespace cgc1
     if (!mcpputil_unlikely(details::is_sparse_allocator(addr))) {
       ::std::abort();
     }
-    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os =
+        details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
     set_atomic(os, is_atomic);
   }
   void *cgc_malloc_atomic(::std::size_t size_in_bytes)

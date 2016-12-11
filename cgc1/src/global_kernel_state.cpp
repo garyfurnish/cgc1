@@ -172,7 +172,7 @@ namespace cgc1::details
       }
     }
     // find state for address.
-    gc_sparse_object_state_t *const os = handle->m_block->find_address(addr);
+    gc_sparse_object_state_t *const os = handle->m_block->template find_address<gc_sparse_object_state_t>(addr);
     // make sure is in valid and in use.
     if (os == nullptr || !os->in_use()) {
       {

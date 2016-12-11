@@ -203,7 +203,8 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto begin = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(
+            reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
         block->_verify(begin);
         auto end = mcpputil::make_next_iterator(block->current_end());
         for (auto os_it = begin; os_it != end; ++os_it) {
@@ -288,7 +289,7 @@ namespace cgc1
     {
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::template from_object_start<gc_sparse_object_state_t>(addr);
       if (!g_gks->is_valid_object_state(os)) {
         // This is calling during garbage collection, therefore no mutex is needed.
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
@@ -332,7 +333,7 @@ namespace cgc1
       }
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::template from_object_start<gc_sparse_object_state_t>(addr);
       if (g_gks->gc_allocator()._u_current_range().contains(os)) {
         _mark_addrs_sparse(addr, depth);
         return;
@@ -354,8 +355,9 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
-        auto end = mcpputil::make_next_iterator(block->current_end());
+        auto begin = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(
+            reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto end = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(block->current_end());
         // iterate through all objects.
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() == end || os_it->next_valid());

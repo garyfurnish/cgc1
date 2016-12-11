@@ -16,10 +16,6 @@ namespace cgc1
     {
       return 0 != (os->user_flags() & 4);
     }
-    MCPPALLOC_ALWAYS_INLINE void clear_mark(gc_sparse_object_state_t *os)
-    {
-      os->set_user_flags(os->user_flags() & 6);
-    }
     MCPPALLOC_OPT_INLINE void set_mark(gc_sparse_object_state_t *os, bool status)
     {
       os->set_user_flags((os->user_flags() & 6) | static_cast<size_t>(status));
