@@ -9,9 +9,9 @@ with open("settings.json") as settings_file:
 
 cmake_build = build_location+"cgc1/unixmake_clang_debug"
 
-checks = "boost-*,cert-*,cppcoreguildlines-*,clang-analyzer-*,modernize-*,performance-*,readability-*,-readability-named-parameter,-clang-analyzer-alpha.clone.CloneChecker,-clang-analyzer-alpha.core.CastSize,-clang-analyzer-alpha.core.SizeofPtr,-cert-err58-cpp,-clang-analyzer-alpha.core.CastToStruct,-clang-analyzer-alpha.deadcode.UnreachableCode"
+#checks = "boost-*,cert-*,cppcoreguildlines-*,clang-analyzer-*,modernize-*,performance-*,readability-*,-readability-named-parameter,-clang-analyzer-alpha.clone.CloneChecker,-clang-analyzer-alpha.core.CastSize,-clang-analyzer-alpha.core.SizeofPtr,-cert-err58-cpp,-clang-analyzer-alpha.core.CastToStruct,-clang-analyzer-alpha.deadcode.UnreachableCode"
+checks = "readability-braces-around-statements"
 test_file_checks = checks+",-google-build-using-namespace"
-#checks = "readability-braces-around-statements"
 
 src_files = ["mcpputil/mcpputil/src/*.cpp","mcppconcurrency/mcppconcurrency/src/*.cpp","cgc1/src/*.cpp"]
 test_files = ["mcpputil/mcpputil_test/*.cpp", "mcppconcurrency/mcppconcurrency_test/*.cpp", "mcppalloc/mcppalloc_bitmap_allocator/mcppalloc_bitmap_allocator_test/*.cpp", "mcppalloc/mcppalloc_sparse/mcppalloc_sparse_test/*.cpp", "cgc1_alloc_benchmark/*.cpp", "cgc1_test/*.cpp"]
@@ -19,14 +19,14 @@ test_files = ["mcpputil/mcpputil_test/*.cpp", "mcppconcurrency/mcppconcurrency_t
 
 src_str = ' '.join(map(str, src_files))
 test_files_str = ' '.join(map(str, test_files))
-header_filter = ["mcpputil/*","mcppalloc/*","mcpposutil/*","mcppconcurrency","cgc1/*"]
+header_filter = ["mcpputil/*","mcpputil/mcpputil/include/mcpputil/mcpputil/.*","mcppalloc/*","mcpposutil/*","mcppconcurrency","cgc1/*"]
 header_filter_str = ','.join(map(str, header_filter))
 
-cmd = clang_install_location+"/clang-tidy -p=" + cmake_build + " " + src_str + " -checks="+checks+" --header-filter=" +header_filter_str #+ " -fix"
+cmd = clang_install_location+"/clang-tidy -p=" + cmake_build + " " + src_str + " -checks="+checks+" --header-filter=mcpp.*"
 
 print cmd
 os.system(cmd)
-cmd = clang_install_location+"/clang-tidy -p=" + cmake_build + " " + test_files_str + " -checks="+test_file_checks+" --header-filter=" +header_filter_str #+ " -fix"
+cmd = clang_install_location+"/clang-tidy -p=" + cmake_build + " " + test_files_str + " -checks="+test_file_checks+" --header-filter=mcpp.*,cgc.*"
 
-print cmd
-os.system(cmd)
+#print cmd
+#os.system(cmd)
