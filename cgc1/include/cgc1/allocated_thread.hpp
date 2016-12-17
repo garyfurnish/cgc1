@@ -18,7 +18,7 @@ namespace cgc1
       using allocator = Allocator;
       using native_handle_type = native_thread_handle_type;
       using this_type = allocated_thread_details_base_t<allocator>;
-      allocated_thread_details_base_t(const allocator &allocator);
+      allocated_thread_details_base_t(allocator allocator);
       virtual ~allocated_thread_details_base_t() = default;
 #ifndef _WIN32
       static void *_s_run(void *user_data);
@@ -40,8 +40,8 @@ namespace cgc1
       allocated_thread_details_t(allocated_thread_details_t &&) = default;
       allocated_thread_details_t &operator=(const allocated_thread_details_t &) = delete;
       allocated_thread_details_t &operator=(allocated_thread_details_t &&) = default;
-      ~allocated_thread_details_t() = default;
-      virtual void *_run() override;
+      ~allocated_thread_details_t() override = default;
+      void *_run() override;
 
     private:
       Function m_function;

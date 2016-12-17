@@ -66,11 +66,12 @@ namespace cgc1
 
     inline details::bitmap_gc_user_data_t *bitmap_allocator_user_data(void *addr)
     {
-      if (!is_bitmap_allocator(addr))
+      if (!is_bitmap_allocator(addr)) {
         return nullptr;
+      }
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (mcpputil_unlikely(!state->has_valid_magic_numbers())) {
-        assert(0);
+        assert(false);
         return nullptr;
       }
       if (state->type_id() != 2) {

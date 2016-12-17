@@ -78,8 +78,9 @@ namespace cgc1
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
     // make sure not already a root.
     const auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it == m_roots.end())
+    if (it == m_roots.end()) {
       m_roots.push_back(r);
+    }
   }
   template <typename Policy>
   void root_collection_t<Policy>::remove_root(void **r)
@@ -87,8 +88,9 @@ namespace cgc1
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
     // find root and erase.
     auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it != m_roots.end())
+    if (it != m_roots.end()) {
       m_roots.erase(it);
+    }
   }
   template <typename Policy>
   bool root_collection_t<Policy>::has_root(void **r)
@@ -96,9 +98,7 @@ namespace cgc1
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
     // find root and erase.
     auto it = find(m_roots.begin(), m_roots.end(), r);
-    if (it != m_roots.end())
-      return true;
-    return false;
+    return it != m_roots.end();
   }
   template <typename Policy>
   void root_collection_t<Policy>::clear()

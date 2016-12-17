@@ -1,5 +1,5 @@
 #pragma once
-#include <assert.h>
+#include <cassert>
 #include <cgc1/declarations.hpp>
 #include <limits>
 #include <mcpputil/mcpputil/make_unique.hpp>

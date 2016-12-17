@@ -1,7 +1,7 @@
 #pragma once
 #include "cgc1_dll.hpp"
-#include <stdint.h>
-#include <stddef.h>
+#include <stdint.h> // NOLINT
+#include <stddef.h> // NOLINT
 #define CGC1_FAKE_BOEHM
 #define USE_CGC1
 #ifndef _WIN32
@@ -17,7 +17,7 @@
 extern "C"
 {
 #endif
-  typedef void (*GC_finalization_proc)(void * /* obj */,
+  typedef void (*GC_finalization_proc)(void * /* obj */, // NOLINT
 						    void * /* client_data */);
   /**
    * \brief Reallocate memory.

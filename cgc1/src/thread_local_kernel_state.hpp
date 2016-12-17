@@ -2,8 +2,8 @@
 #include "gc_allocator.hpp"
 #include "internal_allocator.hpp"
 #include "internal_declarations.hpp"
-#include <assert.h>
 #include <atomic>
+#include <cassert>
 #include <cgc1/declarations.hpp>
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <thread>
@@ -25,9 +25,9 @@ namespace cgc1
        **/
       thread_local_kernel_state_t();
       thread_local_kernel_state_t(const thread_local_kernel_state_t &) = delete;
-      thread_local_kernel_state_t(thread_local_kernel_state_t &&) = default;
+      thread_local_kernel_state_t(thread_local_kernel_state_t &&) = delete;
       thread_local_kernel_state_t &operator=(const thread_local_kernel_state_t &) = delete;
-      thread_local_kernel_state_t &operator=(thread_local_kernel_state_t &&) = default;
+      thread_local_kernel_state_t &operator=(thread_local_kernel_state_t &&) = delete;
       /**
        * \brief Destructor.
        **/
@@ -81,7 +81,8 @@ namespace cgc1
       * @param fast_slab_end End of fast slab.
       **/
       template <typename CONTAINER>
-      void scan_stack(CONTAINER &container, uint8_t *begin, uint8_t *end, uint8_t *fast_slab_begin, uint8_t *fast_slab_end);
+      void scan_stack(
+          CONTAINER &container, uint8_t *begin, uint8_t *end, uint8_t *const fast_slab_begin, uint8_t *const fast_slab_end);
       /**
       * \brief Add a location that may potentially hold a root.
       *

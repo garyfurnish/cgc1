@@ -12,8 +12,9 @@ namespace cgc1
     }
     ~cgc_root_t()
     {
-      if (m_root)
+      if (m_root != nullptr) {
         cgc_remove_root(m_root);
+      }
     }
     cgc_root_t(const cgc_root_t &) = delete;
     cgc_root_t(cgc_root_t &&cgc_root) noexcept : m_root(::std::move(cgc_root.m_root))

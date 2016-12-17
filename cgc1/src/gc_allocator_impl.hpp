@@ -6,7 +6,7 @@ namespace cgc1
   {
     MCPPALLOC_OPT_INLINE bool is_marked(const gc_sparse_object_state_t *os)
     {
-      return os->user_flags() & 1;
+      return (os->user_flags() & 1) != 0;
     }
     MCPPALLOC_OPT_INLINE bool is_atomic(const gc_sparse_object_state_t *os)
     {
