@@ -1,6 +1,6 @@
 #pragma once
 #include "declarations.hpp"
-#include <assert.h>
+#include <cassert>
 #include <memory>
 #include <vector>
 namespace cgc1
@@ -122,6 +122,9 @@ namespace cgc1
     pointer allocate(size_type n, cgc_internal_malloc_allocator_t<void>::const_pointer = nullptr)
     {
       //      assert(!in_signal_handler());
+      if (::std::numeric_limits<size_t>::max() / sizeof(T) <= n) {
+        throw ::std::bad_alloc();
+      }
       return reinterpret_cast<pointer>(::malloc(n * sizeof(T)));
     }
     /**

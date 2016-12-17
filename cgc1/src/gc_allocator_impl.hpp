@@ -6,7 +6,7 @@ namespace cgc1
   {
     MCPPALLOC_OPT_INLINE bool is_marked(const gc_sparse_object_state_t *os)
     {
-      return os->user_flags() & 1;
+      return (os->user_flags() & 1) != 0;
     }
     MCPPALLOC_OPT_INLINE bool is_atomic(const gc_sparse_object_state_t *os)
     {
@@ -15,10 +15,6 @@ namespace cgc1
     MCPPALLOC_OPT_INLINE bool is_complex(const gc_sparse_object_state_t *os)
     {
       return 0 != (os->user_flags() & 4);
-    }
-    MCPPALLOC_ALWAYS_INLINE void clear_mark(gc_sparse_object_state_t *os)
-    {
-      os->set_user_flags(os->user_flags() & 6);
     }
     MCPPALLOC_OPT_INLINE void set_mark(gc_sparse_object_state_t *os, bool status)
     {

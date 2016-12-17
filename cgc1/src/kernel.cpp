@@ -46,16 +46,11 @@ namespace cgc1
 #endif
     bool is_bitmap_allocator(void *addr) noexcept
     {
-      if (addr >= details::g_gks->_bitmap_allocator().begin() && addr < details::g_gks->_bitmap_allocator().end()) {
-        {
-          return true;
-        }
-      }
-      return false;
+      return details::g_gks->_bitmap_allocator().underlying_memory().memory_range().contains(addr);
     }
     bool is_sparse_allocator(void *addr) noexcept
     {
-      return (addr >= details::g_gks->gc_allocator().begin() && addr < details::g_gks->gc_allocator().end());
+      return details::g_gks->gc_allocator().underlying_memory().memory_range().contains(addr);
     }
   }
   namespace debug
@@ -138,7 +133,8 @@ namespace cgc1
       return nullptr;
     }
     if (details::is_sparse_allocator(addr)) {
-      details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(addr);
+      details::gc_sparse_object_state_t *os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(addr);
       if (!details::g_gks->is_valid_object_state(os)) {
         os = details::g_gks->find_valid_object_state(addr);
         if (nullptr == os) {
@@ -158,14 +154,15 @@ namespace cgc1
     if (nullptr == start) {
       return 0;
     }
-    if (start >= details::g_gks->_bitmap_allocator().begin() && start < details::g_gks->_bitmap_allocator().end()) {
+    if (details::g_gks->_bitmap_allocator().underlying_memory().memory_range().contains(start)) {
       auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (state->has_valid_magic_numbers()) {
         return state->declared_entry_size();
       }
       return 0;
     }
-    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os =
+        details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
     if (nullptr != os) {
       return os->object_size();
     }
@@ -192,12 +189,13 @@ namespace cgc1
   CGC1_DLL_PUBLIC size_t cgc_heap_size()
   {
     // this cast is safe because end > begin is an invariant.
-    return static_cast<size_t>(details::g_gks->gc_allocator().end() - details::g_gks->gc_allocator().begin());
+    return details::g_gks->gc_allocator().underlying_memory().size();
   }
   CGC1_DLL_PUBLIC size_t cgc_heap_free()
   {
     // this cast is safe because end > current_end is an invariant.
-    return static_cast<size_t>(details::g_gks->gc_allocator().end() - details::g_gks->gc_allocator().current_end());
+    return static_cast<size_t>(details::g_gks->gc_allocator().underlying_memory().end() -
+                               details::g_gks->gc_allocator().current_end());
   }
   CGC1_DLL_PUBLIC void cgc_enable()
   {
@@ -301,7 +299,8 @@ namespace cgc1
           }
         }
       }
-      details::gc_sparse_object_state_t *const os = details::gc_sparse_object_state_t::from_object_start(start);
+      details::gc_sparse_object_state_t *const os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
       details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
       if (ud->is_default()) {
         ud = ::mcpputil::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -353,7 +352,8 @@ namespace cgc1
       if (nullptr == start) {
         return;
       }
-      details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+      details::gc_sparse_object_state_t *os =
+          details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
       details::gc_user_data_t *ud = static_cast<details::gc_user_data_t *>(os->user_data());
       if (ud->is_default()) {
         ud = ::mcpputil::make_unique_allocator<details::gc_user_data_t, cgc_internal_allocator_t<void>>(*ud).release();
@@ -382,7 +382,8 @@ namespace cgc1
     if (!mcpputil_unlikely(details::is_sparse_allocator(addr))) {
       ::std::abort();
     }
-    details::gc_sparse_object_state_t *os = details::gc_sparse_object_state_t::from_object_start(start);
+    details::gc_sparse_object_state_t *os =
+        details::gc_sparse_object_state_t::template from_object_start<details::gc_sparse_object_state_t>(start);
     set_atomic(os, is_atomic);
   }
   void *cgc_malloc_atomic(::std::size_t size_in_bytes)

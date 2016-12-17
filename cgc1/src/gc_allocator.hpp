@@ -96,6 +96,10 @@ namespace cgc1
      * \brief Set the complex memory flag for a given object state.
     **/
     extern void set_complex(gc_sparse_object_state_t *os, bool status);
+    MCPPALLOC_ALWAYS_INLINE void clear_mark(gc_sparse_object_state_t *os)
+    {
+      os->set_user_flags(os->user_flags() & 6);
+    }
   }
 }
 #ifdef MCPPALLOC_INLINES

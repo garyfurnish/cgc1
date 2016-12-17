@@ -39,7 +39,7 @@ namespace cgc1
       return ::std::addressof(ref);
     }
 
-    auto allocate(size_type n, const void * = 0) -> pointer
+    auto allocate(size_type n, const void * = nullptr) -> pointer
     {
       return reinterpret_cast<pointer>(cgc_malloc(n * sizeof(T)));
     }

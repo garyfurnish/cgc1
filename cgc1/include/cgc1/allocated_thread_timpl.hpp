@@ -6,8 +6,8 @@ namespace cgc1
   namespace details
   {
     template <typename Allocator>
-    allocated_thread_details_base_t<Allocator>::allocated_thread_details_base_t(const allocator &allocator)
-        : m_allocator(allocator)
+    allocated_thread_details_base_t<Allocator>::allocated_thread_details_base_t(allocator allocator)
+        : m_allocator(::std::move(allocator))
     {
     }
     template <typename Allocator>
@@ -64,9 +64,10 @@ namespace cgc1
   template <typename Allocator>
   void allocated_thread_t<Allocator>::_start(void *details_ptr)
   {
-    int ec = pthread_create(&m_native_handle, 0, &details_type::_s_run, details_ptr);
-    if (ec)
+    int ec = pthread_create(&m_native_handle, nullptr, &details_type::_s_run, details_ptr);
+    if (ec != 0) {
       throw ::std::system_error(::std::error_code(ec, ::std::system_category()), "thread constructor failed");
+    }
   }
 
   template <typename Allocator>
@@ -77,16 +78,18 @@ namespace cgc1
   template <typename Allocator>
   void allocated_thread_t<Allocator>::join()
   {
-    int ec = ::pthread_join(m_native_handle, 0);
-    if (ec)
+    int ec = ::pthread_join(m_native_handle, nullptr);
+    if (ec != 0) {
       throw ::std::system_error(::std::error_code(ec, ::std::system_category()), "thread::join failed");
+    }
   }
   template <typename Allocator>
   void allocated_thread_t<Allocator>::detach()
   {
     int ec = ::pthread_detach(m_native_handle);
-    if (ec)
+    if (ec != 0) {
       throw ::std::system_error(::std::error_code(ec, ::std::system_category()), "thread::detach failed");
+    }
   }
 #else
   template <typename Allocator>
@@ -100,8 +103,9 @@ namespace cgc1
                            nullptr);              // returns the thread identifier
 
     m_native_handle = ec;
-    if (!ec)
+    if (!ec) {
       throw ::std::runtime_error("thread constructor failed");
+    }
   }
 
   template <typename Allocator>
@@ -113,16 +117,18 @@ namespace cgc1
   void allocated_thread_t<Allocator>::join()
   {
     auto ec = WaitForSingleObject(m_native_handle, 0);
-    if (!ec)
+    if (!ec) {
       throw ::std::runtime_error("thread::join failed");
+    }
     detach();
   }
   template <typename Allocator>
   void allocated_thread_t<Allocator>::detach()
   {
     auto ec = CloseHandle(m_native_handle);
-    if (!ec)
+    if (!ec) {
       throw ::std::runtime_error("thread::detach failed");
+    }
   }
 #endif
   template <typename Allocator>

@@ -191,8 +191,9 @@ namespace cgc1
       // clear potential roots for next time.
       tlks->clear_potential_roots();
       // scan stack.
-      tlks->scan_stack(m_stack_roots, g_gks->gc_allocator()._u_begin(), g_gks->gc_allocator()._u_current_end(),
-                       g_gks->_bitmap_allocator().begin(), g_gks->_bitmap_allocator().end());
+      tlks->scan_stack(m_stack_roots, g_gks->gc_allocator().underlying_memory().begin(), g_gks->gc_allocator()._u_current_end(),
+                       g_gks->_bitmap_allocator().underlying_memory().begin(),
+                       g_gks->_bitmap_allocator().underlying_memory().end());
       return true;
     }
     void gc_thread_t::_clear_marks()
@@ -202,7 +203,8 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto begin = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(
+            reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
         block->_verify(begin);
         auto end = mcpputil::make_next_iterator(block->current_end());
         for (auto os_it = begin; os_it != end; ++os_it) {
@@ -230,8 +232,8 @@ namespace cgc1
     }
     int _is_bitmap_addr_markable(void *addr, bool do_mark, bool force_mark)
     {
-      void *const fast_heap_begin = g_gks->_bitmap_allocator().begin();
-      void *const fast_heap_end = g_gks->_bitmap_allocator().end();
+      void *const fast_heap_begin = g_gks->_bitmap_allocator().underlying_memory().begin();
+      void *const fast_heap_end = g_gks->_bitmap_allocator().underlying_memory().end();
       const auto state = ::mcppalloc::bitmap_allocator::details::get_state(addr);
       if (mcpputil_unlikely(reinterpret_cast<uint8_t *>(state) >= fast_heap_end)) {
         return 1;
@@ -287,7 +289,7 @@ namespace cgc1
     {
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::template from_object_start<gc_sparse_object_state_t>(addr);
       if (!g_gks->is_valid_object_state(os)) {
         // This is calling during garbage collection, therefore no mutex is needed.
         MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->_mutex());
@@ -323,15 +325,15 @@ namespace cgc1
     void gc_thread_t::_mark_addrs(void *addr, size_t depth)
     {
       // Find heap begin and end.
-      void *fast_heap_begin = g_gks->_bitmap_allocator().begin();
-      void *fast_heap_end = g_gks->_bitmap_allocator().end();
+      void *fast_heap_begin = g_gks->_bitmap_allocator().underlying_memory().begin();
+      void *fast_heap_end = g_gks->_bitmap_allocator().underlying_memory().end();
       if (addr >= fast_heap_begin && addr < fast_heap_end) {
         _mark_addrs_bitmap(addr, depth);
         return;
       }
       // This is calling during garbage collection, therefore no mutex is needed.
       MCPPALLOC_CONCURRENCY_LOCK_ASSUME(g_gks->gc_allocator()._mutex());
-      gc_sparse_object_state_t *os = gc_sparse_object_state_t::from_object_start(addr);
+      gc_sparse_object_state_t *os = gc_sparse_object_state_t::template from_object_start<gc_sparse_object_state_t>(addr);
       if (g_gks->gc_allocator()._u_current_range().contains(os)) {
         _mark_addrs_sparse(addr, depth);
         return;
@@ -353,8 +355,9 @@ namespace cgc1
       for (auto it = m_block_begin; it != m_block_end; ++it) {
         auto &block_handle = *it;
         auto block = block_handle.m_block;
-        auto begin = mcpputil::make_next_iterator(reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
-        auto end = mcpputil::make_next_iterator(block->current_end());
+        auto begin = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(
+            reinterpret_cast<gc_sparse_object_state_t *>(block->begin()));
+        auto end = mcpputil::make_template_next_iterator<gc_sparse_object_state_t>(block->current_end());
         // iterate through all objects.
         for (auto os_it = begin; os_it != end; ++os_it) {
           assert(os_it->next() == end || os_it->next_valid());
@@ -418,7 +421,7 @@ namespace cgc1
             unique_ptr_allocated<gc_user_data_t, cgc_internal_allocator_t<void>> up(ud);
           }
         }
-        assert(os->object_end() < g_gks->gc_allocator().end());
+        assert(os->object_end() < g_gks->gc_allocator().underlying_memory().end());
         ::mcpputil::secure_zero_stream(os->object_start(), os->object_size());
         // add to list of objects to be freed.
         to_be_freed.push_back(::mcpputil::hide_pointer(os->object_start()));

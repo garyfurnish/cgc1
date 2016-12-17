@@ -13,3 +13,6 @@
 [submodule "mcppalloc"]
 	path = mcppalloc
 	url = git@github.com:garyfurnish/mcppalloc.git
+[submodule "mcppconcurrency"]
+	path = mcppconcurrency
+	url = git@github.com:garyfurnish/mcppconcurrency.git

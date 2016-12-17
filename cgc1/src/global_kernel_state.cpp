@@ -172,7 +172,7 @@ namespace cgc1::details
       }
     }
     // find state for address.
-    gc_sparse_object_state_t *const os = handle->m_block->find_address(addr);
+    gc_sparse_object_state_t *const os = handle->m_block->template find_address<gc_sparse_object_state_t>(addr);
     // make sure is in valid and in use.
     if (os == nullptr || !os->in_use()) {
       {
@@ -195,7 +195,7 @@ namespace cgc1::details
     const auto size_with_user_data =
         ::mcpputil::align(sz, sizeof(::mcppalloc::details::user_data_alignment_t)) + sizeof(bitmap_gc_user_data_t);
 
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data) != 0) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(size_with_user_data)) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(size_with_user_data, 2);
       auto user_data = bitmap_allocator_user_data(ret.m_ptr);
@@ -210,7 +210,7 @@ namespace cgc1::details
   {
     details::gc_allocator_t::block_type ret{nullptr, 0};
     auto &tlks = *details::get_tlks();
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz) != 0) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(sz, 1);
     } else {
@@ -225,7 +225,7 @@ namespace cgc1::details
   {
     details::gc_allocator_t::block_type ret{nullptr, 0};
     auto &tlks = *details::get_tlks();
-    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz) != 0) {
+    if (::mcppalloc::bitmap_allocator::details::fits_in_bins(sz)) {
       auto &bitmap_allocator = *tlks.bitmap_thread_allocator();
       ret = bitmap_allocator.allocate(sz, 0);
     } else {
