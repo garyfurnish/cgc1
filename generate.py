@@ -36,11 +36,13 @@ def generate_linux():
     printing_mkdir("unixmake_gcc_release")
     printing_chdir("unixmake_gcc_release")
     do_cmake(current_directory, "Ninja", ddict)
+    
     printing_chdir("../")
     printing_mkdir("unixmake_gcc_debug")
     printing_chdir("unixmake_gcc_debug")
     ddict["CMAKE_BUILD_TYPE"]="Debug"
     do_cmake(current_directory, "Ninja", ddict)
+    
     ddict["CMAKE_C_COMPILER"] = clang_install_location+'/clang'
     ddict["CMAKE_CXX_COMPILER"] = clang_install_location+'/clang++'
     printing_chdir("../")
@@ -48,14 +50,23 @@ def generate_linux():
     printing_chdir("unixmake_clang_release")
     ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
     do_cmake(current_directory, "Ninja", ddict)
+    
     printing_chdir("../")
     printing_mkdir("unixmake_clang_debug")
     printing_chdir("unixmake_clang_debug")
     ddict["CMAKE_BUILD_TYPE"]="Debug"
     do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_undef_san")
+    printing_chdir("unixmake_clang_undef_san")
+    ddict["CMAKE_BUILD_TYPE"]="Debug"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=undefined -fsanitize=integer -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+    
     ddict["CMAKE_C_COMPILER"] = gcc_install_location+'/gcc'
     ddict["CMAKE_CXX_COMPILER"] = gcc_install_location+'/g++'
-    ddict["CMAKE_CXX_FLAGS"] = ddict["CMAKE_CXX_FLAGS"] + "-O0 -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    ddict["CMAKE_CXX_FLAGS"] = "-O0 -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
     ddict["CMAKE_EXE_LINKER_FLAGS"] ="-fprofile-arcs -ftest-coverage"
     ddict["CMAKE_SHARED_LINKER_FLAGS"]="-fprofile-arcs -ftest-coverage"
     ddict["CMAKE_MODULE_LINKER_FLAGS"]="-fprofile-arcs -ftest-coverage"
