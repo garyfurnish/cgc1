@@ -1,5 +1,6 @@
 #pragma once
 #include <gsl/gsl>
+#include <mcpputil/mcpputil/memory_range.hpp>
 namespace cgc1
 {
   /**
@@ -41,6 +42,23 @@ namespace cgc1
      * \brief Return if single root is in root collection.
      **/
     bool has_root(void **r) NO_THREAD_SAFETY_ANALYSIS;
+    /**
+     * \brief Add root range to root collection.
+     *
+     * Does not permit duplicates but does not test for overlaps.
+     **/
+    void add_range(mcpputil::system_memory_range_t range) NO_THREAD_SAFETY_ANALYSIS;
+    /**
+     * \brief Remove exact root range from collection if present.
+     **/
+    void remove_range(mcpputil::system_memory_range_t range) NO_THREAD_SAFETY_ANALYSIS;
+    /**
+     * \brief Return true if has root range, false otherwise.
+     **/
+    bool has_range(mcpputil::system_memory_range_t range) NO_THREAD_SAFETY_ANALYSIS;
+    /**
+     * \brief Clear all roots.
+     **/
     void clear() NO_THREAD_SAFETY_ANALYSIS;
     /**
      * \brief Return single roots.
@@ -50,11 +68,14 @@ namespace cgc1
      * \brief Return single roots.
      **/
     ::gsl::span<const void **> roots() const;
-
-    void add_memory_range(mcpputil::system_memory_range_t range);
-    void remove_memory_range(mcpputil::system_memory_range_t range);
-    void remove_memory_range(ptrdiff_t location);
-    bool has_memory_range(mcpputil::system_memory_range_t range);
+    /**
+     * \brief Return ranges.
+     **/
+    ::gsl::span<mcpputil::system_memory_range_t> ranges();
+    /**
+     * \brief Return ranges.
+     **/
+    ::gsl::span<mcpputil::system_memory_range_t> ranges() const;
 
   private:
     lock_type &m_lock;
@@ -62,6 +83,10 @@ namespace cgc1
      * \brief Vector of pointers to roots.
      **/
     ::mcpputil::rebind_vector_t<void **, allocator_type> m_roots;
+    /**
+     * \brief Vector of pointers to ranges.
+     **/
+    ::mcpputil::rebind_vector_t<mcpputil::system_memory_range_t, allocator_type> m_ranges;
     /**
      * \brief Allocator to be used.
      **/
@@ -96,15 +121,43 @@ namespace cgc1
   bool root_collection_t<Policy>::has_root(void **r)
   {
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
-    // find root and erase.
+    // find root
     auto it = find(m_roots.begin(), m_roots.end(), r);
     return it != m_roots.end();
+  }
+  template <typename Policy>
+  void root_collection_t<Policy>::add_range(mcpputil::system_memory_range_t range)
+  {
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
+    // make sure not already a root.
+    const auto it = find(m_ranges.begin(), m_ranges.end(), range);
+    if (it == m_ranges.end()) {
+      m_ranges.push_back(range);
+    }
+  }
+  template <typename Policy>
+  void root_collection_t<Policy>::remove_range(mcpputil::system_memory_range_t range)
+  {
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
+    auto it = find(m_ranges.begin(), m_ranges.end(), range);
+    if (it != m_ranges.end()) {
+      m_ranges.erase(it);
+    }
+  }
+  template <typename Policy>
+  bool root_collection_t<Policy>::has_range(mcpputil::system_memory_range_t range)
+  {
+    MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
+    // find root
+    auto it = find(m_ranges.begin(), m_ranges.end(), range);
+    return it != m_ranges.end();
   }
   template <typename Policy>
   void root_collection_t<Policy>::clear()
   {
     MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_lock);
     m_roots.clear();
+    m_ranges.clear();
   }
   template <typename Policy>
   ::gsl::span<void **> root_collection_t<Policy>::roots()
@@ -115,5 +168,15 @@ namespace cgc1
   ::gsl::span<const void **> root_collection_t<Policy>::roots() const
   {
     return m_roots;
+  }
+  template <typename Policy>
+  ::gsl::span<mcpputil::system_memory_range_t> root_collection_t<Policy>::ranges()
+  {
+    return m_ranges;
+  }
+  template <typename Policy>
+  ::gsl::span<mcpputil::system_memory_range_t> root_collection_t<Policy>::ranges() const
+  {
+    return m_ranges;
   }
 }

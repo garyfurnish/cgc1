@@ -61,6 +61,10 @@ namespace cgc1
        **/
       void set_root_iterators(void ***begin, void ***end) REQUIRES(!m_mutex);
       /**
+       * \brief Set the root ranges that this thread is responsible for marking.
+       **/
+      void set_root_ranges(::gsl::span<mcpputil::system_memory_range_t> ranges);
+      /**
        * \brief Wake up thread from sleeping.
        **/
       void wake_up() REQUIRES(!m_mutex);
@@ -221,6 +225,10 @@ namespace cgc1
        * \brief End root iterator.
        **/
       void ***m_root_end GUARDED_BY(m_mutex);
+      /**
+       * Root ranges range.
+      **/
+      ::gsl::span<mcpputil::system_memory_range_t> m_root_ranges;
       /**
        * \brief Hold addresses to mark that would have otherwise caused excessive recursion.
       **/
