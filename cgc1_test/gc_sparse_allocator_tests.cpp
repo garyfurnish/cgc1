@@ -73,6 +73,61 @@ static void root_test()
   AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
 }
 /**
+ * \brief Setup for root test.
+ * This must be a separate funciton to make sure the compiler does not hide pointers somewhere.
+ **/
+static MCPPALLOC_NO_INLINE void root_test2__setup(void *&memory, size_t &old_memory)
+{
+  auto &ta = gks->gc_allocator().initialize_thread();
+  memory = ta.allocate(50).m_ptr;
+  // hide a pointer away for comparison testing.
+  old_memory = ::mcpputil::hide_pointer(memory);
+  cgc1::cgc_add_range({reinterpret_cast<uint8_t *>(&memory), reinterpret_cast<uint8_t *>(&memory + 1)});
+  AssertThat(cgc1::cgc_size(memory), Equals(static_cast<size_t>(64)));
+  AssertThat(cgc1::cgc_is_cgc(memory), IsTrue());
+  AssertThat(cgc1::cgc_is_cgc(nullptr), IsFalse());
+}
+/**
+ * \brief Test root functionality.
+ **/
+static void root_test2()
+{
+  void *memory;
+  size_t old_memory;
+  // setup a root.
+  root_test2__setup(memory, old_memory);
+  // force collection
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+  // verify that nothing was collected.
+  auto last_collect = gks->_d_freed_in_last_collection();
+  if_constexpr(cgc1::c_gc_verbose_track)
+  {
+    AssertThat(last_collect, HasLength(0));
+    AssertThat(gks->num_freed_in_last_collection(), Equals(0_sz));
+  }
+  // remove the root.
+  cgc1::cgc_remove_range({reinterpret_cast<uint8_t *>(&memory), reinterpret_cast<uint8_t *>(&memory + 1)});
+  // make sure that the we zero the memory so the pointer doesn't linger.
+  ::mcpputil::secure_zero_pointer(memory);
+  auto num_collections = cgc1::debug::num_gc_collections();
+  // force collection.
+  cgc1::cgc_force_collect();
+  gks->wait_for_finalization();
+  last_collect = gks->_d_freed_in_last_collection();
+  if_constexpr(cgc1::c_gc_verbose_track)
+  {
+    // now we should collect.
+    AssertThat(last_collect.size(), Equals(1_sz));
+    // verify it collected the correct address.
+    AssertThat(last_collect[0] == old_memory, IsTrue());
+  }
+  AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
+  // verify that we did perform a collection.
+  AssertThat(cgc1::debug::num_gc_collections(), Equals(num_collections + 1));
+}
+
+/**
  * \brief Setup for internal pointer test.
  **/
 static MCPPALLOC_NO_INLINE void internal_pointer_test__setup(void *&memory, size_t &old_memory)
@@ -689,6 +744,11 @@ void gc_bandit_tests()
     it("root", []() {
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
       root_test();
+      ::cgc1::clean_stack(0, 0, 0, 0, 0);
+    });
+    it("root2", []() {
+      ::cgc1::clean_stack(0, 0, 0, 0, 0);
+      root_test2();
       ::cgc1::clean_stack(0, 0, 0, 0, 0);
     });
     it("internal pointer", []() {

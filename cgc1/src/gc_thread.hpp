@@ -63,7 +63,7 @@ namespace cgc1
       /**
        * \brief Set the root ranges that this thread is responsible for marking.
        **/
-      void set_root_ranges(::gsl::span<mcpputil::system_memory_range_t> ranges);
+      void set_root_ranges(::gsl::span<mcpputil::system_memory_range_t> ranges) REQUIRES(!m_mutex);
       /**
        * \brief Wake up thread from sleeping.
        **/

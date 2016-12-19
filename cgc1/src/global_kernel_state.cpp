@@ -275,18 +275,26 @@ namespace cgc1::details
     const auto set_allocator_blocks = [](auto &&thread, auto &&tup) {
       auto begin = ::std::get<0>(tup);
       auto end = ::std::get<1>(tup);
-      // TODO: Possible UB
-      thread->set_allocator_blocks(&*begin, &*end);
+      if (begin != end) {
+        thread->set_allocator_blocks(&*begin, &*end);
+      }
     };
     const auto set_root_iterators = [](auto &&thread, auto &&tup) {
       auto begin = ::std::get<0>(tup);
       auto end = ::std::get<1>(tup);
-      // TODO: Possible UB
-      thread->set_root_iterators(&*begin, &*end);
+      if (begin != end) {
+        thread->set_root_iterators(&*begin, &*end);
+      }
     };
-
+    const auto set_root_range = [](auto &&thread, auto &&tup) {
+      auto begin = ::std::get<0>(tup);
+      auto end = ::std::get<1>(tup);
+      auto sz = end - begin;
+      thread->set_root_ranges({&*begin, sz});
+    };
     mcpputil::equipartition(m_gc_allocator._u_blocks(), m_gc_threads, set_allocator_blocks);
     mcpputil::equipartition(m_roots.roots(), m_gc_threads, set_root_iterators);
+    mcpputil::equipartition(m_roots.ranges(), m_gc_threads, set_root_range);
   }
   void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
   {

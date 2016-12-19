@@ -4,6 +4,7 @@
 #include <array>
 #include <functional>
 #include <mcpputil/mcpputil/intrinsics.hpp>
+#include <mcpputil/mcpputil/memory_range.hpp>
 #include <type_traits>
 #include <vector>
 namespace cgc1
@@ -65,6 +66,19 @@ namespace cgc1
    * \brief Return true if pointer is root, false otherwise.
    **/
   extern CGC1_DLL_PUBLIC bool cgc_has_root(void **v);
+  /**
+   * \brief Add a root to scan.
+  **/
+  extern CGC1_DLL_PUBLIC void cgc_add_range(mcpputil::system_memory_range_t range);
+  /**
+   * \brief Remove a root to scan.
+  **/
+  extern CGC1_DLL_PUBLIC void cgc_remove_range(mcpputil::system_memory_range_t range);
+  /**
+   * \brief Return true if pointer is root, false otherwise.
+   **/
+  extern CGC1_DLL_PUBLIC bool cgc_has_range(mcpputil::system_memory_range_t range);
+
   /**
    * \brief Add a root to scan.
   **/
