@@ -58,11 +58,47 @@ def generate_linux():
     do_cmake(current_directory, "Ninja", ddict)
 
     printing_chdir("../")
-    printing_mkdir("unixmake_clang_undef_san")
-    printing_chdir("unixmake_clang_undef_san")
+    printing_mkdir("unixmake_clang_debug_undef_san")
+    printing_chdir("unixmake_clang_debug_undef_san")
     ddict["CMAKE_BUILD_TYPE"]="Debug"
     ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=undefined -fsanitize=integer -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
     do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_release_undef_san")
+    printing_chdir("unixmake_clang_release_undef_san")
+    ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=undefined -fsanitize=integer -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_debug_address_san")
+    printing_chdir("unixmake_clang_debug_address_san")
+    ddict["CMAKE_BUILD_TYPE"]="Debug"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_release_address_san")
+    printing_chdir("unixmake_clang_release_address_san")
+    ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_debug_thread_san")
+    printing_chdir("unixmake_clang_debug_thread_san")
+    ddict["CMAKE_BUILD_TYPE"]="Debug"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=thread -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+
+    printing_chdir("../")
+    printing_mkdir("unixmake_clang_release_thread_san")
+    printing_chdir("unixmake_clang_release_thread_san")
+    ddict["CMAKE_BUILD_TYPE"]="RelWithDebInfo"
+    ddict["CMAKE_CXX_FLAGS"] = "-fsanitize=thread -fno-omit-frame-pointer -fno-inline -fprofile-arcs -ftest-coverage -DMCPPALLOC_NO_INLINES"
+    do_cmake(current_directory, "Ninja", ddict)
+
     
     ddict["CMAKE_C_COMPILER"] = gcc_install_location+'/gcc'
     ddict["CMAKE_CXX_COMPILER"] = gcc_install_location+'/g++'

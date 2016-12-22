@@ -23,7 +23,7 @@ def run_test(location):
 
 def test_linux():
     printing_chdir(build_location+"/cgc1/")
-    builds = ["unixmake_gcc_release","unixmake_gcc_debug","unixmake_clang_release","unixmake_clang_debug","unixmake_clang_undef_san","unixmake_gcc_gcov"]
+    builds = ["unixmake_gcc_release","unixmake_gcc_debug","unixmake_clang_release","unixmake_clang_debug","unixmake_clang_debug_undef_san","unixmake_clang_release_undef_san","unixmake_gcc_gcov"]
 #    builds = ["unixmake_clang_release","unixmake_clang_debug"]
     pool = Pool()
     pool.map(run_test,builds)
