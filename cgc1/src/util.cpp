@@ -47,7 +47,8 @@ namespace cgc1
           "%xmm14", "%xmm15");
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);
     // zero the stack.
-    int *array = reinterpret_cast<int *>(alloca(sizeof(int) * bytes));
+    auto aa = ::std::array<int, bytes>{};
+    int *array = aa.data();
     ::mcpputil::secure_zero(array, bytes);
     assert(*array == 0);
     ::std::atomic_thread_fence(::std::memory_order_acq_rel);

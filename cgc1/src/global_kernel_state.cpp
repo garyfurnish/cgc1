@@ -37,7 +37,8 @@ namespace cgc1::details
   void finalize(::mcppalloc::bitmap_allocator::details::bitmap_state_t *state);
   auto _real_gks() -> global_kernel_state_t *
   {
-    static global_kernel_state_t *gks = nullptr;
+    // TODO: This seems inefficient
+    static ::std::atomic<global_kernel_state_t *> gks{nullptr};
     if (mcpputil_likely(g_gks)) {
       gks = g_gks;
     }
@@ -502,6 +503,7 @@ namespace cgc1::details
   }
   void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
   {
+    void *adjusted_top_of_stack = mcpputil::unsafe_cast<uint8_t>(top_of_stack);
     mcpputil::thread_id_manager_t::gs().add_current_thread();
     // this is not a race condition because only this thread could initialize.
     auto tlks = details::get_tlks();
@@ -523,7 +525,7 @@ namespace cgc1::details
       }
     }
     // set very top of stack.
-    tlks->set_top_of_stack(top_of_stack);
+    tlks->set_top_of_stack(adjusted_top_of_stack);
     m_threads.push_back(tlks);
     // initialize thread allocators for this thread.
     m_cgc_allocator.initialize_thread();
