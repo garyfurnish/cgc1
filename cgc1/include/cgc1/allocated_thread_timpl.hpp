@@ -142,7 +142,7 @@ namespace cgc1
     return m_native_handle;
   }
   template <typename Allocator>
-  static auto hardware_concurrency() noexcept -> unsigned
+  auto allocated_thread_t<Allocator>::hardware_concurrency() noexcept -> unsigned
   {
     return ::std::thread::hardware_concurrency();
   }

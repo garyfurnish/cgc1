@@ -6,8 +6,8 @@ namespace cgc1
   namespace details
   {
     /**
-   * \brief User data that can be associated with an allocation.
-   **/
+     * \brief User data that can be associated with an allocation.
+     **/
     class alignas(::mcppalloc::details::user_data_alignment_t) gc_user_data_t : public ::mcppalloc::details::user_data_base_t
     {
     public:
@@ -18,13 +18,12 @@ namespace cgc1
       /**
        * \brief Constructor
        *
-       * @param block Block that this allocation belongs to.
        **/
-      gc_user_data_t() noexcept = default;
-      gc_user_data_t(const gc_user_data_t &) = default;
-      gc_user_data_t(gc_user_data_t &&) = default;
-      gc_user_data_t &operator=(const gc_user_data_t &) = default;
-      gc_user_data_t &operator=(gc_user_data_t &&) = default;
+      gc_user_data_t() noexcept;
+      gc_user_data_t(const gc_user_data_t &);
+      gc_user_data_t(gc_user_data_t &&);
+      gc_user_data_t &operator=(const gc_user_data_t &);
+      gc_user_data_t &operator=(gc_user_data_t &&);
 
       auto is_uncollectable() const noexcept -> bool
       {
@@ -58,14 +57,14 @@ namespace cgc1
       auto finalizer_ref() const noexcept -> const finalizer_type &;
       /**
        * \brief Optional finalizer function to run.
-      **/
-      finalizer_type m_finalizer = nullptr;
+       **/
+      finalizer_type m_finalizer{nullptr};
 
     private:
       /**
        * \brief True if uncollectable, false otherwise.
        *
-      **/
+       **/
       bool m_uncollectable{false};
       /**
        * \brief Allow arbitrary finalization thread.
@@ -74,6 +73,11 @@ namespace cgc1
        **/
       bool m_allow_arbitrary_finalizer_thread{false};
     };
+    inline gc_user_data_t::gc_user_data_t() noexcept = default;
+    inline gc_user_data_t::gc_user_data_t(const gc_user_data_t &) = default;
+    inline gc_user_data_t::gc_user_data_t(gc_user_data_t &&) = default;
+    inline gc_user_data_t &gc_user_data_t::operator=(const gc_user_data_t &) = default;
+    inline gc_user_data_t &gc_user_data_t::operator=(gc_user_data_t &&) = default;
   }
 }
 #include "gc_user_data_impl.hpp"

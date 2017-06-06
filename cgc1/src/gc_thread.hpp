@@ -19,7 +19,7 @@ namespace cgc1
      * \brief Internal thread that performs garbage collection.
      *
      * Multiple of these can run to make gc faster.
-    **/
+     **/
     class gc_thread_t
     {
     public:
@@ -70,39 +70,39 @@ namespace cgc1
       void wake_up() REQUIRES(!m_mutex);
       /**
        * \brief Start Clearing marks.
-      **/
+       **/
       void start_clear() REQUIRES(!m_mutex);
       /**
        * \brief Wait until clearing finished.
-      **/
+       **/
       void wait_until_clear_finished();
       /**
        * \brief Start marking.
-      **/
+       **/
       void start_mark();
       /**
        * \brief Wait until mark phase finished.
-      **/
+       **/
       void wait_until_mark_finished();
       /**
        * \brief Start sweeping.
-      **/
+       **/
       void start_sweep();
       /**
        * \brief Wait until sweep phase finished.
-      **/
+       **/
       void wait_until_sweep_finished();
       /**
        * \brief Notify the thread that all threads have resumed from garbage collection and that it is safe to finalize.
-      **/
+       **/
       void notify_all_threads_resumed();
       /**
        * \brief Wait until finalization finishes.
-      **/
+       **/
       void wait_until_finalization_finished();
       /**
        * \brief Returns true if finalization finished, false otherwise.
-      **/
+       **/
       bool finalization_finished() const;
 
     private:
@@ -114,11 +114,11 @@ namespace cgc1
       bool handle_thread(::std::thread::id id) REQUIRES(m_mutex);
       /**
        * \brief Inner thread loop.
-      **/
+       **/
       void _run() REQUIRES(!m_mutex);
       /**
        * \brief Clear marks of all blocks assigned to this thread.
-      **/
+       **/
       void _clear_marks() REQUIRES(m_mutex);
       /**
        * \brief Mark all roots and additional vector of stuff to mark.
@@ -129,7 +129,7 @@ namespace cgc1
        *
        * @param addr Address to mark.
        * @param depth Current depth for controlling infinite recursion.
-      **/
+       **/
       void _mark_addrs(void *addr, size_t depth) REQUIRES(m_mutex);
       /**
        * \brief Mark a given address that was allocated by sparse allocator.
@@ -143,59 +143,59 @@ namespace cgc1
        * \brief Function called at end to mark any addresses that would have caused stack overflows.
        *
        * This is how infinite recursion is prevented.
-      **/
+       **/
       void _mark_mark_vector() REQUIRES(m_mutex);
       /**
        * \brief Sweep for unaccessible memory.
-      **/
+       **/
       void _sweep() REQUIRES(m_mutex);
       /**
        * \brief Finalize sweeped objects.
-      **/
+       **/
       void _finalize() REQUIRES(m_mutex);
       /**
        * \brief Mutex for condition variables and protection.
-      **/
+       **/
       ::mcpputil::mutex_t m_mutex;
       /**
        * \brief Vector of threads whose stack this thread is responsible for.
-      **/
+       **/
       cgc_internal_vector_t<::std::thread::id> m_watched_threads GUARDED_BY(m_mutex);
       /**
        * \brief Variable for waking up.
-      **/
+       **/
       condition_variable_any_t m_wake_up;
       /**
        * \brief Variable for done with clearing.
-      **/
+       **/
       condition_variable_any_t m_done_clearing;
       /**
        * \brief Variable for start marking.
-      **/
+       **/
       condition_variable_any_t m_start_mark;
       /**
        * \brief Variable for done marking.
-      **/
+       **/
       condition_variable_any_t m_done_mark;
       /**
        * \brief Variable for starting sweeping.
-      **/
+       **/
       condition_variable_any_t m_start_sweep;
       /**
        * \brief Variable for when done with collection.
-      **/
+       **/
       condition_variable_any_t m_done_sweep;
       /**
        * \brief Variable for all threads resumed.
-      **/
+       **/
       condition_variable_any_t m_all_threads_resumed;
       /**
        * \brief Variable for finalization done.
-      **/
+       **/
       condition_variable_any_t m_done_finalization;
       /**
        * \brief Thread that this runs in.
-      **/
+       **/
       allocated_thread_t<cgc_internal_malloc_allocator_t<void>> m_thread;
       /**
        * \brief State variables.
@@ -227,20 +227,20 @@ namespace cgc1
       void ***m_root_end GUARDED_BY(m_mutex);
       /**
        * Root ranges range.
-      **/
+       **/
       ::gsl::span<mcpputil::system_memory_range_t> m_root_ranges;
       /**
        * \brief Hold addresses to mark that would have otherwise caused excessive recursion.
-      **/
+       **/
       ::boost::container::flat_set<void *, ::std::less<>, cgc_internal_malloc_allocator_t<void *>>
           m_addresses_to_mark GUARDED_BY(m_mutex);
       /**
        * \brief Roots from stack.
-      **/
+       **/
       cgc_internal_vector_t<uint8_t **> m_stack_roots GUARDED_BY(m_mutex);
       /**
        * \brief List of objects to be freed.
-      **/
+       **/
       cgc_internal_vector_t<gc_sparse_object_state_t *> m_to_be_freed GUARDED_BY(m_mutex);
     };
   }

@@ -7,12 +7,12 @@
 [submodule "mcpposutil"]
 	path = mcpposutil
 	url = git@github.com:garyfurnish/mcpposutil.git
-[submodule "GSL"]
-	path = GSL
-	url = git@github.com:garyfurnish/GSL.git
 [submodule "mcppalloc"]
 	path = mcppalloc
 	url = git@github.com:garyfurnish/mcppalloc.git
 [submodule "mcppconcurrency"]
 	path = mcppconcurrency
 	url = git@github.com:garyfurnish/mcppconcurrency.git
+[submodule "GSL"]
+	path = GSL
+	url = https://github.com/Microsoft/GSL

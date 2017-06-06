@@ -56,7 +56,7 @@ namespace cgc1
       ::std::abort();
     }
     auto ssignum = static_cast<size_t>(signum);
-    signal(signum, SIG_DFL);
+    signal(signum, nullptr);
     details::signal_handler_functions()[ssignum] = nullptr;
   }
   int pthread_kill(::std::thread &thread, int sig)

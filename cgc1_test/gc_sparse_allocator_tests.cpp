@@ -13,7 +13,8 @@
 #include <thread>
 static ::std::vector<size_t> locations;
 static ::mcpputil::spinlock_t debug_mutex;
-using namespace bandit;
+using namespace ::bandit;
+using namespace ::snowhouse;
 // alias
 static auto &gks = ::cgc1::details::g_gks;
 using namespace ::mcpputil::literals;
@@ -325,7 +326,8 @@ static void uncollectable_test()
   {
     auto last_collect = gks->_d_freed_in_last_collection();
     last_collect = gks->_d_freed_in_last_collection();
-    AssertThat(last_collect.size(), Equals(1_sz)) AssertThat(last_collect[0] == old_memory, IsTrue());
+    AssertThat(last_collect.size(), Equals(1_sz));
+    AssertThat(last_collect[0] == old_memory, IsTrue());
   }
   AssertThat(gks->num_freed_in_last_collection(), Equals(1_sz));
   // test bad parameters
@@ -430,7 +432,7 @@ namespace race_condition_test_detail
     // syncronize with tests in main thread.
     while (keep_going) {
       //      ::std::this_thread::yield();
-      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
+      ::std::this_thread::yield();
     }
     ::mcpputil::secure_zero(&foo, sizeof(foo));
     {
@@ -444,7 +446,7 @@ namespace race_condition_test_detail
   }
   /**
    * \brief Try to create a race condition in the garbage collector.
- **/
+   **/
   static MCPPALLOC_NO_INLINE void race_condition_test()
   {
     const auto start_global_blocks = gks->gc_allocator().num_global_blocks();
@@ -474,7 +476,8 @@ namespace race_condition_test_detail
       // prevent test from hammering gc before threads are setup.
       // sleep could cause deadlock with some osx platform functionality
       // therefore intentionally use it to try to break things.
-      ::std::this_thread::sleep_for(::std::chrono::milliseconds(1));
+      for (size_t i = 0; i < 5000; ++i)
+        ::std::this_thread::yield();
     }
     // wait for threads to finish.
     keep_going = false;
@@ -699,7 +702,7 @@ static MCPPALLOC_NO_INLINE void return_to_global_test2()
 }
 /**
  * \brief Test various APIs.
-**/
+ **/
 static void api_tests()
 {
   GC_get_version();

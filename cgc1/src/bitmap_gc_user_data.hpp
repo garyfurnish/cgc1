@@ -27,8 +27,8 @@ namespace cgc1
      **/
     static const constexpr size_t cs_bitmap_allocation_user_bit_finalizeable_arbitrary_thread{1};
     /**
-   * \brief User data that can be associated with an allocation.
-   **/
+     * \brief User data that can be associated with an allocation.
+     **/
     class alignas(::mcppalloc::details::user_data_alignment_t) bitmap_gc_user_data_t
     {
     public:

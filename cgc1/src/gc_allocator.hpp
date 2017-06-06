@@ -62,7 +62,7 @@ namespace cgc1
 
     /**
      * \brief GC allocator type.
-    **/
+     **/
     using gc_allocator_t = ::mcppalloc::sparse::allocator_t<gc_sparse_allocator_policy_t>;
     /**
      * \brief Type of object state for gc sparse allocator.
@@ -70,31 +70,31 @@ namespace cgc1
     using gc_sparse_object_state_t = gc_allocator_t::object_state_type;
     /**
      * \brief Return true if the object state is marked, false otherwise.
-    **/
+     **/
     extern bool is_marked(const gc_sparse_object_state_t *os);
     /**
      * \brief Return true if the memory pointed to by the object state is atomic, false otherwise.
-    **/
+     **/
     extern bool is_atomic(const gc_sparse_object_state_t *os);
     /**
      * \brief Return true if the memory pointed to by the object state is complicated and needs special handeling.
-    **/
+     **/
     extern bool is_complex(const gc_sparse_object_state_t *os);
     /**
      * \brief Clear the gc mark for a given object state.
-    **/
+     **/
     extern void clear_mark(gc_sparse_object_state_t *os);
     /**
      * \brief Set the gc mark for a given object state.
-    **/
+     **/
     extern void set_mark(gc_sparse_object_state_t *os, bool status = true);
     /**
      * \brief Set the atomic flag for a given object state.
-    **/
+     **/
     extern void set_atomic(gc_sparse_object_state_t *os, bool status);
     /**
      * \brief Set the complex memory flag for a given object state.
-    **/
+     **/
     extern void set_complex(gc_sparse_object_state_t *os, bool status);
     MCPPALLOC_ALWAYS_INLINE void clear_mark(gc_sparse_object_state_t *os)
     {

@@ -1,2 +1,2 @@
 #!/bin/bash
-find /mnt/devdiskbuild/pub/build/cgc1/ -name *.gcda | xargs rm
+find /mnt/fscratch0/pub/build/cgc1/ -name *.gcda | xargs rm
