@@ -37,7 +37,8 @@ namespace cgc1::details
   void finalize(::mcppalloc::bitmap_allocator::details::bitmap_state_t *state);
   auto _real_gks() -> global_kernel_state_t *
   {
-    static global_kernel_state_t *gks = nullptr;
+    // TODO: This seems inefficient
+    static ::std::atomic<global_kernel_state_t *> gks{nullptr};
     if (mcpputil_likely(g_gks)) {
       gks = g_gks;
     }
@@ -275,18 +276,26 @@ namespace cgc1::details
     const auto set_allocator_blocks = [](auto &&thread, auto &&tup) {
       auto begin = ::std::get<0>(tup);
       auto end = ::std::get<1>(tup);
-      // TODO: Possible UB
-      thread->set_allocator_blocks(&*begin, &*end);
+      if (begin != end) {
+        thread->set_allocator_blocks(&*begin, &*end);
+      }
     };
     const auto set_root_iterators = [](auto &&thread, auto &&tup) {
       auto begin = ::std::get<0>(tup);
       auto end = ::std::get<1>(tup);
-      // TODO: Possible UB
-      thread->set_root_iterators(&*begin, &*end);
+      if (begin != end) {
+        thread->set_root_iterators(&*begin, &*end);
+      }
     };
-
+    const auto set_root_range = [](auto &&thread, auto &&tup) {
+      auto begin = ::std::get<0>(tup);
+      auto end = ::std::get<1>(tup);
+      auto sz = end - begin;
+      thread->set_root_ranges({&*begin, sz});
+    };
     mcpputil::equipartition(m_gc_allocator._u_blocks(), m_gc_threads, set_allocator_blocks);
     mcpputil::equipartition(m_roots.roots(), m_gc_threads, set_root_iterators);
+    mcpputil::equipartition(m_roots.ranges(), m_gc_threads, set_root_range);
   }
   void global_kernel_state_t::wait_for_finalization(bool do_local_finalization)
   {
@@ -494,6 +503,7 @@ namespace cgc1::details
   }
   void global_kernel_state_t::initialize_current_thread(void *top_of_stack)
   {
+    void *adjusted_top_of_stack = mcpputil::unsafe_cast<uint8_t>(top_of_stack);
     mcpputil::thread_id_manager_t::gs().add_current_thread();
     // this is not a race condition because only this thread could initialize.
     auto tlks = details::get_tlks();
@@ -515,7 +525,7 @@ namespace cgc1::details
       }
     }
     // set very top of stack.
-    tlks->set_top_of_stack(top_of_stack);
+    tlks->set_top_of_stack(adjusted_top_of_stack);
     m_threads.push_back(tlks);
     // initialize thread allocators for this thread.
     m_cgc_allocator.initialize_thread();

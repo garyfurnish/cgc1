@@ -7,6 +7,6 @@ Build
 ====
 Use cmake 2.8.1 or greater to generate build.
 This currently requires at least clang version 4.0.0 (trunk 283082) on OSX and linux.
-For GCC, gcc version 7.0.0 20161207 (experimental) (GCC) or later from trunk is required on linux.
-On OSX, a current build of libcxx also installed with clang is required.
-This should mostly compile with VS "15" Preview 5 but currently segfaults during static initialization.
+For GCC, gcc version 7.1 or later is required with associated libstdc++.
+For clang, clang version 4.0.0 or later is required with associated libc++
+This should mostly compile with current visual studio but currently segfaults during static initialization.

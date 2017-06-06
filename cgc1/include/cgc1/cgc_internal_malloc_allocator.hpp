@@ -162,7 +162,7 @@ namespace cgc1
   /**
    * \brief Deleter for malloc allocator.
    * Use for unique/shared ptrs.
-  **/
+   **/
   struct cgc_internal_malloc_deleter_t {
     template <typename T>
     void operator()(T *t)
@@ -187,9 +187,9 @@ namespace mcpputil
 {
   /**
    * Tag for dispatch of getting deleter.
-  **/
+   **/
   template <typename T>
-  struct cgc_allocator_deleter_t<T, ::cgc1::cgc_internal_malloc_allocator_t<void>> {
+  struct mcpputil_allocator_deleter_t<T, ::cgc1::cgc_internal_malloc_allocator_t<void>> {
     using type = ::cgc1::cgc_internal_malloc_deleter_t;
   };
 }

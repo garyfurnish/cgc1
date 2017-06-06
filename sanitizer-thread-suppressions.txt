@@ -1,0 +1,3 @@
+deadlock:^cgc1::internal_condition_variable_t*
+mutex:^cgc1::internal_condition_variable_t*
+race:^cgc1::internal_condition_variable_t*

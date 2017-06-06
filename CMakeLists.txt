@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 include (mcpputil/setup.cmake)
-find_path(GSL_INCLUDE_PATH gsl/gsl PATHS GSL/)
+find_path(GSL_INCLUDE_PATH gsl/gsl PATHS GSL/include/)
 include_directories(${GSL_INCLUDE_PATH})
 add_subdirectory(mcpputil)
 add_subdirectory(mcpposutil/mcpposutil/mcpposutil)

@@ -92,6 +92,11 @@ namespace cgc1
       m_root_begin = begin;
       m_root_end = end;
     }
+    void gc_thread_t::set_root_ranges(::gsl::span<mcpputil::system_memory_range_t> ranges)
+    {
+      MCPPALLOC_CONCURRENCY_LOCK_GUARD(m_mutex);
+      m_root_ranges = ranges;
+    }
     void gc_thread_t::_run()
     {
       while (m_run) {
@@ -226,6 +231,11 @@ namespace cgc1
       // mark all roots.
       for (auto it = m_root_begin; it != m_root_end; ++it) {
         _mark_addrs(**it, 0);
+      }
+      for (auto range : m_root_ranges) {
+        for (auto it = range.begin(); it != range.end(); ++it) {
+          _mark_addrs(*reinterpret_cast<void **>(it), 0);
+        }
       }
       // mark additional stuff.
       _mark_mark_vector();

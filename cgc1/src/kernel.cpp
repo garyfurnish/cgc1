@@ -186,6 +186,24 @@ namespace cgc1
   {
     return details::g_gks->root_collection().has_root(v);
   }
+  CGC1_DLL_PUBLIC void cgc_add_range(mcpputil::system_memory_range_t range)
+  {
+    details::check_initialized();
+    details::g_gks->root_collection().add_range(range);
+  }
+  CGC1_DLL_PUBLIC void cgc_remove_range(mcpputil::system_memory_range_t range)
+  {
+    if (nullptr == details::g_gks) {
+      {
+        return;
+      }
+    }
+    details::g_gks->root_collection().remove_range(range);
+  }
+  CGC1_DLL_PUBLIC bool cgc_has_range(mcpputil::system_memory_range_t range)
+  {
+    return details::g_gks->root_collection().has_range(range);
+  }
   CGC1_DLL_PUBLIC size_t cgc_heap_size()
   {
     // this cast is safe because end > begin is an invariant.

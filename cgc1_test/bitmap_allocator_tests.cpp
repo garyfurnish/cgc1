@@ -6,7 +6,8 @@
 #include <mcppalloc/mcppalloc_bitmap_allocator/bitmap_allocator.hpp>
 #include <mcpputil/mcpputil/bandit.hpp>
 
-using namespace bandit;
+using namespace ::bandit;
+using namespace ::snowhouse;
 // alias
 static auto &gks = ::cgc1::details::g_gks;
 using namespace ::mcpputil::literals;
@@ -101,8 +102,9 @@ static void packed_linked_list_test()
     cgc1::cgc_unregister_thread();
   };
   ::std::thread t1(test_thread);
-  ::std::this_thread::yield();
-  ::std::this_thread::sleep_for(::std::chrono::seconds(1));
+  for (size_t i = 0; i < 5000; ++i)
+    ::std::this_thread::yield();
+  //  ::std::this_thread::sleep_for(::std::chrono::seconds(1));
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
@@ -148,7 +150,7 @@ static void packed_allocator_test()
   cgc1::cgc_root_pointer_t<uint8_t> tmp;
   const size_t allocation_size = sizeof(size_t) * 10;
   ::std::atomic<bool> is_finalized{false};
-  auto test_thread = [&is_finalized, &keep_going, &debug_mutex, &locations, &tmp, allocation_size]() {
+  auto test_thread = [&is_finalized, &keep_going, &locations, &tmp]() {
     CGC1_INITIALIZE_THREAD();
 
     tmp = reinterpret_cast<uint8_t *>(cgc1::cgc_malloc(allocation_size));
@@ -185,7 +187,9 @@ static void packed_allocator_test()
   };
   ::std::thread t1(test_thread);
   ::std::this_thread::yield();
-  ::std::this_thread::sleep_for(::std::chrono::seconds(1));
+  for (size_t i = 0; i < 5000; ++i)
+    ::std::this_thread::yield();
+  //  ::std::this_thread::sleep_for(::std::chrono::seconds(1));
   for (int i = 0; i < 100; ++i) {
     cgc1::cgc_force_collect();
     gks->wait_for_finalization();
